@@ -31,7 +31,7 @@
 +-----------------------------------------------------------------------------------+
 | 2. EDGE COMPUTING LAYER (Raspberry Pi Zero 2 W / Pi 4 @ Ward Counter)              |
 |  ┌─────────────────────────────────────────────────────────────────────────────┐  |
-|  │  Serial Data Listener (worker/nurse_call_serial_listener.py)                │  |
+|  │  Serial Data Listener (ops/nurse_call_serial_listener.py)                │  |
 |  └──────────────────────────────────────┬──────────────────────────────────────┘  |
 |                                         │                                         |
 |  ┌──────────────────────────────────────▼──────────────────────────────────────┐  |
@@ -75,7 +75,7 @@
 - [x] กำหนดโครงสร้างโดเมน `nithep.com` และวางระบบรักษาความปลอดภัยข้ามเครือข่ายด้วย Cloudflare Tunnel
 
 ### 🔹 Phase 2: การพัฒนาส่วนประมวลผลปลายทาง (Edge Computing Layer) — ✅ Completed
-- [x] **Serial Data Listener (`worker/nurse_call_serial_listener.py`)**: พัฒนาตัวดักจับสัญญาณ RS-232 ถอดรหัส ASCII Frames (`CALL0101=BED1`, `EMG0202=BATH`, `CARDIAC0305=BED2`, `CANCEL0101=BED1`)
+- [x] **Serial Data Listener (`ops/nurse_call_serial_listener.py`)**: พัฒนาตัวดักจับสัญญาณ RS-232 ถอดรหัส ASCII Frames (`CALL0101=BED1`, `EMG0202=BATH`, `CARDIAC0305=BED2`, `CANCEL0101=BED1`)
 - [x] **Edge AI Engine & Emergency Classifier**: แบ่งระดับความฉุกเฉินและกำหนดค่า SLA:
   - `Level 0 (CANCEL)`: ยกเลิกการเรียก
   - `Level 1 (NORMAL_CALL)`: เรียกทั่วไปข้างเตียง (NCX-CORD) — SLA 180 วินาที
@@ -114,7 +114,7 @@
 | **Nurse Station Dashboard** | `https://nursecall.nithep.com` | Web UI (React/Vite) |
 | **Nurse Call API** | `https://api-nurse.nithep.com` | Backend Server (Node.js/Express) |
 | **LINE LIFF App** | `https://liff.nithep.com` | LINE MINI App / Mobile UI |
-| **Edge Listener Code** | `worker/nurse_call_serial_listener.py` | Python 3 (Raspberry Pi OS) |
+| **Edge Listener Code** | `ops/nurse_call_serial_listener.py` | Python 3 (Raspberry Pi OS) |
 | **Local Database** | `nurse_call_events.db` (SQLite) | Local Pi Storage |
 | **Cloud Analytics** | GCP Pub/Sub ➔ BigQuery ➔ Looker Studio | Google Cloud Platform |
 | **Audit Log & Chat** | Google Sheets & Google Chat Webhooks | Google Workspace |
