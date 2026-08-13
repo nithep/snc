@@ -1,41 +1,24 @@
-# โปรเจกต์เชื่อมต่อระบบ Hotel ECS
+# โปรเจกต์ Smart Nurse Call (SNC) PoC
 
-## 🏨 บริบทและเป้าหมาย
-โปรเจกต์นี้คือ **ระบบ Smart Hotel Self Check-in/Check-out**
-ซึ่งจะมาแทนที่ซอฟต์แวร์ "Room Manager" เดิมที่รันบน PC ด้วย Web Application ที่ทันสมัย ระบบนี้ทำงานบน **Raspberry Pi 4** และเชื่อมต่อกับตู้สาขาของโรงแรม (Phonik ECS-103R V.5) เพื่อควบคุมรีเลย์ไฟฟ้าในแต่ละห้องพัก
+## 🏥 บริบทและเป้าหมาย
+โปรเจกต์นี้คือ **ระบบ Smart Nurse Call (SNC) PoC** สำหรับโรงพยาบาล/ศูนย์ดูแลผู้ป่วย
+ซึ่งดัดแปลงตู้สาขาโทรศัพท์ Phonik PBX (รุ่น DX-32C/80C/144C) และบอร์ด Help Call (Call Station v.107) ให้ทำงานเป็นระบบแจ้งเตือนพยาบาล Real-time ผ่าน Web Application ทันสมัยบน **Raspberry Pi 4**
 
 ## 🔄 ขั้นตอนการทำงานหลัก (Core Workflow)
-1. **Check-in**: แขกสแกน QR Code ผ่านหน้าเว็บ Frontend เพื่อเช็คอินเข้าห้องพัก
-2. **เปิดระบบไฟ (ON)**: Backend รับคำสั่งเช็คอินและสั่งให้ PBX Connector ส่งคำสั่ง "ON" ไปที่ตู้สาขา PBX จากนั้นตู้จะส่งสัญญาณไปยังบอร์ด ECS-103R ในห้องเพื่อจ่ายไฟเข้าวงจร (ไฟจะสว่างขึ้นเมื่อแขกเสียบคีย์การ์ด)
-3. **Check-out**: แขกกดทำรายการเช็คเอาท์ผ่านหน้าเว็บ
-4. **ตัดระบบไฟ (OFF)**: Backend ส่งคำสั่ง "OFF" ไปที่ PBX ไฟในห้องจะถูกตัดทันที ไม่ว่าแขกจะเสียบคีย์การ์ดคาไว้หรือไม่ก็ตาม
-
-## 🖥️ สถาปัตยกรรมระบบ (System Architecture)
-- **เซิร์ฟเวอร์หลัก**: Raspberry Pi 4
-- **ฮาร์ดแวร์ในห้อง**: บอร์ด Phonik ECS-103R V.5 (สำหรับควบคุมรีเลย์ 220V)
-- **ศูนย์กลางการสื่อสาร**: ตู้สาขา Phonik PBX ตัว Pi 4 จะเชื่อมต่อกับตู้ผ่านพอร์ต LAN ของPBX
+1. **Nurse Call Trigger**: ผู้ป่วยกดปุ่ม/ดึงสวิทช์ฉุกเฉิน (NCX-CORD / NCX-PULL) หรือยกหูโทรศัพท์จากห้องพัก
+2. **PBX Event Capture**: ตู้ Phonik PBX พ่น Real-time SMDR Log (`==SMDX... e.400 ...`) ผ่าน TCP Telnet (IP: `192.168.1.91:23`)
+3. **Backend Event Processing**: `snc_pbx_listener` สกัดเบอร์ห้องและประเภท Event แปลงเป็น FHIR JSON Standard แล้วบันทึกลง SQLite (`nurse_call_events.db`)
+4. **Real-time Alerting**: Backend ส่ง WebSocket กระจายสัญญาณ Alert ไปยัง Nurse Station Dashboard
+5. **Nurse Dashboard Response**: หน้าจอเคาน์เตอร์พยาบาลแสดง Grid ห้องพัก (เขียว=ปกติ, แดงกะพริบ=ฉุกเฉิน, เหลือง=รับเรื่องแล้ว) เล่นเสียงเตือน Alarm และจับเวลา Response Time จนกว่าพยาบาลจะกด Acknowledge/Clear
 
 ## 📁 โครงสร้างโฟลเดอร์ (Directory Structure)
-- `/frontend`: Web Dashboard สำหรับพนักงานและหน้า Self Check-in สำหรับแขก (สร้างด้วย React/Vite) **หน้าตาต้องสวยงามและดูพรีเมียมขั้นสุด**
-- `/backend`: API Server (Node.js/Python) สำหรับจัดการ Business Logic, ฐานข้อมูล, และ REST endpoints
-- `/pbx-connector`: สคริปต์ระดับล่างสำหรับถอดรหัส Protocol และการสื่อสารผ่าน Serial/TCP กับตู้ Phonik PBX
-- `/docs`: ฐานความรู้หลัก (Knowledge Base) รูปแบบ OKF (Open Knowledge Format) ทำหน้าที่เป็น World Model ถาวรของระบบ ประกอบด้วยโฟลเดอร์ `/raw` (Inbox) และ `/wiki` (Evergreen notes)
-- `/worker`: โมดูลสำหรับการประมวลผล Agentic tasks และการทดสอบเชื่อมต่อฮาร์ดแวร์ (Python)
+- `app/`: Web Dashboard สำหรับเคาน์เตอร์พยาบาล (React/Vite) หน้าตาสวยงามพรีเมียม Dark Mode
+- `api/`: API Server (FastAPI / Node.js) จัดการ Business Logic, WebSocket และ FHIR Data Schema
+- `pbx/`: สคริปต์ระดับล่างดักจับและแปลโปรโตคอล SMDR/Telnet สัญญาณเรียกจากตู้ Phonik PBX
+- `doc/`: เอกสารประกอบโปรเจกต์และการบันทึกสเปกฮาร์ดแวร์
 
-## 🤖 กฎการปฏิบัติตามของ AI Agent (Hotel ECS Project Rules)
-
-1. **บทบาทหลัก (Role)**: คุณคือ Senior Software Engineer ผู้เชี่ยวชาญระบบ Digital Twin และ Industrial IoT
-2. **การสื่อสาร (Communication)**: ใช้ภาษาไทยในการสื่อสารอย่างเป็นทางการ (Professional & Senior Tone) รวมถึงเอกสาร (Documentation), คู่มือ (READMEs), การตั้งค่าทักษะ (Skills), Artifacts และโน้ตต่างๆ
-3. **การออกแบบโค้ด (Modularity)**: ต้องเขียนโค้ดแยกเป็น Module/Class เสมอ มีความชัดเจนและยืดหยุ่น เช่น `PBXProtocolHandler` (แปลโปรโตคอล), `ConnectionManager` (ควบคุมการเชื่อมต่อ), `StateVerifier` (ยืนยันผลลัพธ์)
-4. **ความปลอดภัยสูงสูด (Safety First)**: ห้ามแก้ไขคำสั่ง Hardware หรือส่งคำสั่งควบคุมโดยไม่มีการเขียน Unit Test หรือระบบ Verifier กำกับไว้
-5. **ระบบจัดการปัญหาตัวเอง (Self-Healing)**: ในทุก Loop ของการพัฒนาและทำงาน ให้ Agent ตรวจสอบ Log และจัดการ Error โดยอัตโนมัติ (เช่น นโยบาย Retry ในกรณีเกิดข้อผิดพลาดทางเครือข่ายชั่วคราว)
-6. **กฎการออกแบบ Frontend (Frontend Design Rules)**: ให้ความสำคัญกับความสวยงามเป็นอันดับหนึ่ง ใช้สีสันที่ดูแพง, ฟอนต์สมัยใหม่ (เช่น Google Fonts), โหมดดาร์กโหมดที่ดูโฉบเฉี่ยว และแอนิเมชันเพื่อมอบประสบการณ์แบบพรีเมียม ห้ามทำแค่ MVP พื้นๆ
-7. **ระบบ Multi-Agent และเอกสาร (Multi-Agent System & Documentation)**: ระบบใช้โครงสร้าง Code as Agent Harness
-   - **Librarian / Synthesis Agent**: มีหน้าที่สกัดข้อมูลจาก `docs/raw` ย่อยและเขียนสรุปเป็น Evergreen Note ใน `docs/wiki`
-   - **Verification Agent**: มีหน้าที่ตรวจสอบความถูกต้อง Fact-check และตรวจสอบแหล่งอ้างอิงก่อนยืนยันเอกสาร
-   - **การบันทึกความรู้ (Documentation)**: ทุกครั้งที่สร้าง Feature ใหม่ ให้บันทึกความเข้าใจลงในไฟล์สรุปใน `/wiki` เสมอ
-8. **สไตล์การแก้ปัญหา (Troubleshooting Style)**: เมื่อเจอปัญหา (Error) หรือบั๊ก ต้องใช้วิธีคิดวิเคราะห์เป็นขั้นเป็นตอน (Step-by-step analytical approach) โดยสรุปปัญหาให้ผู้ใช้ฟังแบบเข้าใจง่าย (ระบุสาเหตุหลัก และบอกวิธีแก้เป็นข้อๆ ที่สามารถนำไปใช้ได้ทันที) หลีกเลี่ยงการตอบแบบกำกวม
-9. **ระบบบันทึก Timeline อัตโนมัติ (Automated Changelog)**: เมื่อพัฒนา Feature สำคัญเสร็จสิ้น หรือแก้ปัญหา (Bug/Issue) หลักสำเร็จลุล่วง Agent **ต้อง** ทำการอัปเดตและบันทึกประวัติลงในไฟล์ `/docs/wiki/project_timeline.md` โดยอัตโนมัติทุกครั้ง เพื่อเก็บบันทึกประวัติการก่อสร้างโครงการไว้เป็นคู่มือและคลิปสอนช่าง
-10. **ระบบแจ้งเตือนการรอผลงานที่ใช้เวลานาน (Quiet Waiting Mode)**: เมื่อตรวจพบว่าการทำงานในขั้นตอนปัจจุบันเป็นงานที่ต้องรอผลและใช้เวลานาน (เช่น การรันคำสั่ง Build/Deploy ไปยังบอร์ด Pi, การทดสอบระบบ Hardware ที่ต้องหน่วงเวลารอคอย หรือการทำงานแบบอะซิงโครนัส) ห้ามทำการเขียน Loop สั่งรันคำสั่งเช็คสถานะ (polling) วนซ้ำให้เปลือง Context และห้ามพิมพ์ข้อความตอบกลับที่ยืดเยื้อ ให้ Agent ดำเนินการพิมพ์แจ้งข้อความบอกผู้ใช้สั้นๆ ว่า "เงียบไว้ชั่วคราวเพื่อรอผล..." จากนั้นใช้เครื่องมือ `schedule` ตั้งเวลาปลุกอะซิงโครนัส และหยุดส่งคำสั่ง (Yield control) เพื่อให้ระบบส่งสัญญาณปลุกปลดล็อกเมื่อเกิดเหตุการณ์สำเร็จในภายหลัง
-11. **มาตรฐานการเข้ารหัสอักขระ (Strict UTF-8 Encoding Standard)**: ห้ามบันทึกหรือแก้ไขไฟล์เอกสาร (.md) หรือโค้ดภาษาไทยโดยไม่ระบุการเข้ารหัส `utf-8` แบบ Explicit โดยเด็ดขาด เมื่อใช้งานสคริปต์ (Node.js, Python, PowerShell) หรือเครื่องมือเขียนไฟล์ ต้องกำหนด Encoding เป็น UTF-8 เสมอ เพื่อป้องกันปัญหาอักขระภาษาไทยพังหรือกลายเป็นตัวอักษรต่างดาว (Mojibake เกิดซ้ำ)
-
+## 🤖 กฎการปฏิบัติตามของ AI Agent (SNC Project Rules)
+1. **บทบาทหลัก (Role)**: Senior Software Engineer & Healthcare IoT Specialist
+2. **การสื่อสาร (Communication)**: ใช้ภาษาไทยทางการ (Professional Tone) ในเอกสาร โค้ด และ Artifacts
+3. **ความปลอดภัยข้อมูลสุขภาพ (Data Standards)**: ออกแบบ Data Payload ให้อยู่ในมาตรฐาน **HL7 FHIR JSON** ตั้งแต่ Day 1 เพื่อเตรียมความพร้อมนำขึ้น GCP Healthcare API / Vertex AI Predictive Analytics ในอนาคต
+4. **การเข้ารหัสอักขระ (Strict UTF-8)**: กำหนด Encoding เป็น `utf-8` เสมอในการบันทึกหรืออ่านไฟล์ภาษาไทย

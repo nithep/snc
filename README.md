@@ -1,50 +1,44 @@
-```text
- ⚡ ========================================================================= ⚡
-    _  _   ___  _____ _____ _     ___   ___  ___ 
-   | || | / _ \|_   _| ____| |   | ___|/ __|/ __|
-   | || || | | | | | |  _| | |   | _| | (__ \__ \
-   |_||_||_| |_| |_| |___|_|___|_|___|\___|___/
-   
-           --- HOTEL ENERGY CONTROL SERVER ---
-               Powered by [ nithep.com ]
- ⚡ ========================================================================= ⚡
-```
+# 🏥 SNC — Smart Nurse Call
 
-# 🏨 Hotel ECS (Smart Hotel Self Check-in)
+> ระบบ Smart Nurse Call (SNC) สำหรับโรงพยาบาล/ศูนย์ดูแลผู้ป่วย — ดัดแปลงตู้สาขา Phonik PBX
+> และบอร์ด Help Call (Call Station v.107) ให้เป็นระบบแจ้งเตือนพยาบาล Real-time
+> รันบน **Raspberry Pi 4** ภายใต้แบรนด์ **nithep** (`https://snc.nithep.com`)
 
-![Hotel ECS Banner](https://img.shields.io/badge/Status-In%20Development-blue) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-red) ![Hardware](https://img.shields.io/badge/Hardware-Phonik%20PBX%20ECS--103R-green)
+![Status](https://img.shields.io/badge/Status-Production--Ready-green) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-red)
 
-ระบบจัดการห้องพักโรงแรมสมัยใหม่ (Smart Hotel Self Check-in/Check-out) ที่ผสานระหว่าง Web Application และ Hardware Control เข้าด้วยกัน โดยมุ่งเน้นความน่าเชื่อถือ (Reliability) ความปลอดภัย (Security) และประสบการณ์ผู้ใช้ที่ยอดเยี่ยม (Premium UX)
-
-## 📌 ภาพรวมโครงการ (Project Overview)
-โปรเจกต์นี้ถูกสร้างขึ้นเพื่อทดแทนระบบ "Room Manager" เดิมที่ทำงานบน PC โดยเปลี่ยนผ่านสู่สถาปัตยกรรม Web Application และทำงานบน **Raspberry Pi 4** เพื่อเป็นศูนย์กลางเชื่อมต่อกับตู้สาขา **Phonik PBX (ECS-103R V.5)** 
-
-ฟีเจอร์หลัก:
-- **Self Check-in/Out:** ลูกค้าสแกน QR Code และทำรายการผ่านมือถือได้ด้วยตัวเอง (Premium UI/UX)
-- **Hardware Integration:** เปิด/ปิด ระบบไฟฟ้าในห้องพัก (รีเลย์ 220V) อัตโนมัติเมื่อมีการ Check-in หรือ Check-out
-- **AI-Powered Orchestration:** ระบบใช้สถาปัตยกรรม Agentic AI (นำโดย HECS - Master Agent) ในการบริหารจัดการ ตรวจสอบความถูกต้อง และจัดทำเอกสาร
-
-## 🏗️ โครงสร้างสถาปัตยกรรม (Architecture)
-ดูรายละเอียดเจาะลึกได้ที่ [ARCHITECTURE.md](ARCHITECTURE.md)
+## 🏛️ โครงสร้าง 5-Core (Standard Layout)
 
 | โฟลเดอร์ | รายละเอียด |
 |---------|-----------|
-| `/frontend` | Web Dashboard & Kiosk สำหรับลูกค้าและพนักงาน (React/Vite) |
-| `/backend` | API Server (Node.js/Python) สำหรับจัดการระบบฐานข้อมูลและ Business Logic |
-| `/pbx-connector` | สคริปต์ระดับล่าง (Protocol Handler) สำหรับเชื่อมต่อตู้สาขาทาง Serial/TCP |
-| `/worker` | โมดูลสำหรับการประมวลผล Agentic tasks และทดสอบฮาร์ดแวร์ |
-| `/docs` | ฐานความรู้ (Knowledge Base) รูปแบบ OKF ที่บริหารจัดการโดย AI Agent |
+| `api/` | API Server (FastAPI) — จัดเก็บสถิติ, ประมวลผล SLA, WebSocket Real-time, เสิร์ฟ Dashboard |
+| `app/` | Nurse Dashboard v2.0 — หน้าเคาน์เตอร์พยาบาล (Dark Mode พรีเมียม, i18n ไทย/อังกฤษ) |
+| `pbx/` | SMDR Edge Listener — ถอดรหัสสัญญาณ CALL_BEDSIDE / CALL_BATHROOM_EMERGENCY ผ่าน TCP Telnet |
+| `ops/` | DevOps — สคริปต์ Deploy, Burn-in Monitor, Backup WAL, cron, ตรวจสอบสถานะ Pi |
+| `doc/` | เอกสาร OKF — คู่มือพยาบาล (STAFF_GUIDE), แผนและ SOP ฝ่ายเทคนิค, Knowledge Base |
 
-## 🚀 เริ่มต้นใช้งานด่วน (Quick Start)
+## 🚀 Quick Start (บน Pi 4)
 
-รันคำสั่งด้านล่างใน Terminal (รองรับ Linux / Raspberry Pi OS) เพื่อติดตั้งระบบ HECS ทันที:
 ```bash
-curl -sL https://raw.githubusercontent.com/nithep/Hotel-ECS/main/install.sh | bash
+cd ~/nithep/snc
+./ops/quick_start.sh            # รัน API + Listener
+curl -s http://localhost:8000/health
 ```
-> หรืออ่านคู่มือการติดตั้งแบบละเอียดได้ที่ [SETUP_QUICKSTART.md](SETUP_QUICKSTART.md)
 
-## 🛡️ ความปลอดภัย (Security & Safety)
-ทุกคำสั่งควบคุมตู้สาขาและระบบไฟ จะต้องผ่านระบบ `StateVerifier` เสมอ เพื่อป้องกันอันตรายระดับฮาร์ดแวร์ ดูเพิ่มเติมที่ [SECURITY.md](SECURITY.md)
+## 🔄 สถาปัตยกรรม (Architecture)
+
+```
+ผู้ป่วยกดปุ่ม/ดึงสายฉุกเฉิน → Phonik PBX (192.168.1.91:23)
+    → pbx/snc_pbx_listener.py (SMDR Parser → FHIR JSON)
+    → api/server.py (FastAPI + SQLite WAL + WebSocket)
+    → app/ (Nurse Dashboard Real-time + SLA Timer + เสียงเตือน)
+```
+
+## 🛡️ ความปลอดภัย (Security)
+
+- ทุกคำสั่งควบคุมตู้สาขาต้องผ่านระบบ Verifier (Safety First)
+- API Key + Rate Limit กันการโจมตีจาก LAN (SNC_API_KEY)
+- SQLite WAL Mode + Auto-backup ผ่าน cron (`ops/backup-snc-db.sh`)
+- ระบบ Self-Healing ผ่าน systemd (`Restart=always`) + Burn-in Monitor (`ops/burnin-monitor.sh`)
 
 ---
-*ดำเนินการจัดทำเอกสารและดูแลสถาปัตยกรรมโดย HECS (Master Agent Orchestrator)*
+*ดำเนินการจัดทำและดูแลโดย nithep — Production-Grade Smart Systems*
