@@ -87,7 +87,7 @@ ssh pi4 'systemctl is-active snc-backend.service snc-pbx-listener.service'
 2. เช็ค `ping 192.168.1.91` — ถ้าไม่ตอบ แสดงว่าไฟ/สายขัดข้อง
 3. เช็คว่า Pi ยังเชื่อม LAN อยู่ (`ping` จาก Pi ไปตู้)
 4. ตรวจ SMDR Target IP ในตู้ = `192.168.1.94` (ถ้า "เชื่อมต่อแต่ไม่มีข้อมูลไหล")
-5. รายละเอียดเพิ่มเติม: `docs/wiki/PBX_CONNECTIVITY_TROUBLESHOOTING.md`
+5. รายละเอียดเพิ่มเติม: `doc/wiki/PBX_CONNECTIVITY_TROUBLESHOOTING.md`
 
 ---
 

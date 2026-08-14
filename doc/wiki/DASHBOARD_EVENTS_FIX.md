@@ -27,7 +27,7 @@ SMDR records จาก Phonik PBX ถูกต้องและมี prefix `=
 
 เนื่องจากใช้ `INSERT OR REPLACE` ใน SQL, event ใหม่จะ replace event เก่าแทนที่จะเพิ่ม record ใหม่
 
-**ไฟล์ที่แก้ไข**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\backend\server.py#L172-L215)
+**ไฟล์ที่แก้ไข**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\api\server.py#L172-L215)
 
 ---
 
@@ -41,8 +41,8 @@ SMDR records จาก Phonik PBX ถูกต้องและมี prefix `=
 **การแก้ไข**: เพิ่ม comprehensive logging
 
 **ไฟล์ที่แก้ไข**: 
-- [`snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\pbx-connector\snc_pbx_listener.py#L213-L235) - Enhanced send_event_to_backend logging
-- [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\backend\server.py#L172-L215) - Enhanced trigger_event logging
+- [`snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\pbx\snc_pbx_listener.py#L213-L235) - Enhanced send_event_to_backend logging
+- [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\api\server.py#L172-L215) - Enhanced trigger_event logging
 
 ---
 
@@ -61,7 +61,7 @@ SMDR records จาก Phonik PBX ถูกต้องและมี prefix `=
 
 ### 1. แก้ไข Event ID ให้ใช้ Microseconds
 
-**ไฟล์**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\backend\server.py)
+**ไฟล์**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\api\server.py)
 
 ```python
 import time
@@ -74,7 +74,7 @@ unique_id = f"snc-event-{formatted_room}-{int(time.time() * 1000000)}"
 
 ### 2. เพิ่ม Logging ที่ PBX Listener
 
-**ไฟล์**: [`snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\pbx-connector\snc_pbx_listener.py)
+**ไฟล์**: [`snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\pbx\snc_pbx_listener.py)
 
 ```python
 async def send_event_to_backend(self, event_data: dict):
@@ -109,7 +109,7 @@ async def send_event_to_backend(self, event_data: dict):
 
 ### 3. เพิ่ม Logging ที่ Backend
 
-**ไฟล์**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\backend\server.py)
+**ไฟล์**: [`server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\api\server.py)
 
 ```python
 @app.post("/api/events/trigger")
@@ -145,7 +145,7 @@ Script นี้ใช้เพื่อ:
 ### ขั้นตอนที่ 1: ตรวจสอบ Database
 
 ```bash
-cd /home/pi/Hotel-ECS/snc-poc/backend
+cd /home/ecs-agent/nithep/snc/api
 python3 check_events.py
 ```
 
@@ -154,7 +154,7 @@ python3 check_events.py
 - หรือ backend ไม่ได้รับ/ไม่บันทึก
 
 **ถ้าเจอ events**:
-- ปัญหามาจาก frontend/dashboard ไม่ดึงข้อมูลมาแสดง
+- ปัญหามาจาก app/dashboard ไม่ดึงข้อมูลมาแสดง
 
 ---
 
@@ -162,10 +162,10 @@ python3 check_events.py
 
 ```bash
 # ตรวจสอบ PBX listener logs
-tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log | grep -E "(Attempting|Event sent|Error)"
+tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log | grep -E "(Attempting|Event sent|Error)"
 
 # ตรวจสอบ Backend logs
-tail -f /home/pi/Hotel-ECS/logs/backend.log | grep -E "(Received event|Saving event|saved successfully)"
+tail -f /home/ecs-agent/nithep/snc/logs/backend.log | grep -E "(Received event|Saving event|saved successfully)"
 ```
 
 **ควรเห็น**:
@@ -217,16 +217,16 @@ pkill -f "uvicorn|snc_pbx"
 
 # 2. Copy ไฟล์ที่แก้ไขแล้ว
 cd "c:\Users\Nithep\ไดรฟ์ของฉัน (cnithep@gmail.com)\Hotel-ECS\snc-poc"
-scp backend/server.py pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/backend/
-scp pbx-connector/snc_pbx_listener.py pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/pbx-connector/
-scp backend/check_events.py pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/backend/
+scp api/server.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/api/
+scp pbx/snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/pbx/
+scp api/check_events.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/api/
 
 # 3. Restart services
 ./start-snc-system.sh
 
 # 4. Monitor logs
-tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log
-tail -f /home/pi/Hotel-ECS/logs/backend.log
+tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+tail -f /home/ecs-agent/nithep/snc/logs/backend.log
 ```
 
 ---
@@ -247,11 +247,11 @@ tail -f /home/pi/Hotel-ECS/logs/backend.log
 
 ## Files Modified
 
-1. ✅ [`backend/server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\backend\server.py)
+1. ✅ [`backend/server.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\api\server.py)
    - Fixed event ID generation (microseconds)
    - Added comprehensive logging in trigger_event
 
-2. ✅ [`pbx-connector/snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\snc-poc\pbx-connector\snc_pbx_listener.py)
+2. ✅ [`pbx-connector/snc_pbx_listener.py`](file://c:\Users\Nithep\ไดรฟ์ของฉัน%20(cnithep@gmail.com)\Hotel-ECS\pbx\snc_pbx_listener.py)
    - Enhanced send_event_to_backend logging
    - Added error traceback logging
 

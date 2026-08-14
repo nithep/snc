@@ -86,7 +86,7 @@ async def _process_line(self, raw_line: str):
 Run the updated test suite:
 
 ```bash
-cd snc-poc/pbx-connector
+cd pbx
 python -m pytest test_smdr_parser.py -v
 ```
 
@@ -116,7 +116,7 @@ After making these changes:
 
 2. **Copy updated file to Pi**:
    ```bash
-   scp snc_pbx_listener.py pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/pbx-connector/
+   scp snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/pbx/
    ```
 
 3. **Restart listener**:
@@ -126,7 +126,7 @@ After making these changes:
 
 4. **Monitor logs**:
    ```bash
-   tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log | grep -E "(SMDR|Event Detected|Fallback)"
+   tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log | grep -E "(SMDR|Event Detected|Fallback)"
    ```
 
 5. **Verify events appear**:
@@ -147,15 +147,15 @@ After making these changes:
 
 ## Files Modified
 
-1. `snc-poc/pbx-connector/snc_pbx_listener.py`
+1. `pbx/snc_pbx_listener.py`
    - Updated SMDR_PATTERN regex (line ~26-28)
    - Enhanced logging in parse_smdr_line (line ~96-115)
    - Added debug logging in _process_line (line ~228-245)
 
-2. `snc-poc/pbx-connector/test_smdr_parser.py`
+2. `pbx/test_smdr_parser.py`
    - Added test_no_prefix_smdr_format test case
 
-3. `snc-poc/pbx-connector/debug_smdr_records.py` (new)
+3. `pbx/debug_smdr_records.py` (new)
    - Standalone test script for debugging
 
 ## Related Documentation

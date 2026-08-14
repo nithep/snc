@@ -32,14 +32,29 @@ deploy-*.zip
 test-results/
 playwright-report/
 
-# Database
+# Database & SQLite WAL/SHM
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
+*.pid
 
-# Python cache
+# Python cache & compiled bytecode
 __pycache__/
 *.py[cod]
+*.pyc
+
+# Secrets & Keys
+*key*
+*secret*
+
+# Burn-in reports
+ops/post_burnin_report_*.txt
 
 # Local agent tooling
 .freebuff/
 .grok/
+.agents/
+
+# Project specific non-code assets
+Phonik/

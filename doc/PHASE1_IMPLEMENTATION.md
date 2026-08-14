@@ -16,20 +16,20 @@ Phase นี้มุ่งเน้นการเชื่อมต่อร�
 
 #### Backend (FastAPI)
 ```bash
-cd snc-poc/backend
+cd api
 pip install fastapi uvicorn aiohttp websockets
 ```
 
 #### PBX Connector
 ```bash
-cd snc-poc/pbx-connector
+cd pbx
 pip install -r requirements.txt
 ```
 
 ### 2. เริ่ม Backend Server
 
 ```bash
-cd snc-poc/backend
+cd api
 python server.py
 ```
 
@@ -38,7 +38,7 @@ python server.py
 ### 3. เริ่ม PBX Listener
 
 ```bash
-cd snc-poc/pbx-connector
+cd pbx
 python snc_pbx_listener.py
 ```
 
@@ -46,10 +46,10 @@ python snc_pbx_listener.py
 
 ### 4. เปิด Frontend Dashboard
 
-เปิดไฟล์ `snc-poc/frontend/index.html` ในเบราว์เซอร์ หรือใช้ Live Server:
+เปิดไฟล์ `app/index.html` ในเบราว์เซอร์ หรือใช้ Live Server:
 
 ```bash
-cd snc-poc/frontend
+cd app
 npx serve .
 ```
 
@@ -62,7 +62,7 @@ npx serve .
 ### ทดสอบด้วย Integration Test Script
 
 ```bash
-cd snc-poc/backend
+cd api
 python integration_test.py
 ```
 

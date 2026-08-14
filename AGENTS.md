@@ -11,11 +11,12 @@
 4. **Real-time Alerting**: Backend ส่ง WebSocket กระจายสัญญาณ Alert ไปยัง Nurse Station Dashboard
 5. **Nurse Dashboard Response**: หน้าจอเคาน์เตอร์พยาบาลแสดง Grid ห้องพัก (เขียว=ปกติ, แดงกะพริบ=ฉุกเฉิน, เหลือง=รับเรื่องแล้ว) เล่นเสียงเตือน Alarm และจับเวลา Response Time จนกว่าพยาบาลจะกด Acknowledge/Clear
 
-## 📁 โครงสร้างโฟลเดอร์ (Directory Structure)
-- `app/`: Web Dashboard สำหรับเคาน์เตอร์พยาบาล (React/Vite) หน้าตาสวยงามพรีเมียม Dark Mode
-- `api/`: API Server (FastAPI / Node.js) จัดการ Business Logic, WebSocket และ FHIR Data Schema
-- `pbx/`: สคริปต์ระดับล่างดักจับและแปลโปรโตคอล SMDR/Telnet สัญญาณเรียกจากตู้ Phonik PBX
-- `doc/`: เอกสารประกอบโปรเจกต์และการบันทึกสเปกฮาร์ดแวร์
+## 📁 โครงสร้างโฟลเดอร์ (Directory Structure — 5-Core Standard Layout)
+- `api/`: API Server (FastAPI + SQLite WAL + WebSocket) — Business Logic, FHIR Data Schema, SLA/KPI
+- `app/`: Nurse Dashboard (`index.html` self-contained, Dark Mode พรีเมียม, i18n ไทย/อังกฤษ)
+- `pbx/`: SMDR/Telnet Edge Listener (`snc_pbx_listener.py`) + parser tests + TCP proxy พอร์ต 2323
+- `ops/`: DevOps scripts (deploy, burn-in monitor, backup DB, cron, ตรวจสอบสถานะ Pi)
+- `doc/`: เอกสาร OKF (คู่มือ + SOP + `wiki/` knowledge base)
 
 ## 🤖 กฎการปฏิบัติตามของ AI Agent (SNC Project Rules)
 1. **บทบาทหลัก (Role)**: Senior Software Engineer & Healthcare IoT Specialist

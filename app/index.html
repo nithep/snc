@@ -465,6 +465,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <button class="btn btn-demo-ack" id="demoAck"></button>
     <button class="btn btn-demo-clr" id="demoClear"></button>
     <button class="btn btn-demo-auto" id="demoAuto"></button>
+    <button class="btn btn-demo-auto" id="demoServer"></button>
   </div>
 </main>
 
@@ -529,6 +530,7 @@ const I18N = {
     aiTitle: 'สรุปประจำวัน (AI)', aiHint: 'กดเพื่อโหลดบทสรุปจาก Gemini (ต้องตั้งค่า GEMINI_API_KEY บนเซิร์ฟเวอร์)', aiUnavailable: 'ไม่สามารถสร้างสรุป AI ได้ (ตรวจสอบ GEMINI_API_KEY บนเซิร์ฟเวอร์)',
     demoTitle: '🧪 โหมดจำลองทดสอบ SLA (ห้อง 400)',
     demoBedside: '🚨 กด STA ข้างเตียง', demoBathroom: '🚿 ดึงสายห้องน้ำ', demoAck: '📞 รับเรื่อง (Ack)', demoClear: '✅ เคลียร์สาย', demoAuto: '⚡ ทดสอบลูปอัตโนมัติ',
+    demoServer: '▶ รัน Demo ฝั่งเซิร์ฟเวอร์ (API)', demoServerStart: 'เริ่ม Demo ฝั่งเซิร์ฟเวอร์... รอดูผลสดบนจอ', demoServerDone: 'Demo เสร็จสิ้น ({n} สเต็ป)',
     settingsTitle: 'การตั้งค่า', settingsSub: 'ตั้งค่าเพื่อใช้งานบนระบบจริง — ค่าจะถูกบันทึกไว้ในเบราว์เซอร์นี้',
     apiKeyLabel: 'API Key (X-API-Key)', apiKeyHint: 'จำเป็นสำหรับปุ่มรับเรื่อง/เคลียร์/ทดสอบ ถ้าเซิร์ฟเวอร์ตั้ง SNC_API_KEY ไว้ (ถ้าไม่ตั้ง = ไม่ต้องกรอก)',
     hostLabel: 'Backend Host (ไม่บังคับ)', hostHint: 'เว้นว่าง = ใช้เซิร์ฟเวอร์เดียวกับที่เปิดหน้านี้ (รองรับ HTTPS tunnel อัตโนมัติ)',
@@ -566,6 +568,7 @@ const I18N = {
     aiTitle: 'Daily AI Summary', aiHint: 'Click to load Gemini summary (requires GEMINI_API_KEY on server)', aiUnavailable: 'AI summary unavailable (check GEMINI_API_KEY on server)',
     demoTitle: '🧪 SLA Simulation (Room 400)',
     demoBedside: '🚨 Press STA', demoBathroom: '🚿 Pull Bathroom', demoAck: '📞 Acknowledge', demoClear: '✅ Clear', demoAuto: '⚡ Auto SLA Loop',
+    demoServer: '▶ Server-side Demo (API)', demoServerStart: 'Server demo started... watch the screen live', demoServerDone: 'Server demo complete ({n} steps)',
     settingsTitle: 'Settings', settingsSub: 'Configure for production use — values are saved in this browser',
     apiKeyLabel: 'API Key (X-API-Key)', apiKeyHint: 'Required for Ack/Clear/Test buttons if server has SNC_API_KEY set (leave blank if not configured)',
     hostLabel: 'Backend Host (optional)', hostHint: 'Leave empty = use the same server that serves this page (HTTPS tunnel auto-supported)',
@@ -967,6 +970,14 @@ function runFullSLADemo() {
   autoDemoTimer.push(setTimeout(() => ackRoom(roomId), 5000));
   autoDemoTimer.push(setTimeout(() => clearRoom(roomId), 12000));
 }
+async function runServerDemo() {
+  toast(t('demoServerStart'));
+  try {
+    const r = await apiWrite('/api/demo/scenario', { include_emergency: true });
+    toast(t('demoServerDone', { n: (r.steps || []).length }), 'ok');
+    refreshAfterAction();
+  } catch (e) { if (e.message !== '401') toast(t('opFailed'), 'err'); }
+}
 
 /* ═══════════════════════════ Alarm (Web Audio loop) ═══════════════════════════ */
 let audioCtx = null;
@@ -1165,6 +1176,7 @@ function applyI18n() {
   document.getElementById('demoAck').textContent = t('demoAck');
   document.getElementById('demoClear').textContent = t('demoClear');
   document.getElementById('demoAuto').textContent = t('demoAuto');
+  document.getElementById('demoServer').textContent = t('demoServer');
   renderDemoBar();
   renderRooms(); renderKpi(); renderHistory();
 }
@@ -1202,6 +1214,7 @@ document.getElementById('demoBathroom').addEventListener('click', () => triggerD
 document.getElementById('demoAck').addEventListener('click', () => ackRoom('0400'));
 document.getElementById('demoClear').addEventListener('click', () => clearRoom('0400'));
 document.getElementById('demoAuto').addEventListener('click', runFullSLADemo);
+document.getElementById('demoServer').addEventListener('click', runServerDemo);
 document.getElementById('aiPanel').addEventListener('toggle', () => { if (document.getElementById('aiPanel').open) loadAiSummary(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
 document.addEventListener('pointerdown', ensureAudio, { once: true });

@@ -92,9 +92,14 @@
 ### 🔹 Phase 4: การทดสอบ End-to-End & Software-in-the-Loop Validation — ✅ Completed
 - [x] รันการทดสอบจำลอง (Mock Listener & Event Pipeline) บนสภาพแวดล้อม Windows / Raspberry Pi ผ่านเกณฑ์ 100%
 - [x] ทดสอบการสลับสถานะ Online/Offline และการซิงค์ข้อมูลย้อนหลัง (Data Re-synchronization) สำเร็จ
-- [x] บันทึกประวัติและอัปเดตความก้าวหน้าลงระบบคลังความรู้ `docs/wiki/project_timeline.md`
+- [x] บันทึกประวัติและอัปเดตความก้าวหน้าลงระบบคลังความรู้ `doc/wiki/project_timeline.md`
 
 ### 🔹 Phase 5: การลงพื้นที่จริงและส่งมอบงาน (Field Deployment & Handover) — 🟢 Ready to Execute
+- [ ] **การจัดเตรียมอุปกรณ์และแผนการติดตั้งจริง ชั้น 11 (รพ.ราชเวช)**:
+  - 📋 **แผนงานติดตั้งจริง:** พัฒนาแผนการเดินสายและการจัดพอร์ตสถานี 27 ห้อง (1101-1127) + KEY 2 จุด (ตู้หลัก DX-80C + แผง ATI-1 ถึง ATI-4) รายละเอียดดูที่ [แผนงาน-NC-F11-ราชเวช.md](file:///C:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/T.C.Com/business/active/sales/รพ.ราชเวช/F11-NC/แผนงาน-NC-F11-ราชเวช.md)
+  - ⚠️ **ข้อค้นพบจากการสำรวจสต็อก (อุปกรณ์ไม่พอสำหรับ 27 ห้อง):** 
+    - สต็อกเดิมตามใบแจ้งหนี้ IV3781 มี DX-STATION 18 สถานี และ NCX-CORD 20 เส้น ซึ่งไม่เพียงพอกับความต้องการจริงของชั้น 11 ที่มี **27 ห้อง** 
+    - **สิ่งที่จะต้องดำเนินการจัดหาเพิ่ม:** สั่งเพิ่ม DX-STATION อีก ~9 สถานี, NCX-CORD เพิ่มตามจำนวนเตียง (~7+ เส้น), และจัดซื้อชุด NCX-PULL, NCX-LED, KEY station ทั้งชุดตามประมาณการใบเสนอราคา 3629
 - [ ] **การติดตั้งอุปกรณ์หน้างาน (On-site Installation)**:
   1. ต่อสาย RS-232 จากตู้ Phonik Main Control เข้ากับ Raspberry Pi @ เคาน์เตอร์พยาบาล
   2. เสียบสาย LAN / เชื่อมต่อ Wi-Fi ให้ Pi ออกอินเทอร์เน็ตเพื่อสร้าง Cloudflare Tunnel

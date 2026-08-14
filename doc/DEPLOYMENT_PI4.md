@@ -38,8 +38,8 @@ Copy these files to your Pi 4:
 ```bash
 # From your development machine
 scp ops/start-snc-system.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
-scp ops/monitor-snc-status.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/
-scp ops/test-pbx-connectivity.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/
+scp ops/monitor-snc-status.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
+scp ops/test-pbx-connectivity.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
 scp app/dashboard-status.html pi@192.168.1.94:/home/ecs-agent/nithep/snc/app/
 ```
 
@@ -207,10 +207,10 @@ tail -50 /home/ecs-agent/nithep/snc/logs/backend.log | grep "Event sent"
 ### Dashboard Not Loading
 ```bash
 # Check if backend is serving static files
-ls -la /home/ecs-agent/nithep/snc/backend/public/
+ls -la /home/ecs-agent/nithep/snc/app/
 
 # Copy dashboard to backend public folder
-cp dashboard-status.html /home/ecs-agent/nithep/snc/backend/public/
+cp dashboard-status.html /home/ecs-agent/nithep/snc/app/
 
 # Or serve directly with Python
 cd /home/ecs-agent/nithep/snc
@@ -255,7 +255,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
+User=ecs-agent
 WorkingDirectory=/home/ecs-agent/nithep/snc/api
 ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
 Restart=always
@@ -275,7 +275,7 @@ After=network.target snc-backend.service
 
 [Service]
 Type=simple
-User=pi
+User=ecs-agent
 WorkingDirectory=/home/ecs-agent/nithep/snc/pbx
 ExecStart=/usr/bin/python3 snc_pbx_listener.py
 Restart=always

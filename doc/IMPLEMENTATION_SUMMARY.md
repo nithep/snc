@@ -101,7 +101,7 @@
    - Next steps guidance
 
 ### Modified Files
-1. **backend/server.py**
+1. **api/server.py**
    - Added static file mounting
    - Added `/dashboard-status.html` endpoint
    - Created public directory for static assets
@@ -128,15 +128,15 @@ cd C:\Users\Nithep\ไดรฟ์ของฉัน (cnithep@gmail.com)\Hotel-E
 deploy-to-pi.bat
 
 # Or manually via SCP
-scp *.sh pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/
-scp dashboard-status.html pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/
-scp DEPLOYMENT_PI4.md pi@192.168.1.94:/home/pi/Hotel-ECS/snc-poc/
+scp *.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/
+scp dashboard-status.html pi@192.168.1.94:/home/ecs-agent/nithep/snc/
+scp DEPLOYMENT_PI4.md pi@192.168.1.94:/home/ecs-agent/nithep/snc/
 ```
 
 ### Step 2: SSH into Pi
 ```bash
 ssh pi@192.168.1.94
-cd /home/pi/Hotel-ECS/snc-poc
+cd /home/ecs-agent/nithep/snc
 chmod +x *.sh
 ```
 
@@ -174,7 +174,7 @@ chmod +x *.sh
 
 # Option B: Manual checks
 curl http://localhost:8000/health
-tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log
+tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
 ```
 
 ### Step 6: Access Dashboard
@@ -193,13 +193,13 @@ Or from Pi terminal:
 ### View Logs
 ```bash
 # Backend logs
-tail -f /home/pi/Hotel-ECS/logs/backend.log
+tail -f /home/ecs-agent/nithep/snc/logs/backend.log
 
 # PBX listener logs
-tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log
+tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
 
 # Both logs simultaneously
-tail -f /home/pi/Hotel-ECS/logs/*.log
+tail -f /home/ecs-agent/nithep/snc/logs/*.log
 ```
 
 ### Check Processes
@@ -281,7 +281,7 @@ pkill -f "uvicorn.*server:app"
 pip3 list | grep -E "fastapi|uvicorn"
 
 # View error logs
-cat /home/pi/Hotel-ECS/logs/backend.log
+cat /home/ecs-agent/nithep/snc/logs/backend.log
 ```
 
 ### Issue: PBX listener can't connect
@@ -305,7 +305,7 @@ sudo ufw allow out 23/tcp
 ps aux | grep snc_pbx_listener
 
 # Check recent logs
-tail -50 /home/pi/Hotel-ECS/logs/pbx_listener.log | grep "SNC Event"
+tail -50 /home/ecs-agent/nithep/snc/logs/pbx_listener.log | grep "SNC Event"
 
 # Test manual event
 curl -X POST http://localhost:8000/api/events/trigger \
@@ -319,11 +319,11 @@ curl http://localhost:8000/api/events
 ### Issue: Dashboard not loading
 ```bash
 # Check if HTML file exists
-ls -la /home/pi/Hotel-ECS/snc-poc/backend/public/dashboard-status.html
+ls -la /home/ecs-agent/nithep/snc/app/dashboard-status.html
 
 # Copy if missing
-cp /home/pi/Hotel-ECS/snc-poc/dashboard-status.html \
-   /home/pi/Hotel-ECS/snc-poc/backend/public/
+cp /home/ecs-agent/nithep/snc/dashboard-status.html \
+   /home/ecs-agent/nithep/snc/app/
 
 # Test direct access
 curl http://localhost:8000/dashboard-status.html
@@ -380,7 +380,7 @@ curl http://localhost:8000/dashboard-status.html
 - [ ] Status updates with timeout/ACK logic (not static "Connected")
 - [ ] Events flow from PBX → Listener → Backend → Dashboard
 - [ ] All scripts executable and working
-- [ ] Logs being written to `/home/pi/Hotel-ECS/logs/`
+- [ ] Logs being written to `/home/ecs-agent/nithep/snc/logs/`
 
 ## 📞 Support Resources
 
@@ -388,7 +388,7 @@ curl http://localhost:8000/dashboard-status.html
 - **Events API**: http://192.168.1.94:8000/api/events
 - **Analytics**: http://192.168.1.94:8000/api/analytics/kpi
 - **Deployment Guide**: See DEPLOYMENT_PI4.md
-- **Logs Location**: /home/pi/Hotel-ECS/logs/
+- **Logs Location**: /home/ecs-agent/nithep/snc/logs/
 
 ## 🔄 Next Steps for Production
 

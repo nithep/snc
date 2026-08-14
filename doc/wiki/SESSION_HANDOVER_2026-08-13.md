@@ -8,26 +8,26 @@
 
 ### 1.1 Dashboard v2.0 + Backend Fix (deploy ขึ้น production แล้ว)
 - **Nurse Dashboard v2.0** เขียนใหม่ทั้งหลัง: protocol-aware (relative URL + `wss://`), Settings Modal + API Key, room states อิงเซิร์ฟเวอร์, KPI เต็มรูปแบบ, ประวัติ (ค้นหา/กรอง/Export CSV/ป้าย SLA breach), เสียงเตือน + ปุ่มปิดเสียง, แบนเนอร์ฉุกเฉิน, i18n ไทย/อังกฤษ, a11y, โหมด demo
-  - ไฟล์: `api/public/index.html` (= mirror `app/index.html`) — **main dashboard เสิร์ฟที่ `/`**
+  - ไฟล์: `app/index.html` — **main dashboard เสิร์ฟที่ `/`**
 - **`sourceEventType`** ใน `server.py` → DB/KPI เก็บ `CALL_BEDSIDE` / `CALL_BATHROOM_EMERGENCY` ตรงจริง (เดิมถูกกลืนเป็น `CALL_TRIGGERED`)
 - **WS resilience**: exponential backoff + jitter (→30s cap), สถานะ 4 ระดับ 🟢🟡🔴, กัน WS ซ้อน (fix critical bug), auto-reconnect เมื่อกลับแท็บ
 
 ### 1.2 Tooling (scripts ใหม่ทั้งหมด)
 | Script | หน้าที่ | หมายเหตุ |
 |---|---|---|
-| `snc-poc/deploy-snc-one-shot.sh` | Deploy ครบวงจร (backup→scp→md5→restart→verify→tunnel) | flags: `--dry-run`, `--check-tunnel`, `--help` |
-| `snc-poc/backup-snc-db.sh` | Backup SQLite ปลอดภัย WAL, เก็บ 14 วัน | cron **03:00 ทุกวัน** บน Pi, chmod 600 |
-| `snc-poc/burnin-monitor.sh` | ตรวจ health/services/DB/disk/mem ทุก 60s | `--report` สรุปผล, `--background 48` |
-| `snc-poc/burnin-reminder.sh` | cron เตือนทุก 1 ชม.: สถานะทุก 6 ชม. + แจ้งครบ 48 ชม. ครั้งเดียว | cron `7 * * * *`, read-only 100% |
+| `ops/deploy-snc-one-shot.sh` | Deploy ครบวงจร (backup→scp→md5→restart→verify→tunnel) | flags: `--dry-run`, `--check-tunnel`, `--help` |
+| `ops/backup-snc-db.sh` | Backup SQLite ปลอดภัย WAL, เก็บ 14 วัน | cron **03:00 ทุกวัน** บน Pi, chmod 600 |
+| `ops/burnin-monitor.sh` | ตรวจ health/services/DB/disk/mem ทุก 60s | `--report` สรุปผล, `--background 48` |
+| `ops/burnin-reminder.sh` | cron เตือนทุก 1 ชม.: สถานะทุก 6 ชม. + แจ้งครบ 48 ชม. ครั้งเดียว | cron `7 * * * *`, read-only 100% |
 
 ### 1.3 เอกสารครบชุด (UTF-8 ไทยทุกฉบับ)
 | เอกสาร | สำหรับใคร |
 |---|---|
-| `snc-poc/STAFF_GUIDE_TH.md` | พยาบาล/พนักงาน (ใช้งาน dashboard) |
-| `snc-poc/PBX_POWER_CYCLE_SOP.md` | ช่างเทคนิค (ปิด-เปิดตู้แก้ session ค้าง) |
-| `snc-poc/FIELD_TEST_CHECKLIST.md` | ทีมทดสอบ (4 ช่วง ~1 ชม.) |
-| `snc-poc/FIELD_TEST_DAY_PLAN.md` | แผนนัดวันทดสอบหน้างาน (09:00-10:30) |
-| `docs/wiki/SYSTEMD_SERVICES_SUMMARY.md` / `CLOUDFLARE_TUNNEL_SUMMARY.md` / `PBX_CONNECTIVITY_TROUBLESHOOTING.md` | ฐานความรู้ OKF |
+| `doc/STAFF_GUIDE_TH.md` | พยาบาล/พนักงาน (ใช้งาน dashboard) |
+| `doc/PBX_POWER_CYCLE_SOP.md` | ช่างเทคนิค (ปิด-เปิดตู้แก้ session ค้าง) |
+| `doc/FIELD_TEST_CHECKLIST.md` | ทีมทดสอบ (4 ช่วง ~1 ชม.) |
+| `doc/FIELD_TEST_DAY_PLAN.md` | แผนนัดวันทดสอบหน้างาน (09:00-10:30) |
+| `doc/wiki/SYSTEMD_SERVICES_SUMMARY.md` / `CLOUDFLARE_TUNNEL_SUMMARY.md` / `PBX_CONNECTIVITY_TROUBLESHOOTING.md` | ฐานความรู้ OKF |
 
 ### 1.4 การทดสอบที่ผ่าน (บน production จริง)
 - End-to-end ผ่าน tunnel: auth 401 ✅ trigger 2 ประเภท ✅ ack/clear + SLA ✅ KPI แยกประเภท ✅
@@ -54,10 +54,10 @@
 | Services | `snc-backend.service` + `snc-pbx-listener.service` = **active ทั้งคู่** |
 | PBX | `192.168.1.91:23` (SMDR), password `PBX_PASS` ใน `.env` (บน Pi) |
 | TCP proxy | Pi `:2323` — Room Manager ดูประวัติได้โดยไม่แย่ง session |
-| Event DB | `/home/ecs-agent/nithep/snc/backend/nurse_call_events.db` (23 events ข้อมูลจริง, 6 สายค้าง) |
+| Event DB | `/home/ecs-agent/nithep/snc/api/nurse_call_events.db` (23 events ข้อมูลจริง, 6 สายค้าง) |
 | Burn-in | **RUNNING** (41+ รอบ, 0 FAIL) — ครบ 15 ส.ค. 03:03 |
 | Cron (Pi) | `*/5` pbx_watchdog / `0 3` backup DB / `7 * * * *` burnin-reminder |
-| Backups | `/home/ecs-agent/nithep/snc/server.py.bak.*` + `backups/` (DB) — ย้อนกลับได้ทุกจุด |
+| Backups | `/home/ecs-agent/nithep/snc/api/server.py.bak.*` + `backups/` (DB) — ย้อนกลับได้ทุกจุด |
 
 ---
 
@@ -88,13 +88,13 @@ ssh pi4 'curl -s http://localhost:8000/health'
 curl -s https://nursecall.nithep.com/health
 
 # Burn-in
-ssh pi4 '/home/ecs-agent/nithep/snc/burnin-monitor.sh --report'       # สรุปผล burn-in
-ssh pi4 '/home/ecs-agent/nithep/snc/burnin-reminder.sh --check'       # สถานะ/เวลาที่เหลือ
-ssh pi4 'tail -20 /home/ecs-agent/nithep/snc/burnin_reminder.log'     # ประวัติเตือน
+ssh pi4 '/home/ecs-agent/nithep/snc/ops/burnin-monitor.sh --report'       # สรุปผล burn-in
+ssh pi4 '/home/ecs-agent/nithep/snc/ops/burnin-reminder.sh --check'       # สถานะ/เวลาที่เหลือ
+ssh pi4 'tail -20 /home/ecs-agent/nithep/snc/logs/burnin_reminder.log'     # ประวัติเตือน
 
 # Deploy (หลัง burn-in ผ่านเท่านั้น!)
-./snc-poc/deploy-snc-one-shot.sh
-./snc-poc/deploy-snc-one-shot.sh --check-tunnel
+./ops/deploy-snc-one-shot.sh
+./ops/deploy-snc-one-shot.sh --check-tunnel
 
 # ทดสอบ trigger ผ่าน tunnel (ห้ามใช้ห้อง 999 จริงซ้ำ — ใช้ scratch ได้)
 curl -s -X POST https://nursecall.nithep.com/api/events/trigger \
@@ -102,7 +102,7 @@ curl -s -X POST https://nursecall.nithep.com/api/events/trigger \
   -d '{"room_id":"999","event_type":"CALL_BEDSIDE"}'
 
 # Backup DB ด้วยมือ
-ssh pi4 '/home/ecs-agent/nithep/snc/backup-snc-db.sh --pi'
+ssh pi4 '/home/ecs-agent/nithep/snc/ops/backup-snc-db.sh --pi'
 ```
 
 ---

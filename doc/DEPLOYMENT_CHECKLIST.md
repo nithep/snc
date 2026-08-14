@@ -36,25 +36,25 @@ pip3 install fastapi uvicorn pydantic aiohttp
 From Windows machine, run: `deploy-to-pi.bat`
 
 Or manually copy via SCP:
-- [ ] `start-snc-system.sh` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `monitor-snc-status.sh` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `test-pbx-connectivity.sh` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `verify-installation.sh` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `view-logs.sh` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `dashboard-status.html` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `DEPLOYMENT_PI4.md` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/pi/Hotel-ECS/snc-poc/`
-- [ ] `QUICK_REFERENCE.md` → `/home/pi/Hotel-ECS/snc-poc/`
+- [ ] `start-snc-system.sh` → `/home/ecs-agent/nithep/snc/`
+- [ ] `monitor-snc-status.sh` → `/home/ecs-agent/nithep/snc/`
+- [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/nithep/snc/`
+- [ ] `verify-installation.sh` → `/home/ecs-agent/nithep/snc/`
+- [ ] `view-logs.sh` → `/home/ecs-agent/nithep/snc/`
+- [ ] `dashboard-status.html` → `/home/ecs-agent/nithep/snc/`
+- [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/nithep/snc/`
+- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/nithep/snc/`
+- [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/nithep/snc/`
 
 ### Backend Modifications
-- [ ] `backend/server.py` updated with static file serving
-- [ ] `backend/public/` directory created
-- [ ] `dashboard-status.html` copied to `backend/public/`
+- [ ] `api/server.py` updated with static file serving
+- [ ] `app/` directory created
+- [ ] `dashboard-status.html` copied to `app/`
 
 ### Set Permissions
 ```bash
 ssh pi@192.168.1.94
-cd /home/pi/Hotel-ECS/snc-poc
+cd /home/ecs-agent/nithep/snc
 chmod +x *.sh
 ```
 - [ ] All .sh files are executable
@@ -204,7 +204,7 @@ Test each option:
 ### Verify PBX Data Flow
 Check PBX listener logs:
 ```bash
-tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log
+tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
 ```
 
 Look for:
@@ -236,7 +236,7 @@ watch -n 5 'ps aux | grep -E "uvicorn|snc_pbx" | grep -v grep'
 
 ### Log Rotation Check
 ```bash
-ls -lh /home/pi/Hotel-ECS/logs/
+ls -lh /home/ecs-agent/nithep/snc/logs/
 ```
 - [ ] Logs being written
 - [ ] File sizes reasonable (< 100MB each)
@@ -244,8 +244,8 @@ ls -lh /home/pi/Hotel-ECS/logs/
 
 ### Database Integrity
 ```bash
-sqlite3 /home/pi/Hotel-ECS/snc-poc/backend/nurse_call_events.db ".tables"
-sqlite3 /home/pi/Hotel-ECS/snc-poc/backend/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
+sqlite3 /home/ecs-agent/nithep/snc/api/nurse_call_events.db ".tables"
+sqlite3 /home/ecs-agent/nithep/snc/api/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
 ```
 - [ ] Database accessible
 - [ ] Tables exist
@@ -323,14 +323,14 @@ System is fully operational when ALL of the following are true:
 - ✅ Events flow: PBX → Listener → Backend → Dashboard
 - ✅ Status uses timeout/ACK logic (not static "Connected")
 - ✅ All scripts executable and functional
-- ✅ Logs being written to `/home/pi/Hotel-ECS/logs/`
+- ✅ Logs being written to `/home/ecs-agent/nithep/snc/logs/`
 - ✅ verify-installation.sh passes all tests
 
 ## 📞 Support Information
 
 If issues persist after completing checklist:
 
-1. **Review Logs**: `/home/pi/Hotel-ECS/logs/*.log`
+1. **Review Logs**: `/home/ecs-agent/nithep/snc/logs/*.log`
 2. **Run Diagnostics**: `./test-pbx-connectivity.sh`
 3. **Check Documentation**: `DEPLOYMENT_PI4.md` troubleshooting section
 4. **Verify Network**: Ensure Pi and PBX on same network segment

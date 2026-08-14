@@ -25,7 +25,7 @@
 
 1. **Telnet session เดียวถูกครอบ** — ตู้ Phonik รับ telnet ได้ session เดียว; ถ้า PC Operator / เครื่องอื่นเปิด session ค้าง → ตู้ปฏิเสธ session ใหม่ (`Errno 111`) จนกว่า session นั้นจะหลุด (น่าจะเป็นกรณีนี้ — หลุดช่วง 17:18–18:08 แล้วคืนมาเอง)
 2. **ตู้สะดุด/รีเซ็ตชั่วคราว** — ตรงกับช่วงหลัง Pi reboot ต่อเนื่อง
-3. **SMDR Target IP Lock** — อ้างอิง `snc-poc/docs/snc_analysis_report.md`: ตู้อาจปิด SMDR เป็นค่าเริ่มต้น หรือ **ล็อก IP ปลายทาง** ที่อนุญาต — ต้องมี `192.168.1.94` (Pi) ในรายการ (ถ้า "Connected แต่ไม่มีข้อมูลไหล" → ตรวจข้อนี้)
+3. **SMDR Target IP Lock** — อ้างอิง `doc/wiki/snc_analysis_report.md`: ตู้อาจปิด SMDR เป็นค่าเริ่มต้น หรือ **ล็อก IP ปลายทาง** ที่อนุญาต — ต้องมี `192.168.1.94` (Pi) ในรายการ (ถ้า "Connected แต่ไม่มีข้อมูลไหล" → ตรวจข้อนี้)
 
 ## ขั้นตอนตรวจที่ตู้ (ต้องไปหน้างาน / ใช้ PC Operator)
 
@@ -42,6 +42,6 @@ telnet 192.168.1.91 23                              # ทดสอบตรง (
 
 ## หมายเหตุ
 
-- ระบบเชื่อมต่อตู้ผ่าน SMDR `==SMDX` / `--SMDX` บน port 23 — รายละเอียดใน `snc-poc/docs/snc_analysis_report.md`
+- ระบบเชื่อมต่อตู้ผ่าน SMDR `==SMDX` / `--SMDX` บน port 23 — รายละเอียดใน `doc/wiki/snc_analysis_report.md`
 - ถ้าปัญหาเกิดซ้ำ ให้เช็คข้อ 1 ก่อน (session ค้าง = สาเหตุพบบ่อยสุด)
-- Listener อ่าน `PBX_PASS` จาก `pbx-connector/.env` (ไฟล์นี้มี SNC_API_KEY + ช่อง PBX_PASS ให้เติม)
+- Listener อ่าน `PBX_PASS` จาก `pbx/.env` (ไฟล์นี้มี SNC_API_KEY + ช่อง PBX_PASS ให้เติม)

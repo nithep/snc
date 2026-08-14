@@ -139,7 +139,7 @@ event_type_mapping = {
 
 #### 🧪 วิธีรัน:
 ```bash
-cd snc-poc/backend
+cd api
 python integration_test.py
 ```
 

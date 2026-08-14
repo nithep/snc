@@ -175,6 +175,12 @@ class CallEventRequest(BaseModel):
     room_id: str
     event_type: str
 
+class DemoScenarioRequest(BaseModel):
+    room_id: str = "400"
+    ack_after: float = 5.0      # วินาทีจาก trigger จนถึงรับเรื่อง (Ack)
+    clear_after: float = 12.0   # วินาทีจาก trigger จนถึงเคลียร์สาย
+    include_emergency: bool = False  # ต่อด้วยสถานการณ์ฉุกเฉินห้องน้ำอีก 1 รอบ
+
 def calculate_sla_metrics(created_at: str, acknowledged_at: str = None, resolved_at: str = None):
     """Calculate SLA metrics for nurse call events."""
     created_dt = datetime.fromisoformat(created_at)
@@ -370,6 +376,48 @@ async def clear_call(room_id: str):
     await manager.broadcast(clear_event)
     return {"status": "cleared", "room_id": formatted_room, "sla_metrics": sla_metrics if row else None}
 
+@app.post("/api/demo/scenario")
+async def run_demo_scenario(req: DemoScenarioRequest):
+    """
+    API ทดสอบจริง (Deterministic SLA Demo) — จำลองครบวงจรโดยไม่ต้องพึ่งตู้ PBX:
+    CALL_BEDSIDE → รอ ack_after วิ → Acknowledge → รอถึง clear_after วิ → Clear
+    (ถ้า include_emergency=True จะต่อด้วย CALL_BATHROOM_EMERGENCY อีก 1 รอบ)
+
+    ทุก transition จะ broadcast ผ่าน WebSocket ทันที → Dashboard อัปเดตสดระหว่างรัน
+    เรียกง่าย ๆ: curl -X POST http://localhost:8000/api/demo/scenario
+    """
+    room = req.room_id.zfill(4)
+    steps = []
+
+    async def run_step(name, fn):
+        res = await fn()
+        steps.append({"step": name, **res})
+        return res
+
+    # ระยะที่ 1: สายเรียกข้างเตียง
+    await run_step("trigger_bedside",
+        lambda: trigger_event(CallEventRequest(room_id=room, event_type="CALL_BEDSIDE")))
+    await asyncio.sleep(max(0.0, req.ack_after))
+    await run_step("acknowledge", lambda: acknowledge_call(room))
+    await asyncio.sleep(max(0.0, req.clear_after - req.ack_after))
+    await run_step("clear", lambda: clear_call(room))
+
+    # ระยะที่ 2 (ไม่บังคับ): ฉุกเฉินห้องน้ำ
+    if req.include_emergency:
+        await run_step("trigger_bathroom_emergency",
+            lambda: trigger_event(CallEventRequest(room_id=room, event_type="CALL_BATHROOM_EMERGENCY")))
+        await asyncio.sleep(max(0.0, req.ack_after))
+        await run_step("acknowledge_emergency", lambda: acknowledge_call(room))
+        await asyncio.sleep(max(0.0, req.clear_after - req.ack_after))
+        await run_step("clear_emergency", lambda: clear_call(room))
+
+    return {
+        "status": "success",
+        "room_id": room,
+        "steps": steps,
+        "kpi": get_kpi_summary()
+    }
+
 @app.get("/api/analytics/kpi")
 def get_kpi_summary():
     """Get KPI analytics for nurse call performance."""
@@ -388,14 +436,17 @@ def get_kpi_summary():
     cursor.execute("SELECT event_type, COUNT(*) FROM nurse_call_events GROUP BY event_type")
     events_by_type = dict(cursor.fetchall())
     
-    # Get SLA compliance rate
+    # Get SLA compliance rate (DB ว่าง = ไม่มี phantom event/breach)
     cursor.execute("SELECT COUNT(*) FROM nurse_call_events")
-    total_events = cursor.fetchone()[0] or 1
+    total_events = cursor.fetchone()[0] or 0
     
     cursor.execute("SELECT COUNT(*) FROM nurse_call_events WHERE sla_breached = 0 OR sla_breached IS NULL")
     compliant_events = cursor.fetchone()[0]
     
-    sla_compliance_rate = (compliant_events / total_events) * 100
+    if total_events == 0:
+        sla_compliance_rate = 100.0
+    else:
+        sla_compliance_rate = (compliant_events / total_events) * 100
     
     conn.close()
     
