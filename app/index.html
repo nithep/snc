@@ -423,22 +423,16 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
   <!-- History -->
   <section class="glass" aria-labelledby="historyTitle">
     <div class="section-head">
-      <div class="section-title" id="historyTitle">📋 <span data-i18n-key="historyTitle">ประวัติเหตุการณ์ล่าสุด</span> <span class="chip-note" data-i18n-key="historyNote">แสดง 50 รายการล่าสุด</span></div>
+      <div class="section-title" id="historyTitle">📋 <span data-i18n-key="historyTitle">ประวัติเหตุการณ์ล่าสุด</span> <span class="chip-note" data-i18n-key="historyNote">แสดง 10 รายการล่าสุด</span></div>
       <div class="toolbar">
         <div class="search-box">
           <span class="mag" aria-hidden="true">🔍</span>
-          <input type="search" id="searchInput" data-i18n-ph="searchPlaceholder" placeholder="ค้นหาเลขห้อง เช่น 0401...">
+          <input type="search" id="searchInput" data-i18n-ph="searchPlaceholder" placeholder="ค้นหาเลขห้อง เช่น 1101...">
         </div>
         <select id="statusFilter" aria-label="Status filter"></select>
         <button class="btn-ghost" id="exportBtn" title="Export CSV">⬇ <span data-i18n-key="exportCsv">Export CSV</span></button>
       </div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th data-i18n-key="colTime">วัน-เวลา</th>
-            <th data-i18n-key="colRoom">ห้อง</th>
             <th data-i18n-key="colType">ประเภทเหตุการณ์</th>
             <th data-i18n-key="colStatus">สถานะ</th>
             <th data-i18n-key="colAck">เวลารับเรื่อง</th>
@@ -680,8 +674,17 @@ function statusMeta(status) {
 }
 function roomDisplayName(id) {
   const num = parseInt(id, 10);
+  
+  // Special handling for Floor 11 Rajavithi Hospital layout
+  if (id === '1100') return LANG === 'th' ? 'สถานีพยาบาลหลัก (KEY-1100)' : 'Main Nurse Station (KEY-1100)';
+  if (id.startsWith('11')) {
+    if (LANG === 'th') return 'ห้องพักผู้ป่วย ' + id;
+    return 'Patient Room ' + id;
+  }
+
+  // Fallback for other rooms or legacy IDs
   const label = LANG === 'th' ? 'ห้อง' : 'Room';
-  return isNaN(num) ? id : label + ' ' + String(num);
+  return isNaN(num) ? id : label + ' ' + String(num).padStart(4, '0');
 }
 
 /* ═══════════════════════════ Data loading ═══════════════════════════ */
@@ -902,7 +905,9 @@ function renderHistory() {
     body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:2rem">' + t(allEvents.length ? 'noMatch' : 'noEvents') + '</td></tr>';
     return;
   }
-  body.innerHTML = events.slice(0, 50).map(ev => {
+  // Limit history to 10 latest records for cleaner UI
+  const displayLimit = 10;
+  body.innerHTML = events.slice(0, displayLimit).map(ev => {
     const sm = statusMeta(ev.status);
     const em = eventTypeMeta(ev.event_type, ev.status);
     const slaBadge = ev.sla_breached

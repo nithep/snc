@@ -235,7 +235,8 @@ def save_event_to_db(event_data: dict):
 def get_recent_events():
     conn = sqlite3.connect(DB_PATH, timeout=15.0)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, room_id, event_type, status, timestamp, acknowledged_at, resolved_at, ack_time_seconds, resolution_time_seconds, sla_breached FROM nurse_call_events ORDER BY timestamp DESC LIMIT 50")
+    # Fetch more records internally to allow frontend filtering, but limit is also applied in frontend
+    cursor.execute("SELECT id, room_id, event_type, status, timestamp, acknowledged_at, resolved_at, ack_time_seconds, resolution_time_seconds, sla_breached FROM nurse_call_events ORDER BY timestamp DESC LIMIT 200")
     rows = cursor.fetchall()
     conn.close()
     
