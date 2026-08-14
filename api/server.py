@@ -515,6 +515,21 @@ async def send_daily_summary_to_chat(webhook_url: str = None):
         "ai_summary": summary_text
     }
 
+@app.post("/api/admin/reset-db")
+def reset_database():
+    """Admin endpoint to clear all event history (Use with caution)."""
+    # ตรวจสอบ API Key เพื่อความปลอดภัย (ถ้ามีการตั้งค่าไว้)
+    if SNC_API_KEY and request.headers.get("X-API-Key", "") != SNC_API_KEY:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        
+    conn = sqlite3.connect(DB_PATH, timeout=15.0)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM nurse_call_events")
+    conn.commit()
+    conn.close()
+    logging.warning("Database has been reset by admin command.")
+    return {"status": "success", "message": "All events cleared."}
+
 @app.get("/health")
 def health_check():
     """Health check endpoint for monitoring."""
