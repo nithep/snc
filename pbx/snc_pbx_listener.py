@@ -622,6 +622,10 @@ class PhonikSNCListener:
     async def start_listening(self):
         self.is_running = True
         await self.init_http_session()
+        logging.info(
+            f"Backend targets: local={self.backend_url}"
+            + (f", cloud={CLOUD_RUN_API_URL}" if CLOUD_RUN_API_URL else " (cloud ปิด — ไม่ส่งขึ้น Cloud Run)")
+        )
 
         # เริ่มต้นรัน Built-in TCP Proxy Server เพื่อแชร์ข้อมูลให้ Room Manager บนพอร์ต 2323
         try:
