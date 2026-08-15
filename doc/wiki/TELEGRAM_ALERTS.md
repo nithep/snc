@@ -58,7 +58,7 @@ ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ SN
 | Token | เก็บใน `/home/ecs-agent/snc-poc/api/.env` → `TELEGRAM_BOT_TOKEN` (chmod 600) — **ไม่บันทึกใน wiki/git** |
 | สถานะ | ✅ ทดสอบส่งสำเร็จ 14 ส.ค. 2569 |
 | จุดผูก | `post-burnin-finalize.sh` step 6 — แจ้ง "Burn-in ครบ" อัตโนมัติ 15 ส.ค. 03:05 |
-| Verify รายวัน | `verify-daily.sh` (cron 07:00) — แจ้งเตือนเมื่อตรวจพบปัญหา → `verify_daily.log` |
+| Verify รายวัน | `verify-daily.sh` (cron 07:00, `VERIFY_ALWAYS=1`) — ส่งสรุปทุกเช้า + แจ้งเตือนทันทีเมื่อพบปัญหา → `verify_daily.log` |
 | สคริปต์ | `ops/notify-telegram.sh` (repo) → `/home/ecs-agent/snc-poc/notify-telegram.sh` (Pi) |
 
 ### ⚠️ หมายเหตุความปลอดภัย (token rotation)
