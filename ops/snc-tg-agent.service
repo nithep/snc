@@ -1,13 +1,13 @@
 [Unit]
 Description=SNC Telegram Q&A Agent (@snc2569_bot)
-After=network.target snc-backend.service
-Wants=snc-backend.service
+After=network-online.target snc-backend.service
+Wants=network-online.target snc-backend.service
 
 [Service]
 Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc
-ExecStart=/usr/bin/python3 /home/ecs-agent/snc-poc/snc_telegram_agent.py
+WorkingDirectory=/home/ecs-agent/snc-poc/ops
+ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc-poc/ops/snc_telegram_agent.py
 Restart=always
 RestartSec=5
 StandardOutput=append:/home/ecs-agent/snc-poc/tg_agent.log

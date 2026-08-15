@@ -9,7 +9,11 @@ snc_telegram_agent.py — ตอบคำถามเกี่ยวกับ SN
 
 วิธีรัน (ง่ายสุด, ไม่ต้อง sudo):
   cd /home/ecs-agent/snc-poc
-  nohup python3 snc_telegram_agent.py >> tg_agent.log 2>&1 &
+  nohup python3 ops/snc_telegram_agent.py >> tg_agent.log 2>&1 &
+
+วิธีถาวร (systemd — service snc-tg-agent, รอด reboot):
+  sudo cp ops/snc-tg-agent.service /etc/systemd/system/
+  sudo systemctl daemon-reload && sudo systemctl enable --now snc-tg-agent
 
 คำสั่งที่ถามได้: /help /kpi /rooms /burn /status หรือพิมพ์ภาษาไทย เช่น "ห้องไหนค้าง", "burn ถึงไหนแล้ว"
 """
