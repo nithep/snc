@@ -90,12 +90,13 @@ Token เคยถูกแชร์ในแชท (ตรวจแล้ว **
 
 ### วิธีรัน (ง่ายสุด ไม่ต้อง sudo)
 ```bash
-ssh pi4 'cd /home/ecs-agent/snc-poc && nohup python3 snc_telegram_agent.py >> tg_agent.log 2>&1 &'
+ssh pi4 'cd /home/ecs-agent/snc-poc && nohup python3 ops/snc_telegram_agent.py >> tg_agent.log 2>&1 &'
 ```
 
-### รันถาวร (systemd — ทำหลัง burn-in ผ่าน)
+### รันถาวร (systemd — ✅ ใช้จริงแล้ว)
+ติดตั้งเป็น service `snc-tg-agent` แล้ว (รอด reboot + auto-restart) — รันจาก repo root:
 ```bash
-sudo cp snc-tg-agent.service /etc/systemd/system/
+sudo cp ops/snc-tg-agent.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now snc-tg-agent
 ```
 
