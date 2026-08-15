@@ -24,7 +24,7 @@
 
 ### 2. verify-daily.sh + cron 07:00
 - ตรวจทุกเช้า + แจ้งเตือน Telegram **เฉพาะเมื่อพบปัญหา** (`VERIFY_ALWAYS=1` ให้ส่งแม้ผ่าน)
-- log ที่ `<root>/verify_daily.log` — cron: `0 7 * * * /home/ecs-agent/snc-poc/ops/verify-daily.sh`
+- log ที่ `<root>/verify_daily.log` — cron: `0 7 * * * VERIFY_ALWAYS=1 /home/ecs-agent/snc-poc/ops/verify-daily.sh` (ส่งสรุปทุกเช้า + แจ้งเตือนเมื่อ FAIL)
 
 ### 3. บั๊กที่เจอ + แก้ (สำคัญ)
 | บั๊ก | ผลกระทบ | แก้ |
