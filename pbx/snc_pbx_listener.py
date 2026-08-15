@@ -35,6 +35,10 @@ BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
 BACKEND_API_KEY = os.getenv("SNC_API_KEY", "")
 # SNC_API_KEY ต้องตรงกับค่าใน backend/.env (server.py ตรวจ X-API-Key ที่ /api/events/trigger)
 
+# Cloud Run (optional) — ส่ง event ไป cloud backend ด้วย เพื่อให้ cloud dashboard มีข้อมูลสด
+# (ว่าง = ปิด) ตั้งใน pbx/.env:  CLOUD_RUN_API_URL=https://snc-cloud-backend-...run.app
+CLOUD_RUN_API_URL = os.getenv("CLOUD_RUN_API_URL", "")
+
 # รองรับทั้ง ==SMDX และ --SMDX (PC Operator บางเวอร์ชันแสดง -- แต่ wire format มักเป็น ==)
 # Example with prefix: ==SMDX2005=03/08/26 18:59 401 e.400 EC 0:00'09 0 #1
 # Example without prefix: 10/08/26 14:54 401 e.400 EC 0:00'05 0 #1
@@ -299,29 +303,48 @@ class PhonikSNCListener:
     async def send_event_to_backend(self, event_data: dict):
         try:
             await self.init_http_session()
-            url = f"{self.backend_url}/api/events/trigger"
             payload = {
                 "room_id": event_data["extension"]["roomId"],
                 "event_type": event_data["payload"][0]["contentString"],
             }
 
-            logging.info(f"Attempting to send event to backend: {payload}")  # Debug log
-            
-            async with self.http_session.post(url, json=payload, headers={"X-API-Key": BACKEND_API_KEY}) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    logging.info(
-                        f"✅ Event sent successfully: Room {payload['room_id']} - {payload['event_type']} "
-                        f"(ID: {result.get('event', {}).get('id', 'unknown')})"
-                    )
-                else:
-                    body = await response.text()
-                    logging.error(f"❌ Failed to send event. Status: {response.status} Body: {body[:200]}")
+            # ส่งไป local backend ก่อน (critical path) แล้วค่อย cloud (best-effort)
+            targets = [("local", self.backend_url)]
+            if CLOUD_RUN_API_URL:
+                targets.append(("cloud", CLOUD_RUN_API_URL))
+
+            for label, url in targets:
+                await self._post_event(label, url, payload)
 
         except Exception as e:
             logging.error(f"❌ Error sending event to Backend: {e}")
             import traceback
             logging.error(traceback.format_exc())
+
+    async def _post_event(self, label: str, url: str, payload: dict):
+        """POST 1 event ไปยังปลายทาง (local/cloud) — แยกเพื่อ log/เวลาให้ชัด"""
+        logging.info(f"Attempting to send event to {label} backend: {payload}")
+        try:
+            async with self.http_session.post(
+                f"{url}/api/events/trigger",
+                json=payload,
+                headers={"X-API-Key": BACKEND_API_KEY},
+                timeout=aiohttp.ClientTimeout(total=20),
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logging.info(
+                        f"✅ Event sent to {label}: Room {payload['room_id']} - "
+                        f"{payload['event_type']} (ID: {result.get('event', {}).get('id', 'unknown')})"
+                    )
+                else:
+                    body = await response.text()
+                    logging.error(
+                        f"❌ {label} rejected event. Status: {response.status} Body: {body[:200]}"
+                    )
+        except Exception as e:
+            # cloud (cold start/network) ล้มไม่ควรทำให้ local event สูญหาย — log อย่างเดียว
+            logging.error(f"❌ Error sending event to {label} backend ({url}): {e}")
 
     async def _process_line(self, raw_line: str):
         if PhonikTelnetSession.is_banner_line(raw_line):
