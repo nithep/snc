@@ -53,9 +53,20 @@ fi
 echo "[2/4] gcloud config set project $PROJECT_ID"
 gcloud config set project "$PROJECT_ID"
 
-# ── build image ───────────────────────────────────────────────────────────
-echo "[3/4] Build image: $IMAGE_TAG"
-gcloud builds submit --tag "$IMAGE_TAG" --project "$PROJECT_ID" "$WORK_DIR/api"
+# ── build + push image ─────────────────────────────────────────────────────
+# ใช้ docker push ผ่านสิทธิ์ของ user ก่อน (Cloud Shell มี docker — กันปัญหา
+# default compute SA ไม่มี artifactregistry.repositories.createOnPush / logWriter)
+# ถ้าไม่มี docker → fallback ไป gcloud builds submit (ต้อง grant IAM ให้ SA)
+echo "[3/4] Build + push image: $IMAGE_TAG"
+if command -v docker >/dev/null 2>&1; then
+  echo "  วิธี: docker build + docker push (สิทธิ์ผู้ใช้ปัจจุบัน)"
+  docker build -t "$IMAGE_TAG" "$WORK_DIR/api" || { echo "❌ docker build ล้มเหลว" >&2; exit 1; }
+  gcloud auth configure-docker -q || true
+  docker push "$IMAGE_TAG" || { echo "❌ docker push ล้มเหลว" >&2; exit 1; }
+else
+  echo "  วิธี: gcloud builds submit (ต้อง grant IAM: logging.logWriter + storage.admin + artifactregistry.admin)"
+  gcloud builds submit --tag "$IMAGE_TAG" --project "$PROJECT_ID" "$WORK_DIR/api" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
+fi
 
 # ── deploy + set env ──────────────────────────────────────────────────────
 echo "[4/4] Deploy + ตั้ง SNC_API_KEY"
