@@ -47,7 +47,22 @@ if [ ! -d "$WORK_DIR/api" ]; then
   git clone "$REPO_URL" "$WORK_DIR" || { echo "❌ clone ล้มเหลว (repo อาจเป็น private — ต้องมี GitHub auth)" >&2; exit 1; }
 else
   echo "[1/4] ใช้ repo ที่มีอยู่: $WORK_DIR"
+  echo "      อัปเดตโค้ดให้ล่าสุด (git pull)..."
+  git -C "$WORK_DIR" pull --ff-only -q 2>/dev/null \
+    || echo "      ⚠️ pull ไม่สำเร็จ (มี local change?) — build จากโค้ดปัจจุบัน"
 fi
+
+# ── fail-fast: ตรวจว่าโค้ดเป็นเวอร์ชันที่ image มี app/ (5-Core) ─────────────
+if ! grep -q 'COPY app/ app/' "$WORK_DIR/api/Dockerfile" 2>/dev/null; then
+  echo "❌ $WORK_DIR/api/Dockerfile ยังเป็นเวอร์ชันเก่า (ไม่มี 'COPY app/ app/')" >&2
+  echo "   image ที่ build จะไม่มี dashboard — รัน 'git -C $WORK_DIR pull' แล้วลองใหม่" >&2
+  exit 1
+fi
+if [ ! -f "$WORK_DIR/app/index.html" ]; then
+  echo "❌ ไม่พบ $WORK_DIR/app/index.html — build context ต้องเป็น repo root ที่มี app/" >&2
+  exit 1
+fi
+echo "✅ โค้ดพร้อม build (Dockerfile ใหม่ + app/index.html ครบ)"
 
 # ── set project ───────────────────────────────────────────────────────────
 echo "[2/4] gcloud config set project $PROJECT_ID"
@@ -98,6 +113,14 @@ if [ "$CODE" = "401" ]; then
   echo "  ✅ Auth ทำงาน (POST ไม่มี key → 401)"
 else
   echo "  ⚠️ POST ไม่มี key → HTTP $CODE (ตรวจสอบว่าอาจต้อง redeploy image ใหม่)"
+fi
+# ตรวจ dashboard: GET / ต้องเป็น 200 HTML (ไม่ใช่ 307/error)
+ROOT_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$SERVICE_URL/" || true)
+if [ "$ROOT_CODE" = "200" ]; then
+  echo "  ✅ Dashboard / → HTTP 200"
+else
+  echo "  ❌ Dashboard / → HTTP $ROOT_CODE (ควรเป็น 200 — image อาจไม่มี app/ ตรวจ Dockerfile)" >&2
+  exit 1
 fi
 
 echo ""
