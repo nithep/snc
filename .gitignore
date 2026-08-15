@@ -44,9 +44,15 @@ __pycache__/
 *.py[cod]
 *.pyc
 
-# Secrets & Keys
-*key*
-*secret*
+# Secrets & Keys (targeted — ห้ามใช้ *key*/*secret* แบบกว้าง เพราะไป ignore เอกสารคู่มือ เช่น SNC_API_KEY_SETUP_GUIDE.md)
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*service-account*.json
+*credentials*.json
+*.secret
 
 # Burn-in reports
 ops/post_burnin_report_*.txt
