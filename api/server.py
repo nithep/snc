@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from typing import List
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -515,8 +515,23 @@ async def send_daily_summary_to_chat(webhook_url: str = None):
         "ai_summary": summary_text
     }
 
+@app.post("/api/admin/reset-kpi")
+def reset_kpi_stats():
+    """Admin endpoint to reset KPI statistics (clears event history for calculation)."""
+    if SNC_API_KEY and request.headers.get("X-API-Key", "") != SNC_API_KEY:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        
+    conn = sqlite3.connect(DB_PATH, timeout=15.0)
+    cursor = conn.cursor()
+    # ลบเฉพาะข้อมูลที่ส่งผลต่อ KPI (หรือลบทั้งหมดถ้าต้องการเริ่มใหม่สนิท)
+    cursor.execute("DELETE FROM nurse_call_events")
+    conn.commit()
+    conn.close()
+    logging.warning("KPI Statistics have been reset by admin command.")
+    return {"status": "success", "message": "KPI stats cleared."}
+
 @app.post("/api/admin/reset-db")
-def reset_database():
+def reset_database(request: Request):
     """Admin endpoint to clear all event history (Use with caution)."""
     # ตรวจสอบ API Key เพื่อความปลอดภัย (ถ้ามีการตั้งค่าไว้)
     if SNC_API_KEY and request.headers.get("X-API-Key", "") != SNC_API_KEY:
