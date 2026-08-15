@@ -42,8 +42,8 @@ echo ""
 
 echo "[PBX Listener Tests]"
 test_check "PBX listener process" "pgrep -f 'snc_pbx_listener.py'"
-test_check "Listener log exists" "test -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log"
-test_check "Listener connected to PBX" "grep -q 'Connected successfully' /home/ecs-agent/nithep/snc/logs/pbx_listener.log"
+test_check "Listener log exists" "test -f /home/ecs-agent/snc-poc/logs/pbx_listener.log"
+test_check "Listener connected to PBX" "grep -q 'Connected successfully' /home/ecs-agent/snc-poc/logs/pbx_listener.log"
 echo ""
 
 echo "[Network Tests]"
@@ -76,6 +76,6 @@ else
     echo "Troubleshooting:"
     echo "  - If backend tests fail: ./start-snc-system.sh"
     echo "  - If PBX tests fail: ./test-pbx-connectivity.sh"
-    echo "  - View logs: tail -f /home/ecs-agent/nithep/snc/logs/*.log"
+    echo "  - View logs: tail -f /home/ecs-agent/snc-poc/logs/*.log"
     exit 1
 fi

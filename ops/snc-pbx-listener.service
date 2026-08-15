@@ -1,0 +1,17 @@
+[Unit]
+Description=SNC PBX SMDR Listener
+After=network-online.target snc-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc-poc/pbx
+ExecStart=/usr/bin/python3 /home/ecs-agent/snc-poc/pbx/snc_pbx_listener.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/ecs-agent/snc-poc/pbx_listener.log
+StandardError=append:/home/ecs-agent/snc-poc/pbx_listener.log
+
+[Install]
+WantedBy=multi-user.target

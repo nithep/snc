@@ -77,7 +77,7 @@ HELP = (
 ABOUT = (
     "🤖 <b>SNC Agent — Smart Nurse Call</b>\n\n"
     "📍 <b>ทำงานที่ไหน</b>\n"
-    "• Edge Pi <b>192.168.1.94</b> → /home/ecs-agent/nithep/snc\n"
+    "• Edge Pi <b>192.168.1.94</b> → /home/ecs-agent/snc-poc\n"
     "• 2 services (systemd): snc-backend (API :8000) + snc-pbx-listener\n"
     "• ฟัง SMDR จากตู้ Phonik PBX <b>192.168.1.91:23</b>\n"
     "• proxy mirror พอร์ต <b>2323</b> ให้ PC Room Manager\n\n"

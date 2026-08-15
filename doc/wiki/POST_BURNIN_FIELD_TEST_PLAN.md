@@ -12,9 +12,9 @@
 ### 1.1 บัญชีข้อมูลและกุญแจความปลอดภัย (SNC Security Vault)
 * **Master API Key (`SNC_API_KEY`)**:
   ```text
-  SNC_API_KEY_REDACTED
+  <SNC_API_KEY — ค่าจริงอยู่ใน .env ของ Pi / Cloud Run เท่านั้น ไม่บันทึกลงเอกสาร>
   ```
-  *(ใช้กรอกในช่องตั้งค่าแดชบอร์ด ⚙️ และกำหนดไว้ในไฟล์ `.env` ของ API / Listener เพื่อตรวจสอบสิทธิ์การเขียนข้อมูล)*
+  *(ใช้กรอกในช่องตั้งค่าแดชบอร์ด ⚙️ และกำหนดไว้ในไฟล์ `.env` ของ API / Listener เพื่อตรวจสอบสิทธิ์การเขียนข้อมูล — ดูค่าได้ที่ `/home/ecs-agent/snc-poc/backend/.env` บน Pi หรือ `gcloud run services describe` ที่ Cloud Run)*
 * **พิกัดไฟล์ระบบบน Pi 4 (`pi4`)**:
   * ไฟล์คอนฟิกหลัก: `/home/ecs-agent/snc-poc/backend/.env`
   * ฐานข้อมูล SQLite (WAL Mode): `/home/ecs-agent/snc-poc/backend/nurse_call_events.db`
@@ -97,7 +97,7 @@ graph TD
   ```bash
   curl -s -X POST http://192.168.1.94:8000/api/events/trigger \
     -H "Content-Type: application/json" \
-    -H "X-API-Key: SNC_API_KEY_REDACTED" \
+    -H "X-API-Key: $SNC_API_KEY" \
     -d '{"room_id":"999","event_type":"CALL_BEDSIDE"}'
   ```
 

@@ -26,7 +26,7 @@ set -uo pipefail
 
 # --- Config -----------------------------------------------------------------
 PI_HOST="${PI_HOST:-pi4}"
-REMOTE_ROOT="/home/ecs-agent/nithep/snc"
+REMOTE_ROOT="/home/ecs-agent/snc-poc"  # 5-Core: path จริงบน Pi4 (Blueprint doc/BLUEPRINT_5CORE.md)
 REMOTE_BASE="$REMOTE_ROOT/api"
 SERVICE="snc-backend.service"
 SIBLING_SERVICE="snc-pbx-listener.service"
@@ -36,7 +36,25 @@ SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 FILES=(
   "api/server.py:api/server.py"
   "app/index.html:app/index.html"
+  "pbx/snc_pbx_listener.py:pbx/snc_pbx_listener.py"
 )
+
+# --- 5-Core structure check (Blueprint: doc/BLUEPRINT_5CORE.md) ------------
+CORE_DIRS=(api app pbx ops doc)
+check_core_structure() {
+  local side="$1"  # local | remote
+  local missing=0
+  for d in "${CORE_DIRS[@]}"; do
+    if [ "$side" = "local" ]; then
+      [ -d "$REPO_ROOT/$d" ] || { err "โครงสร้าง 5-Core ไม่ครบ (ขาด: $REPO_ROOT/$d)"; missing=1; }
+    else
+      ssh "${SSH_OPTS[@]}" "$PI_HOST" "[ -d $REMOTE_ROOT/$d ]" 2>/dev/null \
+        || { err "Pi ขาดไดเรกทอรี 5-Core: $REMOTE_ROOT/$d"; missing=1; }
+    fi
+  done
+  [ "$missing" -eq 0 ] || die "โครงสร้าง 5-Core ไม่ตรงตาม Blueprint — ตรวจ doc/BLUEPRINT_5CORE.md"
+  ok "โครงสร้าง 5-Core ครบ ($side): ${CORE_DIRS[*]}"
+}
 
 # Flags
 CHECK_TUNNEL=0
@@ -90,6 +108,7 @@ for spec in "${FILES[@]}"; do
   [ -f "$local_path" ] || die "ไม่พบไฟล์ local: $local_path"
   ok "ไฟล์ local พร้อม: ${spec%%:*}"
 done
+check_core_structure local
 
 if [ "$DRY_RUN" -eq 1 ]; then
   ok "ข้ามการตรวจ SSH (dry-run)"
@@ -97,6 +116,7 @@ else
   ssh "${SSH_OPTS[@]}" "$PI_HOST" "echo SSH_OK && hostname" >/dev/null 2>&1 \
     || die "SSH ไปยัง '$PI_HOST' ไม่สำเร็จ — ตรวจสอบ alias ใน ~/.ssh/config และสถานะ Pi"
   ok "SSH ถึง $PI_HOST สำเร็จ"
+  check_core_structure remote
 fi
 
 # ============================================================================
@@ -138,7 +158,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
   ok "Backup ชื่อ: *.bak.$TS"
 else
   ssh "${SSH_OPTS[@]}" "$PI_HOST" "set -e
-for f in server.py public/index.html; do
+for f in server.py ../app/index.html ../pbx/snc_pbx_listener.py; do
   [ -f \"$REMOTE_BASE/\$f\" ] && cp \"$REMOTE_BASE/\$f\" \"$REMOTE_BASE/\$f.bak.$TS\"
 done
 ls -la $REMOTE_BASE/*.bak.$TS 2>/dev/null || echo '(no backup files found)'" \
@@ -215,7 +235,7 @@ systemctl is-active snc-backend.service snc-pbx-listener.service || true
 echo "--- health ---"
 curl -s --max-time 5 http://localhost:8000/health; echo
 echo "--- dashboard markers ---"
-echo -n "v2 markers found: "; grep -c "SNC v2.0" /home/ecs-agent/nithep/snc/app/index.html || true
+echo -n "v2 markers found: "; grep -c "SNC v2.0" $REMOTE_ROOT/app/index.html || true
 curl -s --max-time 5 http://localhost:8000/ | grep -o "<title>[^<]*</title>" || true
 echo "--- recent backend errors ---"
 sudo journalctl -u snc-backend.service --since "5 minutes ago" --no-pager 2>/dev/null | grep -iE "error|traceback|exception" | tail -5 || true

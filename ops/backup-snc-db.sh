@@ -13,8 +13,8 @@
 # ============================================================================
 set -euo pipefail
 
-DB="/home/ecs-agent/nithep/snc/api/nurse_call_events.db"
-BACKUP_DIR="/home/ecs-agent/nithep/snc/backups"
+DB="/home/ecs-agent/snc-poc/api/nurse_call_events.db"
+BACKUP_DIR="/home/ecs-agent/snc-poc/backups"
 RETENTION_DAYS=14
 
 # --- Flags ---
@@ -44,7 +44,7 @@ fi
 
 if [ "$INSTALL_MODE" -eq 1 ]; then
   # ติดตั้ง cron บน Pi
-  CRON_LINE="0 3 * * * /home/ecs-agent/nithep/snc/backup-snc-db.sh --pi >/dev/null 2>&1"
+  CRON_LINE="0 3 * * * /home/ecs-agent/snc-poc/backup-snc-db.sh --pi >/dev/null 2>&1"
   if [ "$PI_MODE" -eq 1 ]; then
     ( crontab -l 2>/dev/null | grep -v 'backup-snc-db' ; echo "$CRON_LINE" ) | crontab -
     echo "cron installed: $CRON_LINE"
@@ -52,10 +52,10 @@ if [ "$INSTALL_MODE" -eq 1 ]; then
   else
     # ต้อง deploy สคริปต์ขึ้น Pi ก่อน แล้วติดตั้ง cron
     echo "ติดตั้งสคริปต์ขึ้น Pi..."
-    scp -o ConnectTimeout=8 "$0" pi4:/home/ecs-agent/nithep/snc/backup-snc-db.sh
-    ssh -o ConnectTimeout=8 pi4 "chmod +x /home/ecs-agent/nithep/snc/backup-snc-db.sh"
+    scp -o ConnectTimeout=8 "$0" pi4:/home/ecs-agent/snc-poc/backup-snc-db.sh
+    ssh -o ConnectTimeout=8 pi4 "chmod +x /home/ecs-agent/snc-poc/backup-snc-db.sh"
     # รันติดตั้ง cron ด้วยตัวเองบน Pi
-    ssh -o ConnectTimeout=8 pi4 "/home/ecs-agent/nithep/snc/backup-snc-db.sh --install --pi"
+    ssh -o ConnectTimeout=8 pi4 "/home/ecs-agent/snc-poc/backup-snc-db.sh --install --pi"
   fi
   exit 0
 fi

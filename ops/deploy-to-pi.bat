@@ -4,7 +4,7 @@ REM Update PI_IP with your Pi's IP address
 
 set PI_IP=192.168.1.94
 set PI_USER=pi
-set REMOTE_DIR=/home/ecs-agent/nithep/snc
+set REMOTE_DIR=/home/ecs-agent/snc-poc
 
 echo ==========================================
 echo SNC System Deployment to Pi 4

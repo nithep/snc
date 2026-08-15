@@ -2,7 +2,7 @@
 # Interactive Log Viewer for SNC System
 # Provides easy access to backend and PBX listener logs
 
-LOG_DIR="/home/ecs-agent/nithep/snc/logs"
+LOG_DIR="/home/ecs-agent/snc-poc/logs"
 
 echo "=========================================="
 echo "SNC System Log Viewer"

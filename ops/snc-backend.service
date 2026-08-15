@@ -1,0 +1,15 @@
+[Unit]
+Description=SNC FastAPI Backend Service
+After=network.target
+
+[Service]
+User=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc-poc/api
+ExecStart=/usr/bin/python3 /home/ecs-agent/snc-poc/api/server.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/ecs-agent/snc-poc/backend.log
+StandardError=append:/home/ecs-agent/snc-poc/backend_error.log
+
+[Install]
+WantedBy=multi-user.target

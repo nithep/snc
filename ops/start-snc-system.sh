@@ -5,9 +5,9 @@
 set -e
 
 # Configuration
-BACKEND_DIR="/home/ecs-agent/nithep/snc/backend"
-PBX_DIR="/home/ecs-agent/nithep/snc/pbx-connector"
-LOG_DIR="/home/ecs-agent/nithep/snc/logs"
+BACKEND_DIR="/home/ecs-agent/snc-poc/backend"
+PBX_DIR="/home/ecs-agent/snc-poc/pbx-connector"
+LOG_DIR="/home/ecs-agent/snc-poc/logs"
 BACKEND_PORT=8000
 PBX_IP="192.168.1.91"
 PBX_PORT=23

@@ -3,13 +3,19 @@
 Mock Data Generator for Floor 11 (Rajavithi Hospital)
 Based on the wiring diagram: DX-ATI-1 to DX-ATI-4
 """
+import os
 import requests
 import random
 import time
 
 # Configuration
-BASE_URL = "https://snc-cloud-backend-59781590359.asia-southeast1.run.app" # Point to Cloud Run
-API_KEY = "" # Leave blank if no key is set on Cloud Run, or enter your key
+BASE_URL = "http://192.168.1.94:8000"  # Point to Local Pi 4 for immediate feedback
+# ⚠️ ห้าม hardcode key ลงโค้ด — อ่านจาก environment variable เท่านั้น
+# รันด้วย: set SNC_API_KEY=xxxx (Windows) หรือ SNC_API_KEY=xxxx python ops/mock-floor11-data.py (Linux/macOS)
+API_KEY = os.getenv("SNC_API_KEY", "")
+
+if not API_KEY:
+    print("⚠️ ยังไม่ได้ตั้ง SNC_API_KEY ใน environment — POST จะโดน 401 ถ้าเซิร์ฟเวอร์เปิด auth")
 
 HEADERS = {
     "Content-Type": "application/json",

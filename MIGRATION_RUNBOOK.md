@@ -1,7 +1,12 @@
-# 🔀 SNC — Migration Runbook (nithep 5-Core Restructure)
+# 🔀 SNC — Migration Runbook (5-Core Restructure)
 
+> ⚠️ **สถานะจริง (15 ส.ค. 2569):** การย้ายไป `nithep/snc` **ไม่เคยเกิดขึ้นจริง** —
+> บน Pi เหลือเพียง `nithep/snc/app/` (ว่างเปล่า) ส่วน **production จริงคือ `/home/ecs-agent/snc-poc`**
+> (systemd, cron, และ DB ทั้งหมดชี้มาที่นี่ และจัดโครงสร้าง 5-Core แล้ว: `api/ app/ pbx/ ops/ doc/`)
+> เอกสารนี้จึงเก็บไว้เป็นประวัติการวางแผน — อย่าทำตามขั้นตอนย้ายไป `nithep/snc` อีก
+>
 > เอกสารนี้บันทึกการย้ายโครงสร้าง SNC จาก `snc-poc/` (monorepo `hotel-ecs-checkin`)
-> มาอยู่ในโครงสร้าง 5-Core มาตรฐานของ `nithep/snc` — ใช้เป็นคู่มือสำหรับการ Deploy
+> มาอยู่ในโครงสร้าง 5-Core มาตรฐาน — ใช้เป็นคู่มือสำหรับการ Deploy
 > หลัง Burn-in ผ่าน (15 ส.ค. 2569 03:03) และการอ้างอิง path ใหม่ทุกครั้ง
 
 ---
