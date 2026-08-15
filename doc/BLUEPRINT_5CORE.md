@@ -158,8 +158,8 @@ ssh pi4 "sudo systemctl restart snc-backend snc-pbx-listener"
 ### Docker Deploy (Cloud Run)
 
 ```bash
-# Build & push
-docker build -t gcr.io/PROJECT/snc-api ./api
+# Build & push (context = repo root — image ต้องมีทั้ง api/ และ app/)
+docker build -t gcr.io/PROJECT/snc-api -f api/Dockerfile .
 docker push gcr.io/PROJECT/snc-api
 
 # Deploy with env vars

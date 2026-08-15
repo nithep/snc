@@ -1,0 +1,12 @@
+# Docker build context = repo root — กันส่งไฟล์ไม่จำเป็น/ความลับเข้า image
+.git
+doc/
+ops/
+backups/
+__pycache__/
+*.pyc
+*.db
+.env
+.env.*
+tests/
+*.md

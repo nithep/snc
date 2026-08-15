@@ -1,0 +1,9 @@
+# cloudbuild.yaml — สร้าง SNC backend image (build context = repo root)
+# วิธีใช้:
+#   gcloud builds submit --config api/cloudbuild.yaml --project hotel-ecs-nithep .
+# (ใช้กับ deploy_cloudrun_cloudshell.sh / deploy_gcp_cloudrun.ps1 อัตโนมัติ)
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'api/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/snc-cloud-backend:latest', '.']
+images:
+  - 'gcr.io/$PROJECT_ID/snc-cloud-backend:latest'

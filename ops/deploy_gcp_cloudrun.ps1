@@ -52,10 +52,11 @@ Write-Host "`n[Step 2] ตั้งค่า project..." -ForegroundColor Cyan
 gcloud config set project $PROJECT_ID
 
 # --- build image ---
+# build context = repo root (รวม app/ ตาม 5-Core — image ต้องมี dashboard)
 Write-Host "`n[Step 3] Build image ($IMAGE_TAG)..." -ForegroundColor Cyan
-Push-Location $API_DIR
+Push-Location $REPO_ROOT
 try {
-    gcloud builds submit --tag $IMAGE_TAG --project $PROJECT_ID
+    gcloud builds submit --config api/cloudbuild.yaml --project $PROJECT_ID
 } finally {
     Pop-Location
 }

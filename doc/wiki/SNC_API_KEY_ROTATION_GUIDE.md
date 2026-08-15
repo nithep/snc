@@ -94,7 +94,7 @@ gcloud run services update snc-cloud-backend \
 
 > ℹ️ ถ้า Cloud Run รัน image เก่า (ไม่มี routes API) ให้ redeploy พร้อมกัน:
 > ```bash
-> cd api && gcloud builds submit --tag gcr.io/hotel-ecs-nithep/snc-cloud-backend:latest --project hotel-ecs-nithep
+> gcloud builds submit --config api/cloudbuild.yaml --project hotel-ecs-nithep .   # context = repo root (image ต้องมี app/ ด้วย)
 > gcloud run deploy snc-cloud-backend --image gcr.io/hotel-ecs-nithep/snc-cloud-backend:latest \
 >   --platform managed --region asia-southeast1 --allow-unauthenticated \
 >   --project hotel-ecs-nithep --set-env-vars "SNC_API_KEY=<key ใหม่>"

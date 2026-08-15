@@ -59,13 +59,13 @@ gcloud config set project "$PROJECT_ID"
 # ถ้าไม่มี docker → fallback ไป gcloud builds submit (ต้อง grant IAM ให้ SA)
 echo "[3/4] Build + push image: $IMAGE_TAG"
 if command -v docker >/dev/null 2>&1; then
-  echo "  วิธี: docker build + docker push (สิทธิ์ผู้ใช้ปัจจุบัน)"
-  docker build -t "$IMAGE_TAG" "$WORK_DIR/api" || { echo "❌ docker build ล้มเหลว" >&2; exit 1; }
+  echo "  วิธี: docker build (context=repo root, รวม app/) + docker push"
+  docker build -t "$IMAGE_TAG" -f "$WORK_DIR/api/Dockerfile" "$WORK_DIR" || { echo "❌ docker build ล้มเหลว" >&2; exit 1; }
   gcloud auth configure-docker -q || true
   docker push "$IMAGE_TAG" || { echo "❌ docker push ล้มเหลว" >&2; exit 1; }
 else
-  echo "  วิธี: gcloud builds submit (ต้อง grant IAM: logging.logWriter + storage.admin + artifactregistry.admin)"
-  gcloud builds submit --tag "$IMAGE_TAG" --project "$PROJECT_ID" "$WORK_DIR/api" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
+  echo "  วิธี: gcloud builds submit (cloudbuild.yaml — context root รวม app/)"
+  gcloud builds submit --config "$WORK_DIR/api/cloudbuild.yaml" --project "$PROJECT_ID" "$WORK_DIR" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
 fi
 
 # ── deploy + set env ──────────────────────────────────────────────────────
