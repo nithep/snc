@@ -17,9 +17,12 @@
 - `pbx/`: SMDR/Telnet Edge Listener (`snc_pbx_listener.py`) + parser tests + TCP proxy พอร์ต 2323
 - `ops/`: DevOps scripts (deploy, burn-in monitor, backup DB, cron, ตรวจสอบสถานะ Pi)
 - `doc/`: เอกสาร OKF (คู่มือ + SOP + `wiki/` knowledge base)
+- 📘 **Blueprint ฉบับสมบูรณ์**: [`doc/BLUEPRINT_5CORE.md`](doc/BLUEPRINT_5CORE.md) — Vault 5-C, Deploy Workflow, Conventions (ใช้เป็นมาตรฐานทุกโปรเจกต์)
 
 ## 🤖 กฎการปฏิบัติตามของ AI Agent (SNC Project Rules)
 1. **บทบาทหลัก (Role)**: Senior Software Engineer & Healthcare IoT Specialist
 2. **การสื่อสาร (Communication)**: ใช้ภาษาไทยทางการ (Professional Tone) ในเอกสาร โค้ด และ Artifacts
 3. **ความปลอดภัยข้อมูลสุขภาพ (Data Standards)**: ออกแบบ Data Payload ให้อยู่ในมาตรฐาน **HL7 FHIR JSON** ตั้งแต่ Day 1 เพื่อเตรียมความพร้อมนำขึ้น GCP Healthcare API / Vertex AI Predictive Analytics ในอนาคต
 4. **การเข้ารหัสอักขระ (Strict UTF-8)**: กำหนด Encoding เป็น `utf-8` เสมอในการบันทึกหรืออ่านไฟล์ภาษาไทย
+5. **ห้ามใช้ pattern `*key*`/`*secret*` ใน .gitignore**: pattern แบบกว้างจะกลืนเอกสาร legit (เช่น `SNC_API_KEY_ROTATION_GUIDE.md` เคยถูก ignore เงียบๆ ไม่เคย commit) — ให้ใช้แบบเจาะจง (`*.key`, `*.pem`, `*.p12`, `*.pfx`, `*service-account*.json`, `*credentials*.json`) แล้วตรวจ `git status --ignored` ว่ามีไฟล์ที่ควร track โดนกลืนไหม
+6. **ทุกโปรเจกต์ต้องมีคู่มือ rotate key**: สร้าง `doc/wiki/*_ROTATION_GUIDE.md` (เช่น [`SNC_API_KEY_ROTATION_GUIDE.md`](doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md)) ครอบคลุม Pi/Server, Cloud Run, และ Client — ทุกครั้งที่เพิ่ม service ที่มี secret
