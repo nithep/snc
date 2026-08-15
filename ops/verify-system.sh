@@ -32,6 +32,7 @@ D_PROXY="2323"
 D_PBXHOST="192.168.1.91"
 D_PBXPORT="23"
 D_BRANCH="main"
+D_CLOUD=""
 
 # PASS/FAIL/SKIP = รวมทุกโปรเจกต์, P*/F*/S* = เฉพาะโปรเจกต์ปัจจุบัน
 PASS=0; FAIL=0; SKIP=0
@@ -47,7 +48,8 @@ warn() { echo "  [WARN] $1"; }
 run_checks() {
   local name="$1" root="$2" core_s="$3" services_s="$4" health="$5" \
         old_s="$6" keyfiles_s="$7" keyname="${8:-SNC_API_KEY}" \
-        proxy="${9:-}" pbxhost="${10:-}" pbxport="${11:-23}" branch="${12:-main}"
+        proxy="${9:-}" pbxhost="${10:-}" pbxport="${11:-23}" branch="${12:-main}" \
+        cloud_url="${13:-}"
   local -a CORE_DIRS SERVICES OLD_DIRS KEYFILES
   read -r -a CORE_DIRS <<< "$core_s"
   read -r -a SERVICES <<< "$services_s"
@@ -198,6 +200,28 @@ run_checks() {
     skip "ไม่มี .git"
   fi
 
+  # ── [10] Cloud Run (optional — health + auth + dashboard) ──────────────
+  if [ -n "$cloud_url" ]; then
+    echo "[10] Cloud Run ($cloud_url)"
+    CH=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$cloud_url/health" 2>/dev/null || true)
+    HB=$(curl -s --max-time 20 "$cloud_url/health" 2>/dev/null || true)
+    if [ "$CH" = "200" ] && echo "$HB" | grep -qE '"status"[^,}]*"healthy"'; then
+      ok "health → 200 healthy"
+    else
+      bad "health ผิดปกติ (HTTP $CH)"
+    fi
+    CA=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+      -X POST "$cloud_url/api/events/acknowledge/9999" \
+      -H 'Content-Type: application/json' -d '{}' 2>/dev/null || true)
+    [ "$CA" = "401" ] && ok "auth: POST ไม่มี key → 401" \
+                     || bad "auth: POST ไม่มี key → HTTP $CA (ควร 401)"
+    CD=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$cloud_url/" 2>/dev/null || true)
+    [ "$CD" = "200" ] && ok "dashboard / → 200" \
+                     || bad "dashboard / → HTTP $CD (ควร 200)"
+  else
+    skip "ไม่ได้ตั้ง CLOUD_RUN_URL — ข้ามตรวจ Cloud Run"
+  fi
+
   # ── สรุปเฉพาะโปรเจกต์นี้ ─────────────────────────────────────────────────
   echo
   echo "═══════════ [$name] สรุป: PASS=$PP FAIL=$PF SKIP=$PS ═══════════"
@@ -222,7 +246,8 @@ if [ ! -f "$CONF" ]; then
     "${PROXY_PORT:-$D_PROXY}" \
     "${PBX_HOST:-$D_PBXHOST}" \
     "${PBX_PORT:-$D_PBXPORT}" \
-    "${GIT_BRANCH:-$D_BRANCH}"
+    "${GIT_BRANCH:-$D_BRANCH}" \
+    "${CLOUD_RUN_URL:-$D_CLOUD}"
   echo
   echo "═══════════ รวมทั้งหมด: PASS=$PASS FAIL=$FAIL SKIP=$SKIP ═══════════"
   [ "$FAIL" -eq 0 ] && { echo "✅ ระบบพร้อมใช้งาน"; exit 0; } \
@@ -231,7 +256,7 @@ fi
 
 # มี conf → parse ทีละบรรทัด (name|root|core|services|health|old|keyfiles|keyname|proxy|pbxhost|pbxport|branch)
 matched=0
-while IFS='|' read -r name root core services health old keyfiles keyname proxy pbxhost pbxport branch; do
+while IFS='|' read -r name root core services health old keyfiles keyname proxy pbxhost pbxport branch cloud_url; do
   [ -z "${name:-}" ] && continue
   case "$name" in \#*) continue ;; esac
   core="${core:-$D_CORE}";        services="${services:-$D_SERVICES}"
@@ -239,9 +264,10 @@ while IFS='|' read -r name root core services health old keyfiles keyname proxy 
   keyfiles="${keyfiles:-$D_KEYFILES}"; keyname="${keyname:-$D_KEYNAME}"
   proxy="${proxy:-$D_PROXY}";     pbxhost="${pbxhost:-$D_PBXHOST}"
   pbxport="${pbxport:-$D_PBXPORT}"; branch="${branch:-$D_BRANCH}"
+  cloud_url="${cloud_url:-$D_CLOUD}"
   if [ "$MODE" = "--all" ] || [ "$MODE" = "default" ] || [ "$MODE" = "$name" ]; then
     [ "$matched" -gt 0 ] && echo
-    run_checks "$name" "$root" "$core" "$services" "$health" "$old" "$keyfiles" "$keyname" "$proxy" "$pbxhost" "$pbxport" "$branch"
+    run_checks "$name" "$root" "$core" "$services" "$health" "$old" "$keyfiles" "$keyname" "$proxy" "$pbxhost" "$pbxport" "$branch" "$cloud_url"
     matched=$((matched+1))
   fi
 done < "$CONF"
