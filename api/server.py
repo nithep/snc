@@ -82,7 +82,7 @@ app.add_middleware(
 )
 
 # Serve static files (dashboard, frontend) — ชี้ไปที่ app/ (UI Dashboard) ตามโครงสร้าง 5-Core ใหม่
-static_dir = os.path.join(os.path.dirname(__file__), "..", "app")
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app")
 if not os.path.exists(static_dir):
     os.makedirs(static_dir)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
