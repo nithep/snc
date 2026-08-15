@@ -597,12 +597,14 @@ let cfg = {
 function apiUrl(path) {
   const host = cfg.host || (isFile ? '192.168.1.94:8000' : '');
   if (!host) return path; // served by backend → relative (works over HTTPS tunnel)
-  const proto = location.protocol === 'https:' ? 'https://' : 'http://';
+  // Use http for custom host (backend likely not https)
+  const proto = cfg.host ? 'http://' : (location.protocol === 'https:' ? 'https://' : 'http://');
   return proto + host + path;
 }
 function wsUrl() {
-  const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
   const host = cfg.host || (isFile ? '192.168.1.94:8000' : location.host);
+  // Use ws for custom host (backend likely not wss)
+  const proto = cfg.host ? 'ws://' : (location.protocol === 'https:' ? 'wss://' : 'ws://');
   return proto + host + '/ws/nurse-station';
 }
 function authHeaders(extra) {
@@ -692,7 +694,19 @@ async function loadEvents() {
   try {
     const data = await apiGet('/api/events');
     allEvents = (data.events || []);
-    syncRoomStates();
+    
+    // Force-create Floor 11 rooms if no events are found (Fallback for empty DB)
+    if (allEvents.length === 0) {
+      console.log("No events found, pre-populating Floor 11 rooms...");
+      for (let i = 1101; i <= 1127; i++) {
+        roomStates[String(i)] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+      }
+      roomStates['KEY-1100'] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+      roomStates['DISPLAY-1100'] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+    } else {
+      syncRoomStates();
+    }
+    
     renderRooms();
     renderHistory();
     renderLastUpdated();
@@ -761,6 +775,18 @@ function syncRoomStates() {
 /* ═══════════════════════════ Render: rooms ═══════════════════════════ */
 function renderRooms() {
   const grid = document.getElementById('roomGrid');
+  
+  // Pre-populate Floor 11 rooms if roomStates is empty (Initial Load)
+  if (Object.keys(roomStates).length === 0) {
+    // Patient Rooms 1101-1127
+    for (let i = 1101; i <= 1127; i++) {
+      roomStates[String(i)] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+    }
+    // Nurse Station & Display
+    roomStates['KEY-1100'] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+    roomStates['DISPLAY-1100'] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
+  }
+
   const rooms = Object.entries(roomStates);
   if (rooms.length === 0) {
     grid.innerHTML = '<div class="empty-state"><span class="big">📡</span><span>' + t('noEvents') + '</span></div>';
