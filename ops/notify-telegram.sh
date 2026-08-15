@@ -10,7 +10,9 @@
 # ถ้ายังไม่ตั้ง key → ข้ามเงียบ ๆ (exit 0) ระบบไม่พัง (graceful like Gemini service)
 set -uo pipefail
 
-SNC_ROOT="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# root ของโปรเจกต์ = parent ของ ops/ (5-Core) หรือ dir ของสคริปต์เอง (legacy)
+SNC_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 load_env() {
   local f="$1" k v
@@ -27,8 +29,11 @@ load_env() {
   done < "$f"
 }
 
-for f in "$SNC_ROOT/.env" "$SNC_ROOT/backend/.env" "$SNC_ROOT/pbx-connector/.env" "$SNC_ROOT/api/.env"; do
-  load_env "$f"
+# ลองทั้ง 2 แบบ: สคริปต์ใน ops/ (root=parent) หรือที่ root ตรงๆ (legacy)
+for base in "$SNC_ROOT" "$SCRIPT_DIR"; do
+  for f in "$base/api/.env" "$base/.env" "$base/backend/.env" "$base/pbx-connector/.env"; do
+    load_env "$f"
+  done
 done
 
 TOKEN="${TELEGRAM_BOT_TOKEN:-}"

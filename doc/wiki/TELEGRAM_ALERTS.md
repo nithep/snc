@@ -29,17 +29,17 @@ curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | python3 -m json.tool
 ### 3) ใส่ key ลง .env บน Pi (ห้าม commit ใน git)
 ```bash
 ssh pi4
-nano /home/ecs-agent/snc-poc/backend/.env    # ต่อท้าย 2 บรรทัดนี้
+nano /home/ecs-agent/snc-poc/api/.env    # ต่อท้าย 2 บรรทัดนี้
 ```
 ```
 TELEGRAM_BOT_TOKEN=1234567890:AAH...
 TELEGRAM_CHAT_ID=123456789
 ```
-บันทึกแล้ว `chmod 600 /home/ecs-agent/snc-poc/backend/.env` (สคริปต์อ่านจาก env → `.env` → `backend/.env` → `pbx-connector/.env` → `api/.env`)
+บันทึกแล้ว `chmod 600 /home/ecs-agent/snc-poc/api/.env` (สคริปต์อ่านจาก env → `api/.env` → `.env` → `backend/.env` → `pbx-connector/.env` ตามลำดับ 5-Core)
 
 ### 4) ทดสอบ
 ```bash
-ssh pi4 '/home/ecs-agent/snc-poc/notify-telegram.sh "🔔 ทดสอบ SNC Telegram — OK"'
+ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ SNC Telegram — OK"'
 ```
 ควรได้ `[notify-telegram] ส่งสำเร็จ ✅` และข้อความเด้งในแอป
 ถ้ายังไม่ตั้ง key → ข้ามเงียบ ๆ (`SKIP`) ไม่ทำให้ cron ผิดพลาด
@@ -55,9 +55,10 @@ ssh pi4 '/home/ecs-agent/snc-poc/notify-telegram.sh "🔔 ทดสอบ SNC Te
 |---|---|
 | Bot username | `@snc2569_bot` (ชื่อ "snc") |
 | ปลายทางแจ้งเตือน (chat_id) | `7346817215` (บัญชี "lnw") |
-| Token | เก็บใน `/home/ecs-agent/snc-poc/backend/.env` → `TELEGRAM_BOT_TOKEN` (chmod 600) — **ไม่บันทึกใน wiki/git** |
+| Token | เก็บใน `/home/ecs-agent/snc-poc/api/.env` → `TELEGRAM_BOT_TOKEN` (chmod 600) — **ไม่บันทึกใน wiki/git** |
 | สถานะ | ✅ ทดสอบส่งสำเร็จ 14 ส.ค. 2569 |
 | จุดผูก | `post-burnin-finalize.sh` step 6 — แจ้ง "Burn-in ครบ" อัตโนมัติ 15 ส.ค. 03:05 |
+| Verify รายวัน | `verify-daily.sh` (cron 07:00) — แจ้งเตือนเมื่อตรวจพบปัญหา → `verify_daily.log` |
 | สคริปต์ | `ops/notify-telegram.sh` (repo) → `/home/ecs-agent/snc-poc/notify-telegram.sh` (Pi) |
 
 ### ⚠️ หมายเหตุความปลอดภัย (token rotation)

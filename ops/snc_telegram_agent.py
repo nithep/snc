@@ -23,6 +23,7 @@ import urllib.request
 import urllib.parse
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+PARENT = os.path.dirname(BASE)  # root ของโปรเจกต์ (ถ้าสคริปต์อยู่ใน ops/)
 
 
 def load_env(path):
@@ -37,8 +38,11 @@ def load_env(path):
         pass
 
 
-for p in ("backend/.env", "pbx-connector/.env", ".env", "api/.env"):
-    load_env(os.path.join(BASE, p))
+# 5-Core: .env อยู่ที่ <root>/api/.env, <root>/pbx/.env (ลอง parent ก่อน)
+# Legacy: .env อยู่ข้างสคริปต์ (backend/, pbx-connector/, root)
+for base in (PARENT, BASE):
+    for p in ("api/.env", ".env", "backend/.env", "pbx-connector/.env", "pbx/.env"):
+        load_env(os.path.join(base, p))
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 ALLOWED = {c.strip() for c in os.getenv("SNC_TG_ALLOWED_CHAT", "").split(",") if c.strip()}
