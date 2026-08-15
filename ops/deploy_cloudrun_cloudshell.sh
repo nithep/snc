@@ -62,7 +62,14 @@ if command -v docker >/dev/null 2>&1; then
   echo "  วิธี: docker build (context=repo root, รวม app/) + docker push"
   docker build -t "$IMAGE_TAG" -f "$WORK_DIR/api/Dockerfile" "$WORK_DIR" || { echo "❌ docker build ล้มเหลว" >&2; exit 1; }
   gcloud auth configure-docker -q || true
-  docker push "$IMAGE_TAG" || { echo "❌ docker push ล้มเหลว" >&2; exit 1; }
+  # Cloud Shell บางครั้ง connection ไป gcr.io หลุดชั่วคราว — ลองใหม่ 3 ครั้ง
+  PUSHED=0
+  for i in 1 2 3; do
+    if docker push "$IMAGE_TAG"; then PUSHED=1; break; fi
+    echo "  ⚠️ docker push ครั้งที่ $i ล้มเหลว — ลองใหม่ใน 10 วิ..." >&2
+    sleep 10
+  done
+  [ "$PUSHED" = "1" ] || { echo "❌ docker push ล้มเหลว (ลอง 3 ครั้งแล้ว)" >&2; exit 1; }
 else
   echo "  วิธี: gcloud builds submit (cloudbuild.yaml — context root รวม app/)"
   gcloud builds submit --config "$WORK_DIR/api/cloudbuild.yaml" --project "$PROJECT_ID" "$WORK_DIR" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
