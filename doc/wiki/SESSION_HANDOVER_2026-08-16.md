@@ -10,7 +10,7 @@
 |---|---|---|
 | **Pi4 (production)** | ✅ ใช้งานได้ | services active, `/health` healthy, verify **PASS=14 FAIL=0** |
 | **Cloud Run API + auth** | ✅ ใช้งานได้ | POST ไม่มี key → 401, key ใหม่ → 200 |
-| **Cloud Run dashboard** | ⚠️ ค้าง | `/` ยัง 307 + `/static/` 404 — **รอ rebuild ด้วย commit `df07273`** (abspath fix) |
+| **Cloud Run dashboard** | ✅ ใช้งานได้ | `GET /` → 200 + title `SNC Nurse Station — Live Monitor`, `/static/` → 200 |
 | **Telegram แจ้งเตือน** | ✅ | notify + agent หา token เจอ (len 46) หลังแก้ env path |
 
 ---
@@ -33,7 +33,7 @@
 | `notify-telegram.sh` + `snc_telegram_agent.py` หา `.env` ไม่เจอ (ชี้ `ops/` แทน root) | Telegram พังหลัง restructure | แก้ env resolution: ลอง parent (`api/.env`) ก่อน + legacy fallback |
 | Docker image ไม่มี dashboard (build context = `api/` เท่านั้น) | Cloud Run `/` → 307 + JSON error | Dockerfile build จาก **repo root** (`COPY api/ .` + `COPY app/ app/`) + cloudbuild.yaml + .dockerignore |
 | **Cloud Run cache image ตาม tag `:latest`** | deploy ใหม่แต่ยังใช้ image เก่า (GCR tag ใหม่แล้ว revision ยัง digest เก่า) | deploy ด้วย **digest `@sha256`** (ทั้ง 2 deploy scripts) |
-| `static_dir = dirname(__file__)/../app` เป็น path สัมพัทธ์ | Cloud Run หา `app/` ไม่เจอ (image มีไฟล์จริง) | `os.path.abspath(__file__)` — commit `df07273` |
+| `static_dir` ชี้ผิดใน container: `../app` จาก `/app/server.py` = `/app` ไม่ใช่ `/app/app` | Cloud Run `/` → 307 + `/static/` 404 ทั้งที่ image มี `app/` จริง | เลือก candidate หลายตำแหน่ง (`../app` สำหรับ repo, `app` สำหรับ container) ตามว่ามี `index.html` ไหม — commit `b906c3b` (ก่อนหน้า `df07273` แค่ abspath ยังไม่พอ) |
 
 ### 4. Cloud Run deploy journey (บันทึกเพื่อกันซ้ำ)
 1. default compute SA ไม่มี `logging.logWriter` → grant
@@ -41,24 +41,15 @@
 3. Cloud Shell network ไป gcr.io หลุด → docker push retry 3 ครั้งในสคริปต์
 4. build context ต้อง root (ไม่งั้นไม่มี app/) → Dockerfile + cloudbuild.yaml
 5. deploy ต้อง digest ไม่ใช่ tag → แก้ deploy scripts
+6. `static_dir` ต้องรองรับ 2 layout (repo: `api/server.py`+`app/`, container: `/app/server.py`+`/app/app/`) → candidate หลายตำแหน่ง (commit `b906c3b`)
 
 ---
 
 ## ⏳ สิ่งค้าง / next steps
 
-1. **Cloud Run dashboard** — รอ rebuild + deploy ด้วย `df07273`:
-   ```bash
-   cd /tmp/snc-deploy && git pull
-   docker build -f api/Dockerfile -t gcr.io/hotel-ecs-nithep/snc-cloud-backend:latest .
-   docker push gcr.io/hotel-ecs-nithep/snc-cloud-backend:latest
-   DIGEST=$(gcloud container images describe gcr.io/hotel-ecs-nithep/snc-cloud-backend:latest --format='value(image_summary.digest)')
-   gcloud run deploy snc-cloud-backend --image "gcr.io/hotel-ecs-nithep/snc-cloud-backend@$DIGEST" \
-     --platform managed --region asia-southeast1 --allow-unauthenticated \
-     --project hotel-ecs-nithep --set-env-vars "SNC_API_KEY=<key>"
-   ```
-2. **tg agent เป็น systemd** — ตอนนี้รันแบบ nohup (PID บน Pi) จะหายถ้า reboot; `ops/snc-tg-agent.service` ยังชี้ path เก่า ต้องแก้เป็น `ops/snc_telegram_agent.py`
-3. (optional) เพิ่ม Cloud Run health/auth/dashboard เข้า verify-daily
-4. Cloud Run ยังไม่มี DB จริง — events เก็บบน Pi4 (`api/nurse_call_events.db`) Cloud Run เป็นตัว API/auth อย่างเดียว
+1. **tg agent เป็น systemd** — ตอนนี้รันแบบ nohup (PID บน Pi) จะหายถ้า reboot; `ops/snc-tg-agent.service` ยังชี้ path เก่า ต้องแก้เป็น `ops/snc_telegram_agent.py`
+2. (optional) เพิ่ม Cloud Run health/auth/dashboard เข้า verify-daily
+3. Cloud Run ยังไม่มี DB จริง — events เก็บบน Pi4 (`api/nurse_call_events.db`) Cloud Run เป็นตัว API/auth อย่างเดียว
 
 ---
 
@@ -74,7 +65,8 @@
 
 ## 📦 Git (session นี้)
 
-- `df07273` fix: static_dir abspath (ล่าสุด)
+- `b906c3b` fix: static_dir เลือก candidate หลายตำแหน่ง (repo + container layout) — **Cloud Run dashboard จบที่ commit นี้**
+- `df07273` fix: static_dir abspath (แก้ครึ่งเดียว — ไม่เพียงพอ)
 - `1c35ed1` fix: deploy ด้วย digest ไม่ใช่ tag
 - `d4d0993` ops: deploy script pull อัตโนมัติ + fail-fast + ตรวจ dashboard
 - `9c8d02e` fix: Dockerfile context=root + app/ ใน image
