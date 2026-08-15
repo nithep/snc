@@ -82,9 +82,23 @@ app.add_middleware(
 )
 
 # Serve static files (dashboard, frontend) — ชี้ไปที่ app/ (UI Dashboard) ตามโครงสร้าง 5-Core ใหม่
-static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app")
-if not os.path.exists(static_dir):
-    os.makedirs(static_dir)
+# รองรับ 2 layout:
+#   1) Repo/5-Core (Pi4):      api/server.py  +  app/  →  ../app
+#   2) Container (Cloud Run):  /app/server.py + /app/app/ → app  (dirname(__file__) = /app)
+_server_dir = os.path.dirname(os.path.abspath(__file__))
+_static_candidates = [
+    os.path.join(_server_dir, "..", "app"),
+    os.path.join(_server_dir, "app"),
+]
+static_dir = None
+for _candidate in _static_candidates:
+    if os.path.isfile(os.path.join(_candidate, "index.html")):
+        static_dir = _candidate
+        break
+if static_dir is None:
+    # fallback: ใช้ตัวแรก (คงพฤติกรรมเดิม) + แจ้งเตือนชัดเจน แทนการ mkdir แบบเงียบๆ
+    static_dir = _static_candidates[0]
+    logging.warning(f"Dashboard not found in {_static_candidates} — serving from {static_dir}")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
