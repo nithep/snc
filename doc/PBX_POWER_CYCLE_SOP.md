@@ -34,7 +34,7 @@
 ssh pi4 'systemctl is-active snc-backend.service snc-pbx-listener.service'
 
 # 2. เปิดดู log listener แบบ real-time (หน้าจอที่ 1)
-ssh pi4 'tail -f /home/ecs-agent/nithep/snc/pbx_listener.log'
+ssh pi4 'tail -f /home/ecs-agent/snc-poc/pbx_listener.log'
 ```
 
 ### ขั้นที่ 2 — ปิดตู้

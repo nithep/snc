@@ -66,7 +66,7 @@
 | 4.3 | สลับภาษาไทย/อังกฤษ | เปลี่ยนถูกต้องทั้งหน้า | ☐ |
 | 4.4 | ตรวจ KPI | SLA compliance + avg times อัปเดต | ☐ |
 | 4.5 | ล้างข้อมูลทดสอบ (ห้องที่ใช้ทดสอบ) | DB กลับสะอาด | ☐ |
-| 4.6 | ตรวจ backup ล่าสุดยังมีอยู่ | `ls /home/ecs-agent/nithep/snc/backups/` | ☐ |
+| 4.6 | ตรวจ backup ล่าสุดยังมีอยู่ | `ls /home/ecs-agent/snc-poc/backups/` | ☐ |
 
 ---
 

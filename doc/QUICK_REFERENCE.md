@@ -7,7 +7,7 @@
 ssh ecs-agent@192.168.1.94
 
 # 2. Start system
-cd /home/ecs-agent/nithep/snc
+cd /home/ecs-agent/snc-poc
 ./ops/start-snc-system.sh
 
 # 3. View dashboard
@@ -39,8 +39,8 @@ sudo journalctl -u snc-backend -f          # Backend logs (follow)
 ```bash
 ops/monitor-snc-status.sh                  # Real-time status (terminal)
 ops/view-logs.sh                           # Interactive log viewer
-tail -f /home/ecs-agent/nithep/snc/logs/backend.log
-tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+tail -f /home/ecs-agent/snc-poc/backend.log
+tail -f /home/ecs-agent/snc-poc/pbx_listener.log
 ops/burnin-monitor.sh --report             # Burn-in summary
 ```
 
@@ -82,7 +82,7 @@ curl -X POST http://localhost:8000/api/demo/scenario \
 ```bash
 sudo lsof -i :8000                          # Check port usage
 sudo systemctl restart snc-backend          # systemd auto-restarts on crash
-tail -50 /home/ecs-agent/nithep/snc/logs/backend.log
+tail -50 /home/ecs-agent/snc-poc/backend.log
 ```
 
 ### PBX not connecting
@@ -95,13 +95,13 @@ ops/test-pbx-connectivity.sh                # Full diagnostic
 ### No events appearing
 ```bash
 sudo systemctl status snc-pbx-listener
-grep "SNC Event" /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+grep "SNC Event" /home/ecs-agent/snc-poc/pbx_listener.log
 ```
 
 ### Dashboard `/` 404/blank
 ```bash
 # server.py serves static_dir = ../app — deploy app/index.html
-scp app/index.html pi4:/home/ecs-agent/nithep/snc/app/
+scp app/index.html pi4:/home/ecs-agent/snc-poc/app/
 sudo systemctl restart snc-backend
 ```
 
@@ -112,14 +112,14 @@ sudo systemctl restart snc-backend
 
 | File | Repo | Pi |
 |------|------|----|
-| Backend | `api/server.py` | `/home/ecs-agent/nithep/snc/api/server.py` |
-| PBX Listener | `pbx/snc_pbx_listener.py` | `/home/ecs-agent/nithep/snc/pbx/snc_pbx_listener.py` |
-| Dashboard (main) | `app/index.html` | `/home/ecs-agent/nithep/snc/app/index.html` |
-| Dashboard (legacy) | `app/dashboard-status.html` | `/home/ecs-agent/nithep/snc/app/dashboard-status.html` |
-| Scripts | `ops/*.sh` | `/home/ecs-agent/nithep/snc/ops/` |
-| Database | `api/nurse_call_events.db` (runtime) | `/home/ecs-agent/nithep/snc/api/nurse_call_events.db` |
-| Logs | — (runtime) | `/home/ecs-agent/nithep/snc/logs/` |
-| Docs | `doc/*.md`, `doc/wiki/*.md` | `/home/ecs-agent/nithep/snc/doc/` |
+| Backend | `api/server.py` | `/home/ecs-agent/snc-poc/api/server.py` |
+| PBX Listener | `pbx/snc_pbx_listener.py` | `/home/ecs-agent/snc-poc/pbx/snc_pbx_listener.py` |
+| Dashboard (main) | `app/index.html` | `/home/ecs-agent/snc-poc/app/index.html` |
+| Dashboard (legacy) | `app/dashboard-status.html` | `/home/ecs-agent/snc-poc/app/dashboard-status.html` |
+| Scripts | `ops/*.sh` | `/home/ecs-agent/snc-poc/ops/` |
+| Database | `api/nurse_call_events.db` (runtime) | `/home/ecs-agent/snc-poc/api/nurse_call_events.db` |
+| Logs | — (runtime) | `/home/ecs-agent/snc-poc/` |
+| Docs | `doc/*.md`, `doc/wiki/*.md` | `/home/ecs-agent/snc-poc/doc/` |
 
 ## 🔄 Service Management (systemd)
 
@@ -128,7 +128,7 @@ systemctl status snc-backend snc-pbx-listener
 sudo systemctl restart snc-backend            # backend only
 sudo systemctl restart snc-pbx-listener       # listener only
 # Units: /etc/systemd/system/snc-{backend,pbx-listener}.service
-# User=ecs-agent, WorkingDirectory=/home/ecs-agent/nithep/snc/{api,pbx}
+# User=ecs-agent, WorkingDirectory=/home/ecs-agent/snc-poc/{api,pbx}
 ```
 
 ## 📈 Testing Event Flow
@@ -186,7 +186,7 @@ curl http://localhost:8000/api/analytics/kpi | python3 -m json.tool
 
 2. **Aliases** in `~/.bashrc`:
    ```bash
-   alias snc-start='cd /home/ecs-agent/nithep/snc && ./ops/start-snc-system.sh'
+   alias snc-start='cd /home/ecs-agent/snc-poc && ./ops/start-snc-system.sh'
    alias snc-status='ops/monitor-snc-status.sh'
    alias snc-logs='ops/view-logs.sh'
    alias snc-test='ops/verify-installation.sh'
@@ -195,7 +195,7 @@ curl http://localhost:8000/api/analytics/kpi | python3 -m json.tool
 3. **Monitor disk** (logs can grow):
    ```bash
    df -h /
-   du -sh /home/ecs-agent/nithep/snc/logs/*
+   du -sh /home/ecs-agent/snc-poc/*
    ```
 
 4. **Backup DB** (auto cron 03:00 daily):

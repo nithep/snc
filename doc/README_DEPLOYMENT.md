@@ -71,14 +71,14 @@ deploy-to-pi.bat
 
 **Option B: Manual SCP**
 ```bash
-scp *.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/
-scp dashboard-status.html pi@192.168.1.94:/home/ecs-agent/nithep/snc/
+scp *.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/
+scp dashboard-status.html pi@192.168.1.94:/home/ecs-agent/snc-poc/
 ```
 
 ### Step 2: SSH to Pi and Prepare
 ```bash
 ssh pi@192.168.1.94
-cd /home/ecs-agent/nithep/snc
+cd /home/ecs-agent/snc-poc
 chmod +x *.sh
 ```
 
@@ -117,7 +117,7 @@ Manual checks:
 curl http://localhost:8000/health
 
 # PBX connected?
-grep "Connected successfully" /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+grep "Connected successfully" /home/ecs-agent/snc-poc/pbx_listener.log
 
 # Events working?
 curl http://localhost:8000/api/events
@@ -274,19 +274,19 @@ To update the system with new code:
 
 ### Backup Database
 ```bash
-cp /home/ecs-agent/nithep/snc/api/nurse_call_events.db \
+cp /home/ecs-agent/snc-poc/api/nurse_call_events.db \
    /home/pi/backups/nurse_call_$(date +%Y%m%d_%H%M%S).db
 ```
 
 ### Backup Logs
 ```bash
 tar czf /home/pi/backups/logs_$(date +%Y%m%d).tar.gz \
-   /home/ecs-agent/nithep/snc/logs/
+   /home/ecs-agent/snc-poc/
 ```
 
 ### Restore Database
 ```bash
-cp /path/to/backup.db /home/ecs-agent/nithep/snc/api/nurse_call_events.db
+cp /path/to/backup.db /home/ecs-agent/snc-poc/api/nurse_call_events.db
 ./start-snc-system.sh
 ```
 
@@ -306,7 +306,7 @@ Team members should know how to:
 - **API Documentation**: http://192.168.1.94:8000/docs
 - **Event History**: http://192.168.1.94:8000/api/events
 - **Analytics**: http://192.168.1.94:8000/api/analytics/kpi
-- **Logs**: `/home/ecs-agent/nithep/snc/logs/`
+- **Logs**: `/home/ecs-agent/snc-poc/`
 
 ## ✅ Final Pre-Flight Checklist
 

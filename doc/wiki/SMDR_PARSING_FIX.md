@@ -116,7 +116,7 @@ After making these changes:
 
 2. **Copy updated file to Pi**:
    ```bash
-   scp snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/pbx/
+   scp snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/snc-poc/pbx/
    ```
 
 3. **Restart listener**:
@@ -126,7 +126,7 @@ After making these changes:
 
 4. **Monitor logs**:
    ```bash
-   tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log | grep -E "(SMDR|Event Detected|Fallback)"
+   tail -f /home/ecs-agent/snc-poc/pbx_listener.log | grep -E "(SMDR|Event Detected|Fallback)"
    ```
 
 5. **Verify events appear**:

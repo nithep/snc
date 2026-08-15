@@ -23,11 +23,11 @@ sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y python3 python3-pip python3-venv telnet curl
 
 # Install Python packages for backend
-cd /home/ecs-agent/nithep/snc/api
+cd /home/ecs-agent/snc-poc/api
 pip3 install fastapi uvicorn pydantic aiohttp
 
 # Install Python packages for PBX listener
-cd /home/ecs-agent/nithep/snc/pbx
+cd /home/ecs-agent/snc-poc/pbx
 pip3 install aiohttp
 ```
 
@@ -37,16 +37,16 @@ pip3 install aiohttp
 Copy these files to your Pi 4:
 ```bash
 # From your development machine
-scp ops/start-snc-system.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
-scp ops/monitor-snc-status.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
-scp ops/test-pbx-connectivity.sh pi@192.168.1.94:/home/ecs-agent/nithep/snc/ops/
-scp app/dashboard-status.html pi@192.168.1.94:/home/ecs-agent/nithep/snc/app/
+scp ops/start-snc-system.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
+scp ops/monitor-snc-status.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
+scp ops/test-pbx-connectivity.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
+scp app/dashboard-status.html pi@192.168.1.94:/home/ecs-agent/snc-poc/app/
 ```
 
 ### 2. Make Scripts Executable
 ```bash
 ssh pi@192.168.1.94
-cd /home/ecs-agent/nithep/snc
+cd /home/ecs-agent/snc-poc
 chmod +x *.sh
 ```
 
@@ -131,7 +131,7 @@ curl http://localhost:8000/health
 
 #### Check PBX Listener Logs
 ```bash
-tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+tail -f /home/ecs-agent/snc-poc/pbx_listener.log
 ```
 
 **Look for:**
@@ -158,7 +158,7 @@ curl http://localhost:8000/api/events | python3 -m json.tool
 ### Backend Won't Start
 ```bash
 # Check logs
-cat /home/ecs-agent/nithep/snc/logs/backend.log
+cat /home/ecs-agent/snc-poc/backend.log
 
 # Check if port 8000 is in use
 sudo lsof -i :8000
@@ -195,25 +195,25 @@ telnet 192.168.1.91 23
 ps aux | grep snc_pbx_listener
 
 # View recent logs
-tail -50 /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+tail -50 /home/ecs-agent/snc-poc/pbx_listener.log
 
 # Look for SMDR pattern matches
-grep "SNC Event Detected" /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+grep "SNC Event Detected" /home/ecs-agent/snc-poc/pbx_listener.log
 
 # Verify backend is receiving
-tail -50 /home/ecs-agent/nithep/snc/logs/backend.log | grep "Event sent"
+tail -50 /home/ecs-agent/snc-poc/backend.log | grep "Event sent"
 ```
 
 ### Dashboard Not Loading
 ```bash
 # Check if backend is serving static files
-ls -la /home/ecs-agent/nithep/snc/app/
+ls -la /home/ecs-agent/snc-poc/app/
 
 # Copy dashboard to backend public folder
-cp dashboard-status.html /home/ecs-agent/nithep/snc/app/
+cp dashboard-status.html /home/ecs-agent/snc-poc/app/
 
 # Or serve directly with Python
-cd /home/ecs-agent/nithep/snc
+cd /home/ecs-agent/snc-poc
 python3 -m http.server 8080
 # Then access: http://192.168.1.94:8080/dashboard-status.html
 ```
@@ -230,13 +230,13 @@ pkill -f "snc_pbx_listener.py"
 ```bash
 # Backend only
 pkill -f "uvicorn.*server:app"
-cd /home/ecs-agent/nithep/snc/api
-nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8000 > /home/ecs-agent/nithep/snc/logs/backend.log 2>&1 &
+cd /home/ecs-agent/snc-poc/api
+nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8000 > /home/ecs-agent/snc-poc/backend.log 2>&1 &
 
 # PBX Listener only
 pkill -f "snc_pbx_listener.py"
-cd /home/ecs-agent/nithep/snc/pbx
-nohup python3 snc_pbx_listener.py > /home/ecs-agent/nithep/snc/logs/pbx_listener.log 2>&1 &
+cd /home/ecs-agent/snc-poc/pbx
+nohup python3 snc_pbx_listener.py > /home/ecs-agent/snc-poc/pbx_listener.log 2>&1 &
 ```
 
 ### View Running Processes
@@ -256,12 +256,12 @@ After=network.target
 [Service]
 Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/nithep/snc/api
+WorkingDirectory=/home/ecs-agent/snc-poc/api
 ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/ecs-agent/nithep/snc/logs/backend.log
-StandardError=append:/home/ecs-agent/nithep/snc/logs/backend.log
+StandardOutput=append:/home/ecs-agent/snc-poc/backend.log
+StandardError=append:/home/ecs-agent/snc-poc/backend.log
 
 [Install]
 WantedBy=multi-user.target
@@ -276,12 +276,12 @@ After=network.target snc-backend.service
 [Service]
 Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/nithep/snc/pbx
+WorkingDirectory=/home/ecs-agent/snc-poc/pbx
 ExecStart=/usr/bin/python3 snc_pbx_listener.py
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/ecs-agent/nithep/snc/logs/pbx_listener.log
-StandardError=append:/home/ecs-agent/nithep/snc/logs/pbx_listener.log
+StandardOutput=append:/home/ecs-agent/snc-poc/pbx_listener.log
+StandardError=append:/home/ecs-agent/snc-poc/pbx_listener.log
 
 [Install]
 WantedBy=multi-user.target

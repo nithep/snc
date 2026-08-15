@@ -36,15 +36,15 @@ pip3 install fastapi uvicorn pydantic aiohttp
 From Windows machine, run: `deploy-to-pi.bat`
 
 Or manually copy via SCP:
-- [ ] `start-snc-system.sh` → `/home/ecs-agent/nithep/snc/`
-- [ ] `monitor-snc-status.sh` → `/home/ecs-agent/nithep/snc/`
-- [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/nithep/snc/`
-- [ ] `verify-installation.sh` → `/home/ecs-agent/nithep/snc/`
-- [ ] `view-logs.sh` → `/home/ecs-agent/nithep/snc/`
-- [ ] `dashboard-status.html` → `/home/ecs-agent/nithep/snc/`
-- [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/nithep/snc/`
-- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/nithep/snc/`
-- [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/nithep/snc/`
+- [ ] `start-snc-system.sh` → `/home/ecs-agent/snc-poc/`
+- [ ] `monitor-snc-status.sh` → `/home/ecs-agent/snc-poc/`
+- [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/snc-poc/`
+- [ ] `verify-installation.sh` → `/home/ecs-agent/snc-poc/`
+- [ ] `view-logs.sh` → `/home/ecs-agent/snc-poc/`
+- [ ] `dashboard-status.html` → `/home/ecs-agent/snc-poc/`
+- [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/snc-poc/`
+- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/snc-poc/`
+- [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/snc-poc/`
 
 ### Backend Modifications
 - [ ] `api/server.py` updated with static file serving
@@ -54,7 +54,7 @@ Or manually copy via SCP:
 ### Set Permissions
 ```bash
 ssh pi@192.168.1.94
-cd /home/ecs-agent/nithep/snc
+cd /home/ecs-agent/snc-poc
 chmod +x *.sh
 ```
 - [ ] All .sh files are executable
@@ -204,7 +204,7 @@ Test each option:
 ### Verify PBX Data Flow
 Check PBX listener logs:
 ```bash
-tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
+tail -f /home/ecs-agent/snc-poc/pbx_listener.log
 ```
 
 Look for:
@@ -236,7 +236,7 @@ watch -n 5 'ps aux | grep -E "uvicorn|snc_pbx" | grep -v grep'
 
 ### Log Rotation Check
 ```bash
-ls -lh /home/ecs-agent/nithep/snc/logs/
+ls -lh /home/ecs-agent/snc-poc/
 ```
 - [ ] Logs being written
 - [ ] File sizes reasonable (< 100MB each)
@@ -244,8 +244,8 @@ ls -lh /home/ecs-agent/nithep/snc/logs/
 
 ### Database Integrity
 ```bash
-sqlite3 /home/ecs-agent/nithep/snc/api/nurse_call_events.db ".tables"
-sqlite3 /home/ecs-agent/nithep/snc/api/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
+sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db ".tables"
+sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
 ```
 - [ ] Database accessible
 - [ ] Tables exist
@@ -323,14 +323,14 @@ System is fully operational when ALL of the following are true:
 - ✅ Events flow: PBX → Listener → Backend → Dashboard
 - ✅ Status uses timeout/ACK logic (not static "Connected")
 - ✅ All scripts executable and functional
-- ✅ Logs being written to `/home/ecs-agent/nithep/snc/logs/`
+- ✅ Logs being written to `/home/ecs-agent/snc-poc/`
 - ✅ verify-installation.sh passes all tests
 
 ## 📞 Support Information
 
 If issues persist after completing checklist:
 
-1. **Review Logs**: `/home/ecs-agent/nithep/snc/logs/*.log`
+1. **Review Logs**: `/home/ecs-agent/snc-poc/*.log`
 2. **Run Diagnostics**: `./test-pbx-connectivity.sh`
 3. **Check Documentation**: `DEPLOYMENT_PI4.md` troubleshooting section
 4. **Verify Network**: Ensure Pi and PBX on same network segment

@@ -145,7 +145,7 @@ Script นี้ใช้เพื่อ:
 ### ขั้นตอนที่ 1: ตรวจสอบ Database
 
 ```bash
-cd /home/ecs-agent/nithep/snc/api
+cd /home/ecs-agent/snc-poc/api
 python3 check_events.py
 ```
 
@@ -162,10 +162,10 @@ python3 check_events.py
 
 ```bash
 # ตรวจสอบ PBX listener logs
-tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log | grep -E "(Attempting|Event sent|Error)"
+tail -f /home/ecs-agent/snc-poc/pbx_listener.log | grep -E "(Attempting|Event sent|Error)"
 
 # ตรวจสอบ Backend logs
-tail -f /home/ecs-agent/nithep/snc/logs/backend.log | grep -E "(Received event|Saving event|saved successfully)"
+tail -f /home/ecs-agent/snc-poc/backend.log | grep -E "(Received event|Saving event|saved successfully)"
 ```
 
 **ควรเห็น**:
@@ -217,16 +217,16 @@ pkill -f "uvicorn|snc_pbx"
 
 # 2. Copy ไฟล์ที่แก้ไขแล้ว
 cd "c:\Users\Nithep\ไดรฟ์ของฉัน (cnithep@gmail.com)\Hotel-ECS\snc-poc"
-scp api/server.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/api/
-scp pbx/snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/pbx/
-scp api/check_events.py pi@192.168.1.94:/home/ecs-agent/nithep/snc/api/
+scp api/server.py pi@192.168.1.94:/home/ecs-agent/snc-poc/api/
+scp pbx/snc_pbx_listener.py pi@192.168.1.94:/home/ecs-agent/snc-poc/pbx/
+scp api/check_events.py pi@192.168.1.94:/home/ecs-agent/snc-poc/api/
 
 # 3. Restart services
 ./start-snc-system.sh
 
 # 4. Monitor logs
-tail -f /home/ecs-agent/nithep/snc/logs/pbx_listener.log
-tail -f /home/ecs-agent/nithep/snc/logs/backend.log
+tail -f /home/ecs-agent/snc-poc/pbx_listener.log
+tail -f /home/ecs-agent/snc-poc/backend.log
 ```
 
 ---
