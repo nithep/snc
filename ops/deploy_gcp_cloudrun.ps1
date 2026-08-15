@@ -62,10 +62,18 @@ try {
 }
 
 # --- deploy + set env ---
+# ⚠️ deploy ด้วย digest (sha256) ไม่ใช่ tag :latest — Cloud Run cache tag ไว้
+# ถ้า deploy tag เดิมซ้ำจะไม่ re-resolve → ใช้ image เก่า
 Write-Host "`n[Step 4] Deploy Cloud Run + ตั้ง env vars..." -ForegroundColor Cyan
+$digest = (gcloud container images describe $IMAGE_TAG --format="value(image_summary.digest)" 2>$null).Trim()
+$deployImage = $IMAGE_TAG
+if ($digest) {
+    $deployImage = "$($IMAGE_TAG.Split('@')[0])@$digest"
+}
+Write-Host "  image: $deployImage" -ForegroundColor Gray
 $deployArgs = @(
     "run", "deploy", $SERVICE_NAME,
-    "--image", $IMAGE_TAG,
+    "--image", $deployImage,
     "--platform", "managed",
     "--region", $REGION,
     "--allow-unauthenticated",

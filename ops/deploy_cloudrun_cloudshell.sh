@@ -92,8 +92,16 @@ fi
 
 # ── deploy + set env ──────────────────────────────────────────────────────
 echo "[4/4] Deploy + ตั้ง SNC_API_KEY"
+# ⚠️ ต้อง deploy ด้วย digest (sha256) ไม่ใช่ tag :latest — Cloud Run cache tag ไว้
+# ถ้า deploy tag เดิมซ้ำจะไม่ re-resolve → ใช้ image เก่า (เจอจริง 07/2569)
+IMAGE_DIGEST="$(gcloud container images describe "$IMAGE_TAG" --format='value(image_summary.digest)' 2>/dev/null || true)"
+DEPLOY_IMAGE="$IMAGE_TAG"
+if [ -n "$IMAGE_DIGEST" ]; then
+  DEPLOY_IMAGE="${IMAGE_TAG%@*}@${IMAGE_DIGEST}"
+fi
+echo "  image: $DEPLOY_IMAGE"
 gcloud run deploy "$SERVICE_NAME" \
-  --image "$IMAGE_TAG" \
+  --image "$DEPLOY_IMAGE" \
   --platform managed \
   --region "$REGION" \
   --allow-unauthenticated \
