@@ -68,6 +68,34 @@ echo "✅ โค้ดพร้อม build (Dockerfile ใหม่ + app/index
 echo "[2/4] gcloud config set project $PROJECT_ID"
 gcloud config set project "$PROJECT_ID"
 
+# ── Firestore (persistent DB) — setup ครั้งเดียว ──────────────────────────────
+# Cloud Run ใช้ Firestore แทน SQLite ชั่วคราว (event ไม่หายตอน scale-to-zero)
+# ต้อง enable API + สร้าง database + ให้สิทธิ์ SA ของ Cloud Run
+echo "[2.5/4] Firestore (persistent DB)"
+if ! gcloud services list --enabled --filter="config.name:firestore.googleapis.com" --format='value(config.name)' 2>/dev/null | grep -q firestore; then
+  echo "  enable firestore.googleapis.com..."
+  gcloud services enable firestore.googleapis.com --project "$PROJECT_ID" || { echo "❌ enable Firestore API ล้มเหลว" >&2; exit 1; }
+fi
+# สร้าง database ถ้ายังไม่มี (native mode)
+if ! gcloud firestore databases list --project "$PROJECT_ID" --format='value(name)' 2>/dev/null | grep -q '(default)'; then
+  echo "  สร้าง Firestore database (location: $REGION, native mode)..."
+  gcloud firestore databases create --location="$REGION" --type=firestore-native --project "$PROJECT_ID" \
+    || { echo "❌ สร้าง Firestore database ล้มเหลว" >&2; exit 1; }
+else
+  echo "  ✅ Firestore database มีอยู่แล้ว"
+fi
+# ให้สิทธิ์ SA ที่ Cloud Run ใช้เข้าถึง Firestore (roles/datastore.user)
+RUN_SA="$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --project "$PROJECT_ID" --format='value(spec.template.spec.serviceAccountName)' 2>/dev/null || true)"
+if [ -z "$RUN_SA" ]; then
+  # service ยังไม่เคย deploy — ใช้ default compute SA
+  PROJECT_NUM="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+  RUN_SA="$PROJECT_NUM-compute@developer.gserviceaccount.com"
+fi
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$RUN_SA" --role="roles/datastore.user" -q >/dev/null 2>&1 \
+  && echo "  ✅ ให้สิทธิ์ roles/datastore.user แก่ $RUN_SA" \
+  || echo "  ⚠️ ให้สิทธิ์ IAM ไม่สำเร็จ (อาจมีอยู่แล้ว) — ตรวจด้วยตนเอง"
+
 # ── build + push image ─────────────────────────────────────────────────────
 # ใช้ docker push ผ่านสิทธิ์ของ user ก่อน (Cloud Shell มี docker — กันปัญหา
 # default compute SA ไม่มี artifactregistry.repositories.createOnPush / logWriter)
@@ -106,7 +134,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --region "$REGION" \
   --allow-unauthenticated \
   --project "$PROJECT_ID" \
-  --set-env-vars "SNC_API_KEY=$SNC_API_KEY"
+  --set-env-vars "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
 
 # ── verify ────────────────────────────────────────────────────────────────
 echo ""
@@ -128,6 +156,24 @@ if [ "$ROOT_CODE" = "200" ]; then
   echo "  ✅ Dashboard / → HTTP 200"
 else
   echo "  ❌ Dashboard / → HTTP $ROOT_CODE (ควรเป็น 200 — image อาจไม่มี app/ ตรวจ Dockerfile)" >&2
+  exit 1
+fi
+# persistent DB: เขียน event ทดสอบ (ต้องมี key) แล้วอ่าน KPI — พิสูจน์ Firestore ทำงาน
+TRIG=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
+  -X POST "$SERVICE_URL/api/events/trigger" \
+  -H "Content-Type: application/json" -H "X-API-Key: $SNC_API_KEY" \
+  -d '{"room_id":"0999","event_type":"CALL_BEDSIDE"}')
+if [ "$TRIG" = "200" ]; then
+  echo "  ✅ Firestore: เขียน event → HTTP 200"
+else
+  echo "  ❌ Firestore: เขียน event → HTTP $TRIG (ตรวจ SNC_DB_BACKEND + IAM datastore.user)" >&2
+  exit 1
+fi
+KPI=$(curl -s --max-time 15 -H "X-API-Key: $SNC_API_KEY" "$SERVICE_URL/api/analytics/kpi" || true)
+if echo "$KPI" | grep -q '"total_events"'; then
+  echo "  ✅ Firestore: KPI → $KPI"
+else
+  echo "  ❌ Firestore: KPI อ่านไม่ได้: $KPI" >&2
   exit 1
 fi
 

@@ -51,6 +51,29 @@ if ($SNC_API_KEY) {
 Write-Host "`n[Step 2] ตั้งค่า project..." -ForegroundColor Cyan
 gcloud config set project $PROJECT_ID
 
+# --- Firestore (persistent DB) — setup ครั้งเดียว ---
+# Cloud Run ใช้ Firestore แทน SQLite ชั่วคราว (event ไม่หายตอน scale-to-zero)
+Write-Host "`n[Step 2.5] Firestore (persistent DB)..." -ForegroundColor Cyan
+$fsEnabled = gcloud services list --enabled --filter="config.name:firestore.googleapis.com" --format="value(config.name)" 2>$null | Select-String -SimpleMatch "firestore"
+if (-not $fsEnabled) {
+    Write-Host "  enable firestore.googleapis.com..." -ForegroundColor Gray
+    gcloud services enable firestore.googleapis.com --project $PROJECT_ID
+}
+$fsDbs = gcloud firestore databases list --project $PROJECT_ID --format="value(name)" 2>$null
+if ($fsDbs -notmatch "\(default\)") {
+    Write-Host "  สร้าง Firestore database (location: $REGION, native mode)..." -ForegroundColor Gray
+    gcloud firestore databases create --location=$REGION --type=firestore-native --project $PROJECT_ID
+} else {
+    Write-Host "  ✅ Firestore database มีอยู่แล้ว" -ForegroundColor Green
+}
+$runSa = gcloud run services describe $SERVICE_NAME --region $REGION --project $PROJECT_ID --format="value(spec.template.spec.serviceAccountName)" 2>$null
+if (-not $runSa) {
+    $projNum = gcloud projects describe $PROJECT_ID --format="value(projectNumber)"
+    $runSa = "$projNum-compute@developer.gserviceaccount.com"
+}
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$runSa" --role="roles/datastore.user" -q *> $null
+Write-Host "  ✅ ให้สิทธิ์ roles/datastore.user แก่ $runSa" -ForegroundColor Green
+
 # --- build image ---
 # build context = repo root (รวม app/ ตาม 5-Core — image ต้องมี dashboard)
 Write-Host "`n[Step 3] Build image ($IMAGE_TAG)..." -ForegroundColor Cyan
@@ -80,7 +103,7 @@ $deployArgs = @(
     "--project", $PROJECT_ID
 )
 if ($SNC_API_KEY) {
-    $deployArgs += "--set-env-vars", "SNC_API_KEY=$SNC_API_KEY"
+    $deployArgs += "--set-env-vars", "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
 }
 & gcloud @deployArgs
 if ($LASTEXITCODE -ne 0) {
@@ -108,6 +131,22 @@ if ($SNC_API_KEY) {
         } else {
             Write-Host "  ℹ️ ตรวจ auth ได้ผล: HTTP $code" -ForegroundColor Yellow
         }
+    }
+}
+
+# --- persistent DB verify (Firestore เขียน/อ่าน) ---
+if ($SNC_API_KEY) {
+    try {
+        $resp = Invoke-WebRequest -Uri "$SERVICE_URL/api/events/trigger" -Method POST -ContentType "application/json" -Headers @{ "X-API-Key" = $SNC_API_KEY } -Body '{"room_id":"0999","event_type":"CALL_BEDSIDE"}' -TimeoutSec 15
+        Write-Host "  ✅ Firestore: เขียน event → HTTP $($resp.StatusCode)" -ForegroundColor Green
+    } catch {
+        Write-Host "  ❌ Firestore: เขียน event ล้มเหลว: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    try {
+        $kpi = Invoke-RestMethod -Uri "$SERVICE_URL/api/analytics/kpi" -Headers @{ "X-API-Key" = $SNC_API_KEY } -TimeoutSec 15
+        Write-Host "  ✅ Firestore: KPI → total_events=$($kpi.total_events)" -ForegroundColor Green
+    } catch {
+        Write-Host "  ❌ Firestore: KPI อ่านไม่ได้: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
