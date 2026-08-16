@@ -95,6 +95,13 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:$RUN_SA" --role="roles/datastore.user" -q >/dev/null 2>&1 \
   && echo "  ✅ ให้สิทธิ์ roles/datastore.user แก่ $RUN_SA" \
   || echo "  ⚠️ ให้สิทธิ์ IAM ไม่สำเร็จ (อาจมีอยู่แล้ว) — ตรวจด้วยตนเอง"
+# ให้สิทธิ์ SA สำหรับ Cloud Build ด้วย (fallback เมื่อ docker push ล้มเหลว)
+for _ROLE in roles/logging.logWriter roles/artifactregistry.admin; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$RUN_SA" --role="$_ROLE" -q >/dev/null 2>&1 \
+    && echo "  ✅ ให้สิทธิ์ $_ROLE แก่ $RUN_SA" \
+    || echo "  ⚠️ ให้สิทธิ์ $_ROLE ไม่สำเร็จ (อาจมีอยู่แล้ว)"
+done
 
 # ── build + push image ─────────────────────────────────────────────────────
 # ใช้ docker push ผ่านสิทธิ์ของ user ก่อน (Cloud Shell มี docker — กันปัญหา
@@ -112,7 +119,12 @@ if command -v docker >/dev/null 2>&1; then
     echo "  ⚠️ docker push ครั้งที่ $i ล้มเหลว — ลองใหม่ใน 10 วิ..." >&2
     sleep 10
   done
-  [ "$PUSHED" = "1" ] || { echo "❌ docker push ล้มเหลว (ลอง 3 ครั้งแล้ว)" >&2; exit 1; }
+  if [ "$PUSHED" != "1" ]; then
+    echo "⚠️ docker push ล้มเหลว (ลอง 3 ครั้งแล้ว) — fallback ไป gcloud builds submit" >&2
+    echo "   (Cloud Build รันในเครือข่าย Google — ไม่พึ่ง egress ของ Cloud Shell)" >&2
+    gcloud builds submit --config "$WORK_DIR/api/cloudbuild.yaml" --project "$PROJECT_ID" "$WORK_DIR" \
+      || { echo "❌ gcloud builds submit ก็ล้มเหลว — ตรวจ IAM (logWriter + artifactregistry.admin) + billing" >&2; exit 1; }
+  fi
 else
   echo "  วิธี: gcloud builds submit (cloudbuild.yaml — context root รวม app/)"
   gcloud builds submit --config "$WORK_DIR/api/cloudbuild.yaml" --project "$PROJECT_ID" "$WORK_DIR" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
