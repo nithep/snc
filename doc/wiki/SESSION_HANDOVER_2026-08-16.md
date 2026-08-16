@@ -51,6 +51,12 @@
 
 _(เคลียร์แล้ว: deploy Cloud Run รอบ Firestore สำเร็จ — ดูส่วน Firestore ด้านล่าง)_
 
+### ☁️ Cloud Monitoring uptime check → Telegram (โค้ดพร้อม `330c8ad` — รอ deploy)
+- `server.py`: bridge `/api/webhooks/gcp-alert` (exempt API-key, auth `?token=MONITOR_WEBHOOK_TOKEN`) → Telegram ผ่าน urllib
+- deploy scripts ×2: pass-through `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`/`MONITOR_WEBHOOK_TOKEN`
+- `ops/setup_cloud_monitoring.sh` (ใหม่): uptime check `/health` 300s + webhook channel + alert policy (fail 120s) + ทดสอบ bridge จริง (idempotent)
+- **รอ**: ① deploy server.py ใหม่ (export TELEGRAM_* + SNC_API_KEY แล้วรัน deploy script) ② รัน `bash ops/setup_cloud_monitoring.sh`
+
 ---
 
 ## 🔐 Credentials
@@ -84,6 +90,7 @@ _(เคลียร์แล้ว: deploy Cloud Run รอบ Firestore สำ
 
 ## 📦 Git (session นี้)
 
+- `330c8ad` feat: Cloud Monitoring uptime check → Telegram webhook bridge + setup script
 - `11b4f94` ops: deploy fallback อัตโนมัติไป Cloud Build เมื่อ docker push ล้มเหลว + IAM grant ล่วงหน้า
 - `e37d5c4` feat: Cloud Run persistent DB via Firestore (storage abstraction + deploy setup) — **deploy สำเร็จ (revision 00015, `db:firestore`)**
 - `b906c3b` fix: static_dir เลือก candidate หลายตำแหน่ง (repo + container layout) — **Cloud Run dashboard จบที่ commit นี้**

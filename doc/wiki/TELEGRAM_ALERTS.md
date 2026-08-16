@@ -69,6 +69,37 @@ Token เคยถูกแชร์ในแชท (ตรวจแล้ว **
 3. ทดสอบใหม่: `/home/ecs-agent/snc-poc/notify-telegram.sh "ทดสอบ rotate ✅"`
 (chat_id ไม่เปลี่ยน — ใช้ของเดิมได้)
 
+## ☁️ Cloud Monitoring uptime check → Telegram (Cloud Run, ไม่พึ่ง Pi)
+
+GCP ตรวจ `/health` ของ Cloud Run เองทุก 5 นาที (แม้ Pi ตายก็ยังเช็ค) — พบ fail 120s
+→ ส่ง webhook ไปที่ bridge `/api/webhooks/gcp-alert` บน Cloud Run → แจ้ง Telegram:
+
+| รายการ | ค่า |
+|---|---|
+| uptime check | `snc-cloud-run-health` (GET `/health`, 300s, ASIA_PACIFIC) |
+| alert policy | `SNC Cloud Run uptime alert` (fail 120s → autoClose 3600s) |
+| channel | webhook_tokenauth → `SERVICE_URL/api/webhooks/gcp-alert?token=...` |
+| auth | `?token=MONITOR_WEBHOOK_TOKEN` (GCP webhook ส่ง X-API-Key ไม่ได้ — exempt จาก middleware) |
+| env บน Cloud Run | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` / `MONITOR_WEBHOOK_TOKEN` |
+
+### ตั้งค่า (ครั้งเดียว — ต้อง deploy server.py ที่มี bridge ก่อน)
+```bash
+# ใน Cloud Shell — deploy server.py ใหม่ (pass-through env ไปให้อัตโนมัติ)
+export SNC_API_KEY="<key>"
+export TELEGRAM_BOT_TOKEN="<จาก api/.env บน Pi4>"
+export TELEGRAM_CHAT_ID="7346817215"
+bash ops/deploy_cloudrun_cloudshell.sh
+# แล้วตั้ง uptime check + alert (idempotent — รันซ้ำได้)
+bash ops/setup_cloud_monitoring.sh
+```
+สคริปต์จะทดสอบ bridge จริงตอนท้าย — ควรเห็นข้อความ "GCP Monitoring: Cloud Run ผิดปกติ" ใน Telegram
+
+### ⚠️ ข้อจำกัด (documented)
+bridge อยู่บน snc-cloud-backend เอง — ถ้า service **ทั้งตัว** down จริง (เช่น ภูมิภาคล่ม) alert จะส่งไม่ถึง
+กรณีนั้นยังมี verify-daily บน Pi + หน้า Cloud Console เป็นทางสำรอง
+
+---
+
 ## 🤖 โหมด Q&A — คุยกับ SNC Agent 2 ทาง
 
 นอกจากแจ้งเตือน (1 ทาง) แล้ว ยังมี agent ตอบคำถามได้ (2 ทาง) ผ่าน `ops/snc_telegram_agent.py`:
