@@ -76,11 +76,26 @@ async def guard_write_endpoints(request, call_next):
             return JSONResponse({"error": "invalid or missing X-API-Key"}, status_code=401)
     return await call_next(request)
 
-# Enable CORS for Frontend Development
+# CORS: จำกัด origin จริง (ไม่ใช่ "*") ตาม ADR — dashboard เสิร์ฟจาก backend เอง (same-origin)
+# จึงไม่ต้อง allow "*" ไว้; ระบุผ่าน env SNC_ALLOWED_ORIGINS (comma-separated) เผื่อเปิดจาก origin อื่น
+# เช่น Cloudflare tunnel / หน้า dev localhost ตั้งค่าแล้วจึง cross-origin fetch ได้
+_DEFAULT_ALLOWED_ORIGINS = [
+    "https://nursecall.nithep.com",
+    "https://hotel.nithep.com",
+    "https://snc-cloud-backend-59781590359.asia-southeast1.run.app",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://192.168.1.94:8000",
+]
+_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("SNC_ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+] or _DEFAULT_ALLOWED_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=False,  # ใช้ X-API-Key header (ไม่ใช่ cookie) — ไม่ต้อง credentials
     allow_methods=["*"],
     allow_headers=["*"],
 )
