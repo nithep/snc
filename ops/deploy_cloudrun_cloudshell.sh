@@ -140,13 +140,18 @@ if [ -n "$IMAGE_DIGEST" ]; then
   DEPLOY_IMAGE="${IMAGE_TAG%@*}@${IMAGE_DIGEST}"
 fi
 echo "  image: $DEPLOY_IMAGE"
+ENV_VARS="SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+# pass-through env สำหรับ webhook bridge → Telegram (ตั้งค่าใน ops/setup_cloud_monitoring.sh)
+for _EV in TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID MONITOR_WEBHOOK_TOKEN; do
+  if [ -n "${!_EV:-}" ]; then ENV_VARS="$ENV_VARS,$_EV=${!_EV}"; fi
+done
 gcloud run deploy "$SERVICE_NAME" \
   --image "$DEPLOY_IMAGE" \
   --platform managed \
   --region "$REGION" \
   --allow-unauthenticated \
   --project "$PROJECT_ID" \
-  --set-env-vars "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+  --set-env-vars "$ENV_VARS"
 
 # ── verify ────────────────────────────────────────────────────────────────
 echo ""

@@ -4,6 +4,7 @@ import pathlib
 import json
 import logging
 import time
+import urllib.request
 from collections import defaultdict
 from datetime import datetime
 from typing import List
@@ -69,6 +70,10 @@ async def guard_write_endpoints(request, call_next):
             status_code=429,
             headers={"Retry-After": str(int(RATE_WINDOW_SECONDS))},
         )
+
+    # Webhook จาก GCP Monitoring (uptime alert) — auth ผ่าน ?token= ของตัวเอง (GCP ส่ง X-API-Key ไม่ได้)
+    if request.url.path.startswith("/api/webhooks/"):
+        return await call_next(request)
 
     # กันการเขียน (trigger/ack/clear/AI) จากใครก็ได้ใน LAN — GET (dashboard/poll) ยังเปิด
     if request.method in ("POST", "PUT", "DELETE") and SNC_API_KEY:
@@ -380,6 +385,58 @@ async def websocket_endpoint(websocket: WebSocket):
             logging.info(f"Received WS message: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+# ── GCP Monitoring webhook bridge (uptime alert → Telegram) ────────────────
+# Cloud Run รับ webhook จาก Cloud Monitoring เมื่อ uptime check พบปัญหา แล้วส่ง Telegram
+# (ไม่พึ่ง Pi — เช็คเองแม้ Pi ตาย) ตั้ง env: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / MONITOR_WEBHOOK_TOKEN
+MONITOR_WEBHOOK_TOKEN = os.getenv("MONITOR_WEBHOOK_TOKEN", "")
+
+
+def _tg_send_sync(text: str) -> bool:
+    """ส่งข้อความ Telegram (sync — ใช้ urllib เหมือน services อื่น ไม่มี dependency เพิ่ม)"""
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    if not bot_token or not chat_id:
+        logging.warning("TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID ไม่ได้ตั้ง — ข้ามส่ง Telegram")
+        return False
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status == 200
+    except Exception as e:
+        logging.error(f"Telegram send failed: {e}")
+        return False
+
+
+@app.post("/api/webhooks/gcp-alert")
+async def gcp_alert_webhook(request: Request):
+    """รับ webhook จาก GCP Cloud Monitoring (uptime check fail) → ส่ง Telegram
+    - auth ผ่าน ?token= (MONITOR_WEBHOOK_TOKEN) — GCP webhook ส่ง X-API-Key ไม่ได้
+    - ถูก exempt จาก API-key middleware (ดู guard_write_endpoints)"""
+    if MONITOR_WEBHOOK_TOKEN and request.query_params.get("token", "") != MONITOR_WEBHOOK_TOKEN:
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    incident = body.get("incident", {}) if isinstance(body, dict) else {}
+    state = incident.get("state", "OPEN")
+    summary = incident.get("summary", "") or "Cloud Run uptime check failed"
+    condition = incident.get("condition_name", "")
+    incident_url = incident.get("incident_url", "")
+    lines = [
+        "🚨 <b>GCP Monitoring: Cloud Run ผิดปกติ</b>",
+        f"สถานะ: {state}",
+        f"เงื่อนไข: {condition}" if condition else "",
+        f"รายละเอียด: {summary}",
+        f"ลิงก์: {incident_url}" if incident_url else "",
+    ]
+    text = "\n".join(line for line in lines if line)
+    ok = await asyncio.get_running_loop().run_in_executor(None, _tg_send_sync, text)
+    return {"status": "sent" if ok else "skipped", "state": state}
+
 
 if __name__ == "__main__":
     import uvicorn

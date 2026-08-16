@@ -103,7 +103,12 @@ $deployArgs = @(
     "--project", $PROJECT_ID
 )
 if ($SNC_API_KEY) {
-    $deployArgs += "--set-env-vars", "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+    # pass-through env สำหรับ webhook bridge → Telegram (ตั้งค่าใน ops/setup_cloud_monitoring.sh)
+    $envParts = @("SNC_API_KEY=$SNC_API_KEY", "SNC_DB_BACKEND=firestore")
+    foreach ($ev in @("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "MONITOR_WEBHOOK_TOKEN")) {
+        if ($env:$ev) { $envParts += "$ev=$env:$ev" }
+    }
+    $deployArgs += "--set-env-vars", ($envParts -join ",")
 }
 & gcloud @deployArgs
 if ($LASTEXITCODE -ne 0) {
