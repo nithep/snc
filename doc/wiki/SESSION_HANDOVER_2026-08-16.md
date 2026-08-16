@@ -76,6 +76,7 @@ _(เคลียร์แล้ว: deploy Cloud Run รอบ Firestore สำ
   - ทดสอบ write/read: POST trigger → 200, KPI `total_events` 0→1 ✅
   - listener บน Pi4 forward ทั้ง local + cloud จริง (`✅ Event sent to cloud: Room 1101/1100`)
   - event เก่า (17:24) ที่ KPI=0 เป็นเพราะตอนนั้นยังใช้ SQLite ephemeral — ข้อมูลหายตอน scale-to-zero (ยืนยันว่าบั๊กเดิมมีจริง และ Firestore แก้แล้ว)
+- **✅ ทดสอบ scale-to-zero จริงผ่าน (23:20 น. 16 ส.ค.)**: idle 16 นาที → cold start 2.33s (T0 warm 0.29s — พิสูจน์ว่า instance หลับจริง) + KPI `total_events=1` **คงอยู่ครบ** — ข้อมูลไม่หายอีกต่อไป (SQLite เก่าจะได้ 0)
 - **ปัญหา**: Cloud Run ใช้ SQLite บน disk ชั่วคราว — event หายหมดเมื่อ instance scale-to-zero (~15 นาทีไม่มี traffic)
 - **แนวทาง**: เลือก **Firestore** (serverless, มี free tier, ไม่ต้องจัดการ instance — เหมาะกับ PoC มากกว่า Cloud SQL ที่มีค่าใช้จ่ายขั้นต่ำรายเดือน)
 - **การออกแบบ** (`api/storage.py`):
