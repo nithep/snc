@@ -1,4 +1,4 @@
-# SESSION_HANDOVER_2026-08-16 — Cloud Run Deploy + Verify/Monitoring Hardening
+# SESSION_HANDOVER_2026-08-16 — Cloud Run Deploy + Verify/Monitoring Hardening + Firestore Persistent DB
 
 > จัดทำ: 16 ส.ค. 2569 | แทนที่ handover ก่อนหน้าเฉพาะส่วน Ops/Deploy
 
@@ -8,9 +8,10 @@
 
 | ระบบ | สถานะ | หมายเหตุ |
 |---|---|---|
-| **Pi4 (production)** | ✅ ใช้งานได้ | services active, `/health` healthy, verify **PASS=14 FAIL=0** |
+| **Pi4 (production)** | ✅ ใช้งานได้ | services active, `/health` healthy, verify **PASS=14 FAIL=0** (ยังใช้ SQLite backend) |
 | **Cloud Run API + auth** | ✅ ใช้งานได้ | POST ไม่มี key → 401, key ใหม่ → 200 |
 | **Cloud Run dashboard** | ✅ ใช้งานได้ | `GET /` → 200 + title `SNC Nurse Station — Live Monitor`, `/static/` → 200 |
+| **Cloud Run persistent DB** | ⚠️ โค้ดพร้อม — **รอ deploy ครั้งถัดไป** | `api/storage.py` + `SNC_DB_BACKEND=firestore` — event ไม่หายตอน scale-to-zero (commit `e37d5c4`) |
 | **Telegram แจ้งเตือน** | ✅ | notify + agent หา token เจอ (len 46) หลังแก้ env path |
 
 ---
@@ -47,9 +48,12 @@
 
 ## ⏳ สิ่งค้าง / next steps
 
-1. **tg agent เป็น systemd** — ตอนนี้รันแบบ nohup (PID บน Pi) จะหายถ้า reboot; `ops/snc-tg-agent.service` ยังชี้ path เก่า ต้องแก้เป็น `ops/snc_telegram_agent.py`
-2. (optional) เพิ่ม Cloud Run health/auth/dashboard เข้า verify-daily
-3. Cloud Run ยังไม่มี DB จริง — events เก็บบน Pi4 (`api/nurse_call_events.db`) Cloud Run เป็นตัว API/auth อย่างเดียว
+1. **deploy Cloud Run รอบ Firestore** — โค้ดพร้อม (commit `e37d5c4`) รอ rebuild + deploy ใน Cloud Shell:
+   ```bash
+   export SNC_API_KEY="48bc5efdcb440a3d74fd8f7356c8a037fc1be08a5e82aab702b06f1e7f59a2da"
+   rm -rf ~/snc && curl -fsS https://raw.githubusercontent.com/nithep/snc/main/ops/deploy_cloudrun_cloudshell.sh | bash
+   ```
+   สคริปต์จะ setup Firestore อัตโนมัติ (enable API + create DB native mode + IAM `roles/datastore.user`) + ตั้ง `SNC_DB_BACKEND=firestore` + verify เขียน/อ่าน KPI — หลัง deploy ควรเห็น `✅ Firestore: เขียน event → 200` + `✅ Firestore: KPI → ...`
 
 ---
 
@@ -63,8 +67,23 @@
 
 ---
 
+## 🔄 Firestore persistent DB (เพิ่มใน session)
+
+- **ปัญหา**: Cloud Run ใช้ SQLite บน disk ชั่วคราว — event หายหมดเมื่อ instance scale-to-zero (~15 นาทีไม่มี traffic)
+- **แนวทาง**: เลือก **Firestore** (serverless, มี free tier, ไม่ต้องจัดการ instance — เหมาะกับ PoC มากกว่า Cloud SQL ที่มีค่าใช้จ่ายขั้นต่ำรายเดือน)
+- **การออกแบบ** (`api/storage.py`):
+  - `SqliteStore` — logic เดิมทั้งหมด (Pi4 ใช้เหมือนเดิม ไม่เปลี่ยนพฤติกรรม)
+  - `FirestoreStore` — collection `nurse_call_events` (doc/event) + `room_state` (doc/room ชี้ event ล่าสุด — หลีกเลี่ยง composite index ที่ต้องสร้างมือ)
+  - เลือก backend ผ่าน env `SNC_DB_BACKEND` (default `sqlite`) — Pi4 ไม่ต้องติดตั้ง firestore lib (lazy import)
+  - KPI คำนวณจาก stream events ในหน่วยความจำ (ปริมาณ PoC ไม่สูง — ง่ายกว่า incremental counter)
+- **ไฟล์ที่แก้**: `api/storage.py` (ใหม่), `api/server.py` (ใช้ store แทน sqlite ตรง + แก้บั๊ก `reset_kpi_stats` ที่อ้าง `request` โดยไม่มีพารามิเตอร์), `api/requirements.txt` (+`google-cloud-firestore`), deploy scripts ×2 (setup Firestore + env + verify KPI), `verify-system.sh` (เพิ่ม check KPI ในส่วน Cloud Run), `health` endpoint รายงาน `db` backend
+- **ทดสอบ**: SqliteStore functional test ผ่านครบ (save/ack/clear/KPI/reset/no-event) บน Pi4 ด้วย temp DB — **SQLITE STORE: ALL TESTS PASSED**
+
+---
+
 ## 📦 Git (session นี้)
 
+- `e37d5c4` feat: Cloud Run persistent DB via Firestore (storage abstraction + deploy setup) — **รอ deploy Cloud Run รอบถัดไป**
 - `b906c3b` fix: static_dir เลือก candidate หลายตำแหน่ง (repo + container layout) — **Cloud Run dashboard จบที่ commit นี้**
 - `df07273` fix: static_dir abspath (แก้ครึ่งเดียว — ไม่เพียงพอ)
 - `1c35ed1` fix: deploy ด้วย digest ไม่ใช่ tag
