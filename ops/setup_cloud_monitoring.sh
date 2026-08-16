@@ -115,7 +115,7 @@ UP_JSON=$(cat <<JSON
   "timeout": "10s",
   "httpCheck": {"requestMethod": "GET", "path": "/health", "useSsl": true, "validateSsl": true},
   "monitoredResource": {"type": "uptime_url", "labels": {"host": "$HOST", "project_id": "$PROJECT_ID"}},
-  "selectedRegions": ["ASIA_PACIFIC"]
+  "selectedRegions": ["USA", "EUROPE", "ASIA_PACIFIC"]
 }
 JSON
 )
