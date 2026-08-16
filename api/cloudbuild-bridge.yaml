@@ -1,0 +1,8 @@
+# cloudbuild-bridge.yaml — build SNC Alert Bridge image (context = repo root)
+# วิธีใช้:
+#   gcloud builds submit --config api/cloudbuild-bridge.yaml --project hotel-ecs-nithep .
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'api/Dockerfile.bridge', '-t', 'gcr.io/$PROJECT_ID/snc-alert-bridge:latest', '.']
+images:
+  - 'gcr.io/$PROJECT_ID/snc-alert-bridge:latest'
