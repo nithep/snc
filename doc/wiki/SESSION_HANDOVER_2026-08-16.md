@@ -43,17 +43,13 @@
 4. build context ต้อง root (ไม่งั้นไม่มี app/) → Dockerfile + cloudbuild.yaml
 5. deploy ต้อง digest ไม่ใช่ tag → แก้ deploy scripts
 6. `static_dir` ต้องรองรับ 2 layout (repo: `api/server.py`+`app/`, container: `/app/server.py`+`/app/app/`) → candidate หลายตำแหน่ง (commit `b906c3b`)
+7. Cloud Shell network ไป gcr.io หลุดนาน (connection refused ต่อเนื่องหลายชั่วโมง) → docker push ไม่ใช่ทางเลือกที่พึ่งได้ → fallback `gcloud builds submit` (รันในเครือข่าย Google) + grant IAM ให้ SA ล่วงหน้า (`logging.logWriter` + `artifactregistry.admin`) (commit `11b4f94`)
 
 ---
 
 ## ⏳ สิ่งค้าง / next steps
 
-1. **deploy Cloud Run รอบ Firestore** — โค้ดพร้อม (commit `e37d5c4`) รอ rebuild + deploy ใน Cloud Shell:
-   ```bash
-   export SNC_API_KEY="SNC_API_KEY_REDACTED"
-   rm -rf ~/snc && curl -fsS https://raw.githubusercontent.com/nithep/snc/main/ops/deploy_cloudrun_cloudshell.sh | bash
-   ```
-   สคริปต์จะ setup Firestore อัตโนมัติ (enable API + create DB native mode + IAM `roles/datastore.user`) + ตั้ง `SNC_DB_BACKEND=firestore` + verify เขียน/อ่าน KPI — หลัง deploy ควรเห็น `✅ Firestore: เขียน event → 200` + `✅ Firestore: KPI → ...`
+_(เคลียร์แล้ว: deploy Cloud Run รอบ Firestore สำเร็จ — ดูส่วน Firestore ด้านล่าง)_
 
 ---
 
@@ -69,6 +65,11 @@
 
 ## 🔄 Firestore persistent DB (เพิ่มใน session)
 
+- **สถานะ: ✅ deploy เรียบร้อย (revision `snc-cloud-backend-00015-4nj`, 16 ส.ค. ~22:48 +07)**
+  - `GET /health` → `"db":"firestore"` ✅
+  - ทดสอบ write/read: POST trigger → 200, KPI `total_events` 0→1 ✅
+  - listener บน Pi4 forward ทั้ง local + cloud จริง (`✅ Event sent to cloud: Room 1101/1100`)
+  - event เก่า (17:24) ที่ KPI=0 เป็นเพราะตอนนั้นยังใช้ SQLite ephemeral — ข้อมูลหายตอน scale-to-zero (ยืนยันว่าบั๊กเดิมมีจริง และ Firestore แก้แล้ว)
 - **ปัญหา**: Cloud Run ใช้ SQLite บน disk ชั่วคราว — event หายหมดเมื่อ instance scale-to-zero (~15 นาทีไม่มี traffic)
 - **แนวทาง**: เลือก **Firestore** (serverless, มี free tier, ไม่ต้องจัดการ instance — เหมาะกับ PoC มากกว่า Cloud SQL ที่มีค่าใช้จ่ายขั้นต่ำรายเดือน)
 - **การออกแบบ** (`api/storage.py`):
@@ -83,7 +84,8 @@
 
 ## 📦 Git (session นี้)
 
-- `e37d5c4` feat: Cloud Run persistent DB via Firestore (storage abstraction + deploy setup) — **รอ deploy Cloud Run รอบถัดไป**
+- `11b4f94` ops: deploy fallback อัตโนมัติไป Cloud Build เมื่อ docker push ล้มเหลว + IAM grant ล่วงหน้า
+- `e37d5c4` feat: Cloud Run persistent DB via Firestore (storage abstraction + deploy setup) — **deploy สำเร็จ (revision 00015, `db:firestore`)**
 - `b906c3b` fix: static_dir เลือก candidate หลายตำแหน่ง (repo + container layout) — **Cloud Run dashboard จบที่ commit นี้**
 - `df07273` fix: static_dir abspath (แก้ครึ่งเดียว — ไม่เพียงพอ)
 - `1c35ed1` fix: deploy ด้วย digest ไม่ใช่ tag
