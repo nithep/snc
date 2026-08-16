@@ -2,16 +2,41 @@
 # build context = repo root (เหมือน api/Dockerfile):
 #   docker build -f api/Dockerfile.bridge -t gcr.io/<PROJECT>/snc-alert-bridge:latest .
 #   หรือ: gcloud builds submit --config api/cloudbuild-bridge.yaml .
-FROM python:3.11-slim
+#
+# Production hardening: multi-stage + non-root + HEALTHCHECK (เหมือน backend)
+# ----------------------------------------------------------------------------
+
+# ---------- Stage 1: builder ----------
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY api/requirements-bridge.txt requirements.txt
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# ---------- Stage 2: runtime ----------
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-# ใช้ requirements-bridge.txt (เฉพาะ fastapi+uvicorn — ไม่ดึง firestore/ai libs)
-COPY api/requirements-bridge.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY api/bridge_server.py .
 
+RUN useradd --create-home --uid 10001 nonroot \
+    && chown -R nonroot:nonroot /app
+USER nonroot
+
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["python3", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=4); sys.exit(0)"]
+
 CMD ["python3", "bridge_server.py"]
