@@ -6,6 +6,21 @@
 
 ![Status](https://img.shields.io/badge/Status-Production--Ready-green) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-red)
 
+## 🧭 ผังสถาปัตยกรรม (รวม Edge + Cloud)
+
+ดูผังการเชื่อมสัมพันธ์เต็มรูปแบบ (D:\snc · GitHub · Pi4 · Cloudflare · Cloud Run · GCP) พร้อม Mermaid ได้ที่
+[**`doc/ARCHITECTURE_FLOW.md`**](doc/ARCHITECTURE_FLOW.md)
+
+```
+โค้ด  D:\snc ─▶ GitHub ─▶ [Cloud Shell → gcr.io] ─▶ Cloud Run (backend / bridge)
+                                                                      │
+                               ┌──────────────────────────────────────┤
+                               ▼                                      ▼
+  ฮาร์ดแวร์  PBX ─▶ Pi4(listener+backend) ─▶ cloudflared ─▶ nursecall.nithep.com
+                                                                      │
+                        Cloud Monitoring ─▶ bridge ─▶ Telegram ◀──────┘
+```
+
 ## 🏛️ โครงสร้าง 5-Core (Standard Layout)
 
 | โฟลเดอร์ | รายละเอียด |

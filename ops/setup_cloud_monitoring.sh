@@ -27,6 +27,7 @@ PROJECT_ID="${GCP_PROJECT_ID:-hotel-ecs-nithep}"
 SERVICE_NAME="snc-cloud-backend"
 BRIDGE_NAME="snc-alert-bridge"
 REGION="asia-southeast1"
+SECRET_MONITOR="snc-monitor-webhook-token"
 SERVICE_URL="https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
 BRIDGE_URL="https://snc-alert-bridge-59781590359.asia-southeast1.run.app"
 UPTIME_ID="snc-cloud-run-health"
@@ -64,21 +65,12 @@ gcloud services enable monitoring.googleapis.com --project "$PROJECT_ID" >/dev/n
 
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
 
-# ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก env ของ bridge (source of truth) ──────
-echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก bridge service..."
-MONITOR_WEBHOOK_TOKEN="$(gcloud run services describe "$BRIDGE_NAME" --region "$REGION" \
-  --project "$PROJECT_ID" --format='json' 2>/dev/null | python3 -c "
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    for e in d['spec']['template']['spec']['containers'][0].get('env', []):
-        if e.get('name') == 'MONITOR_WEBHOOK_TOKEN':
-            print(e.get('value', ''))
-except Exception:
-    pass
-" || true)"
+# ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager (source of truth) ─────
+echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager..."
+MONITOR_WEBHOOK_TOKEN="$(gcloud secrets versions access latest \
+  --secret="$SECRET_MONITOR" --project "$PROJECT_ID" --format='get(payload.data)' 2>/dev/null || true)"
 if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
-  echo "❌ bridge ไม่มี MONITOR_WEBHOOK_TOKEN — deploy bridge ใหม่ (deploy script จะสร้างให้)" >&2
+  echo "❌ bridge ไม่มี secret $SECRET_MONITOR — deploy bridge ใหม่ (deploy script จะสร้างให้)" >&2
   exit 1
 fi
 echo "  ✅ token พร้อม (${MONITOR_WEBHOOK_TOKEN:0:8}... len ${#MONITOR_WEBHOOK_TOKEN})"
@@ -152,7 +144,25 @@ except Exception:
 " || true)"
 if [ -n "$EXISTING" ]; then
   CHANNEL="$EXISTING"
-  echo "  ✅ ใช้ channel เดิม: $CHANNEL"
+  CHANNEL_ID="$(printf '%s' "$CHANNEL" | sed 's|.*/||')"
+  echo "  ✅ พบ channel เดิม: $CHANNEL_ID"
+  # ── กัน stale-token: เทียบ token ใน URL ที่ channel ใช้อยู่กับ token ปัจจุบัน ──
+  CUR_URL="$(curl -sS --connect-timeout 15 --max-time 40 \
+    "$API/notificationChannels/$CHANNEL_ID" -H "Authorization: Bearer $ACCESS_TOKEN" \
+    2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("labels",{}).get("url",""))' 2>/dev/null || true)"
+  CUR_TOKEN="$(printf '%s' "$CUR_URL" | sed -n 's/.*token=\([^&]*\).*/\1/p')"
+  if [ "$CUR_TOKEN" != "$MONITOR_WEBHOOK_TOKEN" ]; then
+    echo "  ⚠️ channel มี token เก่า (${CUR_TOKEN:0:8}... ≠ ${MONITOR_WEBHOOK_TOKEN:0:8}...) — PATCH URL ให้ตรง"
+    if _api PATCH "$API/notificationChannels/$CHANNEL_ID?updateMask=labels.url" \
+      '{"labels":{"url":"'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'"}}'; then
+      echo "  ✅ อัปเดต URL channel เรียบร้อย (กัน stale-token)"
+    else
+      echo "  ❌ [4/6] HTTP $_API_CODE — PATCH channel ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
+      exit 1
+    fi
+  else
+    echo "  ✅ ใช้ channel เดิม (token ตรง ไม่ต้องอัปเดต): $CHANNEL_ID"
+  fi
 else
   if _api POST "$API/notificationChannels" "$CHANNEL_JSON"; then
     CHANNEL="$(printf '%s' "$_API_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["name"])' 2>/dev/null || true)"
