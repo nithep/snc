@@ -1,3 +1,9 @@
+---
+title: "ADR-001: ระบบ Safety Pipeline (Approval Gate + Rate Limiter + Audit Log)"
+type: adr
+tags: [architecture]
+---
+
 # ADR-001: ระบบ Safety Pipeline (Approval Gate + Rate Limiter + Audit Log)
 
 ## Status

@@ -1,3 +1,9 @@
+---
+title: "SMDR Parsing Fix - Records Without ==SMDX Prefix"
+type: raw
+tags: [knowledge]
+---
+
 # SMDR Parsing Fix - Records Without ==SMDX Prefix
 
 ## Problem
@@ -160,9 +166,9 @@ After making these changes:
 
 ## Related Documentation
 
-- [IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md) - System architecture
-- [DEPLOYMENT_PI4.md](../DEPLOYMENT_PI4.md) - Deployment guide
-- [QUICK_REFERENCE.md](../QUICK_REFERENCE.md) - Common commands
+- [[IMPLEMENTATION_SUMMARY]] - System architecture
+- [[DEPLOYMENT_PI4]] - Deployment guide
+- [[QUICK_REFERENCE]] - Common commands
 
 ---
 

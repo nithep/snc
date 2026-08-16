@@ -1,3 +1,9 @@
+---
+title: "📋 คู่มือระบบจัดการสถานะบริการ Systemd (SNC Systemd Services Summary)"
+type: wiki
+tags: [knowledge]
+---
+
 # 📋 คู่มือระบบจัดการสถานะบริการ Systemd (SNC Systemd Services Summary)
 
 เอกสารนี้สรุปข้อกำหนด การติดตั้ง และโครงสร้างการทำงานร่วมกันของ **Systemd Services** สำหรับระบบ **Smart Nurse Call (SNC) PoC** บนระบบปฏิบัติการของบอร์ด Raspberry Pi 4 โดยออกแบบภายใต้หลักสถาปัตยกรรมที่ยืดหยุ่น ปลอดภัยสูงสุด และทำงานได้ตลอด 24 ชั่วโมงแบบไม่มีหยุดพัก (Self-Healing)

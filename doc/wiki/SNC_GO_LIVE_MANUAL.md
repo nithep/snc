@@ -1,3 +1,9 @@
+---
+title: "🏥 เอกสารนำเสนอสาธิต และคู่มือเปิดใช้งานจริง (Executive Demonstration & Go-Live Guide)"
+type: wiki
+tags: [knowledge]
+---
+
 # 🏥 เอกสารนำเสนอสาธิต และคู่มือเปิดใช้งานจริง (Executive Demonstration & Go-Live Guide)
 ## ระบบ Smart Nurse Call (SNC) - Hybrid Cloud-Native Edge Architecture
 

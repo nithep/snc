@@ -1,3 +1,9 @@
+---
+title: "Cloudflare Tunnel Setup - Completion Summary"
+type: guide
+tags: [security]
+---
+
 # Cloudflare Tunnel Setup - Completion Summary
 
 ## Date: 2026-07-21

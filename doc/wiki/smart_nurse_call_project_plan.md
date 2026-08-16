@@ -1,3 +1,9 @@
+---
+title: "📋 บันทึกโครงการ Smart Nurse Call & Predictive Analytics Architecture"
+type: wiki
+tags: [knowledge]
+---
+
 # 📋 บันทึกโครงการ Smart Nurse Call & Predictive Analytics Architecture
 **โปรเจกต์:** ระบบเรียกพยาบาลอัจฉริยะและการวิเคราะห์เชิงคาดการณ์ (โรงพยาบาลราชเวช)  
 **สถาปัตยกรรมหลัก:** PBX – Raspberry Pi – GCP (Hybrid Cloud-Native Edge Architecture)  

@@ -1,3 +1,9 @@
+---
+title: "🔔 SNC Telegram Alerts — การแจ้งเตือนผ่าน @snc2569_bot"
+type: wiki
+tags: [knowledge]
+---
+
 # 🔔 SNC Telegram Alerts — การแจ้งเตือนผ่าน @snc2569_bot
 
 ส่งข้อความแจ้งเตือนระบบ SNC ไปที่ Telegram bot ผ่าน Bot API (curl → `sendMessage`)

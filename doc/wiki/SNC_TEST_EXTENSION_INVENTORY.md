@@ -1,3 +1,9 @@
+---
+title: "ทะเบียนเบอร์ทดลอง / Extension Inventory — Smart Nurse Call (SNC)"
+type: wiki
+tags: [knowledge]
+---
+
 # ทะเบียนเบอร์ทดลอง / Extension Inventory — Smart Nurse Call (SNC)
 
 **วันที่จัดเก็บข้อมูล:** 2026-08-14 ~17:20 น.

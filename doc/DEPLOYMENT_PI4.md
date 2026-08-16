@@ -1,3 +1,9 @@
+---
+title: "Smart Nurse Call (SNC) System - Pi 4 Deployment Guide"
+type: guide
+tags: [deploy, ops]
+---
+
 # Smart Nurse Call (SNC) System - Pi 4 Deployment Guide
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+title: "การแก้ไขปัญหา SNC Listener ↔ Phonik PBX (192.168.1.91:23)"
+type: wiki
+tags: [knowledge]
+---
+
 # การแก้ไขปัญหา SNC Listener ↔ Phonik PBX (192.168.1.91:23)
 
 **วันที่:** 2026-08-11

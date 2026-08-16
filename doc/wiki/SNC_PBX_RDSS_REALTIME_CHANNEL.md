@@ -1,3 +1,9 @@
+---
+title: "ช่องทางข้อมูล Real-time ของตู้ Phonik: RDSS (Room Display Status)"
+type: wiki
+tags: [knowledge]
+---
+
 # ช่องทางข้อมูล Real-time ของตู้ Phonik: RDSS (Room Display Status)
 
 > **สถานะ:** Verified (2026-08-12) — ใช้ได้จริงกับตู้ DX-COMPACT V5.4r1 (V5.1r0) หน้างาน

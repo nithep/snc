@@ -1,3 +1,9 @@
+---
+title: "🏗️ 5-Core Project Blueprint"
+type: wiki
+tags: [knowledge]
+---
+
 # 🏗️ 5-Core Project Blueprint
 
 > **มาตรฐานโครงสร้างโปรเจกต์สำหรับ Smart Nurse Call (SNC) และโปรเจกต์ในอนาคต**  
@@ -34,11 +40,12 @@ project-root/
 │
 ├── pbx/                    # 🟡 Core 3: Edge / IoT / Listener
 │   ├── *_listener.py       # Edge capture service
+│   ├── event_outbox.py     # Durable outbox (ADR 0004) — กัน event หาย/ซ้ำ
 │   ├── *_parser.py         # Protocol parsers
 │   ├── tests/              # Parser tests
 │   ├── requirements.txt    # Listener-specific deps
 │   ├── .env                # 🔐 Vault: Listener credentials (gitignored)
-│   └── *.db                # Edge cache (if needed)
+│   └── *.db                # Edge cache + snc_event_outbox.db (if needed)
 │
 ├── ops/                    # 🔴 Core 4: DevOps / Operations
 │   ├── deploy*.sh          # Deployment scripts
@@ -50,10 +57,13 @@ project-root/
 │
 └── doc/                    # 🟣 Core 5: Documentation
     ├── ARCHITECTURE.md     # System architecture
+    ├── BLUEPRINT_5CORE.md  # This blueprint
+    ├── ARCHITECTURE_FLOW.md# รวมผัง Edge + Cloud (Mermaid)
     ├── DEPLOYMENT.md       # Deployment guide
     ├── API.md              # API reference
     ├── USER_GUIDE.md       # End-user manual
-    └── wiki/               # Knowledge base / ADRs
+    ├── adr/                # Architecture Decision Records (ADR 0001-0006)
+    └── wiki/               # Knowledge base
 ```
 
 ---
@@ -171,6 +181,34 @@ gcloud run deploy snc-api \
 
 ---
 
+## 🧠 Architecture Decisions (ADR) & Durable Delivery
+
+### ADR (`doc/adr/`)
+การตัดสินใจเชิงสถาปัตย์ทุกครั้งต้องบันทึกเป็น ADR แยกไฟล์ (`NNNN-<title>.md`)
+ด้วยโครงสร้าง **Context / Decision / Consequences / Alternatives** — ดู ADR 0001
+
+| ADR | เรื่อง | สถานะ |
+|-----|-------|--------|
+| 0001 | มาตรฐานการบันทึก ADR | Accepted |
+| 0002 | แยก SNC Alert Bridge เป็น service ต่างหาก | Accepted |
+| 0003 | Firestore แทน SQLite บน Cloud Run (interface เดียวใน `api/storage.py`) | Accepted |
+| 0004 | Outbox + Idempotency (กัน event หาย/ซ้ำ) | Accepted |
+| 0005 | Infrastructure-as-Code ด้วย Terraform | Proposed |
+| 0006 | Message Broker + Dual-Pi (อนาคต/life-safety) | Proposed |
+
+### Outbox & Idempotency (ADR 0004)
+- **`pbx/event_outbox.py`**: listener เขียน event ลง SQLite (`snc_event_outbox.db`) เป็น `pending`
+  ก่อนส่ง → retry แบบ backoff (15s) จนกว่า backend รับ → mark `sent`
+- **Idempotency**: listener ส่ง `event_id` → backend dedup (`store.event_exists`)
+  + `save_event` ใช้ `INSERT OR IGNORE` (ไม่ทำลาย ack/clear)
+- **ผล**: event ไม่หายตอน backend down, ไม่ duplicate → SLA นับถูก
+
+### Synthetic E2E (`ops/synthetic-e2e-check.sh`)
+ตรวจเกิน `/health` 200: ยิง event จำลองจริง + ตรวจ idempotency + ยืนยัน event อยู่ใน `/api/events`
+(ใช้ได้ทั้ง Pi/Cloud — ใช้ใน cron)
+
+---
+
 ## 📏 Conventions
 
 ### Naming
@@ -206,9 +244,11 @@ gcloud run deploy snc-api \
 
 ## 📚 References
 
-- [SNC_API_KEY_SETUP_GUIDE.md](wiki/SNC_API_KEY_SETUP_GUIDE.md)
-- [DEPLOYMENT_PI4.md](DEPLOYMENT_PI4.md)
-- [SESSION_HANDOVER_2026-08-15.md](wiki/SESSION_HANDOVER_2026-08-15.md)
+- [[0001-record-architecture-decisions|ADR 0001-0006]] — การตัดสินใจเชิงสถาปัตยกรรม
+- [[ARCHITECTURE_FLOW]] — ผังรวม Edge + Cloud
+- [[SNC_API_KEY_SETUP_GUIDE]]
+- [[DEPLOYMENT_PI4]]
+- [[SESSION_HANDOVER_2026-08-15]]
 
 ---
 
