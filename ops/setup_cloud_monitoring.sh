@@ -83,20 +83,48 @@ if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
 fi
 echo "  ✅ token พร้อม (${MONITOR_WEBHOOK_TOKEN:0:8}... len ${#MONITOR_WEBHOOK_TOKEN})"
 
+# helper: เรียก REST API + แสดง HTTP code + raw body (diagnose ชัด ไม่หลุดเงียบ)
+# ใช้ตัวแปร global _API_BODY เก็บ response body — สำเร็จเมื่อ HTTP 200/201
+_API_BODY=""
+_api() {  # usage: _api METHOD URL [DATA]
+  local method="$1" url="$2" data="${3:-}"
+  local out code
+  if [ -n "$data" ]; then
+    out="$(curl -sS --connect-timeout 15 --max-time 40 -w '\n%{http_code}' \
+      -X "$method" "$url" -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -H "Content-Type: application/json" -d "$data" 2>&1 || true)"
+  else
+    out="$(curl -sS --connect-timeout 15 --max-time 40 -w '\n%{http_code}' \
+      -X "$method" "$url" -H "Authorization: Bearer $ACCESS_TOKEN" 2>&1 || true)"
+  fi
+  code="$(printf '%s' "$out" | tail -1)"
+  _API_BODY="$(printf '%s' "$out" | sed '$d')"
+  echo "    HTTP $code"
+  [ -n "$_API_BODY" ] && printf '%s\n' "$_API_BODY" | head -c 1200
+  echo ""
+  [ "$code" = "200" ] || [ "$code" = "201" ]
+}
+
 # ── [3] สร้าง uptime check (GET /health ของ service หลัก ทุก 5 นาที) ─────────
 echo "[3/6] สร้าง uptime check (GET /health, ทุก 300s)..."
 HOST="${SERVICE_URL#https://}"
-curl -sS -X PUT "$API/uptimeCheckConfigs/$UPTIME_ID" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-  -d "{
-    \"displayName\": \"SNC Cloud Run /health\",
-    \"period\": \"300s\",
-    \"timeout\": \"10s\",
-    \"httpCheck\": {\"requestMethod\": \"GET\", \"path\": \"/health\", \"useSsl\": true, \"validateSsl\": true},
-    \"monitoredResource\": {\"type\": \"uptime_url\", \"labels\": {\"host\": \"$HOST\", \"project_id\": \"$PROJECT_ID\"}},
-    \"selectedRegions\": [\"ASIA_PACIFIC\"]
-  }" | python3 -c "import sys,json; d=json.load(sys.stdin); print('  ✅ uptime check:', d.get('name', d))" \
-  || { echo "  ❌ สร้าง uptime check ล้มเหลว (ดู error ด้านบน)" >&2; exit 1; }
+UP_JSON=$(cat <<JSON
+{
+  "displayName": "SNC Cloud Run /health",
+  "period": "300s",
+  "timeout": "10s",
+  "httpCheck": {"requestMethod": "GET", "path": "/health", "useSsl": true, "validateSsl": true},
+  "monitoredResource": {"type": "uptime_url", "labels": {"host": "$HOST", "project_id": "$PROJECT_ID"}},
+  "selectedRegions": ["ASIA_PACIFIC"]
+}
+JSON
+)
+if _api PUT "$API/uptimeCheckConfigs/$UPTIME_ID" "$UP_JSON"; then
+  echo "  ✅ uptime check พร้อม ($UPTIME_ID)"
+else
+  echo "  ❌ สร้าง uptime check ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+  exit 1
+fi
 
 # ── [4] สร้าง notification channel (webhook → bridge) ────────────────────────
 echo "[4/6] สร้าง notification channel (webhook → bridge)..."
@@ -106,21 +134,28 @@ CHANNEL_JSON='{
   "labels": {"endpoint": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": ""},
   "userLabels": {"purpose": "telegram-alert"}
 }'
-EXISTING="$(curl -sS -G "$API/notificationChannels" -H "Authorization: Bearer $ACCESS_TOKEN" \
+EXISTING="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/notificationChannels" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data-urlencode 'filter=user_labels.purpose="telegram-alert"' | python3 -c "
 import sys, json
-d = json.load(sys.stdin)
-chs = d.get('channels', [])
-print(chs[0]['name'] if chs else '')
-" 2>/dev/null || true)"
+try:
+    d = json.load(sys.stdin)
+    print((d.get('channels') or [{}])[0].get('name', ''))
+except Exception:
+    print('')
+" || true)"
 if [ -n "$EXISTING" ]; then
   CHANNEL="$EXISTING"
   echo "  ✅ ใช้ channel เดิม: $CHANNEL"
 else
-  CHANNEL="$(curl -sS -X POST "$API/notificationChannels" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-    -d "$CHANNEL_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")"
-  echo "  ✅ channel ใหม่: $CHANNEL"
+  if _api POST "$API/notificationChannels" "$CHANNEL_JSON"; then
+    CHANNEL="$(printf '%s' "$_API_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["name"])' 2>/dev/null || true)"
+    [ -n "$CHANNEL" ] && echo "  ✅ channel ใหม่: $CHANNEL" \
+      || { echo "  ❌ parse channel name ล้มเหลว (body: $_API_BODY)" >&2; exit 1; }
+  else
+    echo "  ❌ สร้าง notification channel ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+    exit 1
+  fi
 fi
 
 # ── [5] สร้าง alerting policy (uptime fail 120s → webhook → bridge) ─────────
@@ -142,20 +177,25 @@ POLICY_JSON='{
   "alertStrategy": {"autoClose": "3600s"},
   "notificationChannels": ["'"$CHANNEL"'"]
 }'
-EXIST_POLICY="$(curl -sS -G "$API/alertPolicies" -H "Authorization: Bearer $ACCESS_TOKEN" \
+EXIST_POLICY="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/alertPolicies" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data-urlencode 'filter=display_name="'"$POLICY_NAME"'"' | python3 -c "
 import sys, json
-d = json.load(sys.stdin)
-pols = d.get('alertPolicies', [])
-print(pols[0]['name'] if pols else '')
-" 2>/dev/null || true)"
+try:
+    d = json.load(sys.stdin)
+    print((d.get('alertPolicies') or [{}])[0].get('name', ''))
+except Exception:
+    print('')
+" || true)"
 if [ -n "$EXIST_POLICY" ]; then
   echo "  ✅ policy มีอยู่แล้ว: $EXIST_POLICY"
 else
-  curl -sS -X POST "$API/alertPolicies" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-    -d "$POLICY_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print('  ✅ policy:', d.get('name', d))" \
-    || { echo "  ❌ สร้าง alerting policy ล้มเหลว (ดู error ด้านบน)" >&2; exit 1; }
+  if _api POST "$API/alertPolicies" "$POLICY_JSON"; then
+    echo "  ✅ policy สร้างแล้ว"
+  else
+    echo "  ❌ สร้าง alerting policy ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+    exit 1
+  fi
 fi
 
 # ── [6] ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram) ────────────────────
