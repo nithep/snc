@@ -119,8 +119,11 @@ UP_JSON=$(cat <<JSON
 }
 JSON
 )
-if _api PUT "$API/uptimeCheckConfigs/$UPTIME_ID" "$UP_JSON"; then
-  echo "  ✅ uptime check พร้อม ($UPTIME_ID)"
+# หมายเหตุ: uptimeCheckConfigs.update (PUT) ไม่ auto-create — ถ้ายังไม่มีต้อง POST (create) ก่อน
+if _api GET "$API/uptimeCheckConfigs/$UPTIME_ID"; then
+  echo "  ✅ uptime check มีอยู่แล้ว ($UPTIME_ID)"
+elif _api POST "$API/uptimeCheckConfigs" "$UP_JSON"; then
+  echo "  ✅ uptime check สร้างแล้ว ($UPTIME_ID)"
 else
   echo "  ❌ สร้าง uptime check ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
   exit 1
