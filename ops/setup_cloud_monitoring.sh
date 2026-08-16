@@ -86,9 +86,10 @@ echo "  ✅ token พร้อม (${MONITOR_WEBHOOK_TOKEN:0:8}... len ${#MONITO
 # helper: เรียก REST API + แสดง HTTP code + raw body (diagnose ชัด ไม่หลุดเงียบ)
 # ใช้ตัวแปร global _API_BODY เก็บ response body — สำเร็จเมื่อ HTTP 200/201
 _API_BODY=""
-_api() {  # usage: _api METHOD URL [DATA]
+_API_CODE=""
+_api() {  # usage: _api METHOD URL [DATA] — success เมื่อ HTTP 200/201
   local method="$1" url="$2" data="${3:-}"
-  local out code
+  local out
   if [ -n "$data" ]; then
     out="$(curl -sS --connect-timeout 15 --max-time 40 -w '\n%{http_code}' \
       -X "$method" "$url" -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -97,12 +98,12 @@ _api() {  # usage: _api METHOD URL [DATA]
     out="$(curl -sS --connect-timeout 15 --max-time 40 -w '\n%{http_code}' \
       -X "$method" "$url" -H "Authorization: Bearer $ACCESS_TOKEN" 2>&1 || true)"
   fi
-  code="$(printf '%s' "$out" | tail -1)"
+  _API_CODE="$(printf '%s' "$out" | tail -1)"
   _API_BODY="$(printf '%s' "$out" | sed '$d')"
-  echo "    HTTP $code"
+  echo "    HTTP $_API_CODE"
   [ -n "$_API_BODY" ] && printf '%s\n' "$_API_BODY" | head -c 1200
   echo ""
-  [ "$code" = "200" ] || [ "$code" = "201" ]
+  [ "$_API_CODE" = "200" ] || [ "$_API_CODE" = "201" ]
 }
 
 # ── [3] สร้าง uptime check (GET /health ของ service หลัก ทุก 5 นาที) ─────────
@@ -125,16 +126,18 @@ if _api GET "$API/uptimeCheckConfigs/$UPTIME_ID"; then
 elif _api POST "$API/uptimeCheckConfigs" "$UP_JSON"; then
   echo "  ✅ uptime check สร้างแล้ว ($UPTIME_ID)"
 else
-  echo "  ❌ สร้าง uptime check ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+  echo "  ❌ [3/6] HTTP $_API_CODE — สร้าง uptime check ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
   exit 1
 fi
 
 # ── [4] สร้าง notification channel (webhook → bridge) ────────────────────────
 echo "[4/6] สร้าง notification channel (webhook → bridge)..."
+# auth_token ต้องไม่ว่าง (webhook_tokenauth) — ใส่ token เดียวกัน (bridge ไม่ได้เช็ค header นี้
+# จริงๆ แต่ API บังคับ non-empty; auth แท้คือ ?token ใน endpoint)
 CHANNEL_JSON='{
   "type": "webhook_tokenauth",
   "displayName": "'"$CHANNEL_NAME"'",
-  "labels": {"endpoint": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": ""},
+  "labels": {"endpoint": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": "'"$MONITOR_WEBHOOK_TOKEN"'"},
   "userLabels": {"purpose": "telegram-alert"}
 }'
 EXISTING="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/notificationChannels" \
@@ -154,9 +157,9 @@ else
   if _api POST "$API/notificationChannels" "$CHANNEL_JSON"; then
     CHANNEL="$(printf '%s' "$_API_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["name"])' 2>/dev/null || true)"
     [ -n "$CHANNEL" ] && echo "  ✅ channel ใหม่: $CHANNEL" \
-      || { echo "  ❌ parse channel name ล้มเหลว (body: $_API_BODY)" >&2; exit 1; }
+      || { echo "  ❌ [4/6] HTTP $_API_CODE — parse channel name ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2; exit 1; }
   else
-    echo "  ❌ สร้าง notification channel ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+    echo "  ❌ [4/6] HTTP $_API_CODE — สร้าง channel ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
     exit 1
   fi
 fi
@@ -196,7 +199,7 @@ else
   if _api POST "$API/alertPolicies" "$POLICY_JSON"; then
     echo "  ✅ policy สร้างแล้ว"
   else
-    echo "  ❌ สร้าง alerting policy ล้มเหลว (ดู HTTP code + body ด้านบน)" >&2
+    echo "  ❌ [5/6] HTTP $_API_CODE — สร้าง alerting policy ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
     exit 1
   fi
 fi
