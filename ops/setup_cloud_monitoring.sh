@@ -132,12 +132,12 @@ fi
 
 # ── [4] สร้าง notification channel (webhook → bridge) ────────────────────────
 echo "[4/6] สร้าง notification channel (webhook → bridge)..."
-# auth_token ต้องไม่ว่าง (webhook_tokenauth) — ใส่ token เดียวกัน (bridge ไม่ได้เช็ค header นี้
-# จริงๆ แต่ API บังคับ non-empty; auth แท้คือ ?token ใน endpoint)
+# descriptor ของ webhook_tokenauth รับ label "url" เท่านั้น (ไม่ใช่ endpoint/auth_token)
+# auth แท้คือ ?token ใน URL — ตั้ง userLabels ไว้ค้นหา channel เดิมตอน rerun
 CHANNEL_JSON='{
   "type": "webhook_tokenauth",
   "displayName": "'"$CHANNEL_NAME"'",
-  "labels": {"endpoint": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": "'"$MONITOR_WEBHOOK_TOKEN"'"},
+  "labels": {"url": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'"},
   "userLabels": {"purpose": "telegram-alert"}
 }'
 EXISTING="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/notificationChannels" \
