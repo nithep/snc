@@ -1,3 +1,9 @@
+---
+title: "SNC System - Pi 4 Deployment Checklist"
+type: guide
+tags: [deploy, ops]
+---
+
 # SNC System - Pi 4 Deployment Checklist
 
 Use this checklist to ensure complete and successful deployment.

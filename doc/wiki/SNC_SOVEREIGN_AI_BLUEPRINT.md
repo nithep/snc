@@ -1,3 +1,9 @@
+---
+title: "Sovereign AI & Autonomous Private Network Blueprint (SNC Private Sovereignty MVP)"
+type: wiki
+tags: [knowledge]
+---
+
 # Sovereign AI & Autonomous Private Network Blueprint (SNC Private Sovereignty MVP)
 
 ## 📌 วิสัยทัศน์: AI อธิปไตยเดี่ยว และเครือข่ายส่วนตัวอิสระ (Autonomous Network Sovereignty)

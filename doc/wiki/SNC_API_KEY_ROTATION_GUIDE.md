@@ -1,3 +1,9 @@
+---
+title: "🔄 คู่มือหมุนเวียน SNC_API_KEY (Rotation Guide)"
+type: guide
+tags: [security]
+---
+
 # 🔄 คู่มือหมุนเวียน SNC_API_KEY (Rotation Guide)
 
 > **เวอร์ชัน:** 1.0 | **อัปเดตล่าสุด:** 16 ส.ค. 2569

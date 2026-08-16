@@ -1,3 +1,9 @@
+---
+title: "SNC System - Pi 4 Implementation Summary"
+type: raw
+tags: [knowledge]
+---
+
 # SNC System - Pi 4 Implementation Summary
 
 ## 🎯 Objectives Completed

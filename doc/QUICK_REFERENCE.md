@@ -1,3 +1,9 @@
+---
+title: "SNC System - Quick Reference Card"
+type: wiki
+tags: [knowledge]
+---
+
 # SNC System - Quick Reference Card
 
 ## 🚀 Quick Start (3 Steps)

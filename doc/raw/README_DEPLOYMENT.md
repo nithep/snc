@@ -1,3 +1,9 @@
+---
+title: "🏥 Smart Nurse Call System - Pi 4 Complete Deployment Package"
+type: raw
+tags: [deploy, ops]
+---
+
 # 🏥 Smart Nurse Call System - Pi 4 Complete Deployment Package
 
 ## 📦 What's Included

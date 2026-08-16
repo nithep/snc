@@ -1,3 +1,9 @@
+---
+title: "Smart Nurse Call (SNC) - Phase 1 Implementation Guide"
+type: raw
+tags: [knowledge]
+---
+
 # Smart Nurse Call (SNC) - Phase 1 Implementation Guide
 
 ## 📋 ภาพรวม Phase 1: Integration & Signal Processing

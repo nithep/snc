@@ -1,3 +1,9 @@
+---
+title: "📅 TimeLine ประวัติการก่อสร้างโครงการ SNC (Smart Nurse Call)"
+type: wiki
+tags: [knowledge]
+---
+
 # 📅 TimeLine ประวัติการก่อสร้างโครงการ SNC (Smart Nurse Call)
 
 เอกสารฉบับนี้บันทึกเหตุการณ์ (Milestones) สำคัญของโครงการ Smart Nurse Call (SNC)
@@ -9,7 +15,7 @@
 
 - **รายละเอียด**: ตรวจสอบข้อมูลจริงจากระบบ live (ผ่าน Public Tunnel `nursecall.nithep.com`) หลัง burn-in 48 ชม. ผ่านไป ~38 ชม. (0 FAIL) และจัดระเบียบข้อมูลบน dashboard ให้ตรงกับเบอร์ station จริงของ PBX
 - **การเปลี่ยนแปลงหลัก**:
-  1. **สร้างเอกสาร** [doc/wiki/SNC_TEST_EXTENSION_INVENTORY.md](doc/wiki/SNC_TEST_EXTENSION_INVENTORY.md): ทะเบียนเบอร์ทดลองทั้งหมด (0101, 0400, 0401, 0405, 0777, 0778, 0999-scratch) แยกรายละเอียดต่อเบอร์ (จำนวนเหตุการณ์, ประเภท, สถานะ, SLA breach, ack/res time, ช่วงเวลา) + หลักการ mapping `station_ext` → `room_id` (zero-padded 4 หลัก) → แสดง "ห้อง XXX"
+  1. **สร้างเอกสาร** [[SNC_TEST_EXTENSION_INVENTORY]]: ทะเบียนเบอร์ทดลองทั้งหมด (0101, 0400, 0401, 0405, 0777, 0778, 0999-scratch) แยกรายละเอียดต่อเบอร์ (จำนวนเหตุการณ์, ประเภท, สถานะ, SLA breach, ack/res time, ช่วงเวลา) + หลักการ mapping `station_ext` → `room_id` (zero-padded 4 หลัก) → แสดง "ห้อง XXX"
   2. **ตรวจสอบความสอดคล้อง KPI**: ตัวเลข KPI 24 รายการ / 23+1 ประเภท / compliance 83.33% / breach 4 (ทั้งหมดที่เบอร์ 0401) / avg res 1026.72s ตรงกับข้อมูลรายเหตุการณ์ 100%
   3. **พบประเด็น**: สายค้าง 3 เบอร์ (0101, 0400, 0777) ค้าง 158/256/71 ชม. ถูกนับเป็น "ผ่านเกณฑ์" (flag `sla_breached` ตั้งตอน ack/clear เท่านั้น) → compliance สูงเกินจริง, avg ack 0s = ไม่มีข้อมูล (ควรแสดง —)
   4. **ข้อแนะนำ**: หลัง burn-in จบ (15 ส.ค. 03:03) ตรวจ `burnin-monitor.sh --report` แล้วเคลียร์ข้อมูลทดสอบเก่าเพื่อเริ่มเก็บข้อมูลจริง — ไม่มีการแก้โค้ด/DB ระหว่าง burn-in (เคารพข้อห้ามใน handover)
@@ -154,7 +160,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   1. **Direct Wired Hardware Infrastructure**: กำหนดมาตรฐานเชื่อมต่อระหว่างบอร์ด Raspberry Pi Zero 2 W กับตู้ Phonik PBX (`192.168.1.91:23`) ผ่านสาย Micro-USB to LAN Adapter (ชิปเซ็ต AX88772/RTL8152) ให้ Latency < 1ms นิ่งและเสถียร 100% ขจัดสัญญาณรบกวน Wi-Fi
   2. **Zero Corporate IT Dependency**: สื่อสารข้อมูลผ่านเครือข่ายส่วนตัวด้วย **IoT 4G/5G SIM Modem** และส่งผ่าน **Cloudflare Tunnel Outbound** โดยไม่ต้องเกาะ LAN/Wi-Fi ขององค์กร ไม่ต้องเปิดพอร์ตขาเข้า (Inbound Ports = 0)
   3. **Edge AI & Data Sovereignty**: ให้การประมวลผล ตัดสินใจ และบันทึกข้อมูลสุขภาพ/ความปลอดภัย (HL7 FHIR JSON) เกิดขึ้นภายในเครื่อง On-Premise Edge Agent (Pi Zero 2W / Pi 4) โดยตรง
-  4. **Documentation**: จัดทำพิมพ์เขียว [[sovereign_ai_network_blueprint|snc-poc/docs/sovereign_ai_network_blueprint.md]] สมบูรณ์แบบเรียบร้อย
+  4. **Documentation**: จัดทำพิมพ์เขียว [[SNC_SOVEREIGN_AI_BLUEPRINT|snc-poc/docs/sovereign_ai_network_blueprint.md]] สมบูรณ์แบบเรียบร้อย
 - **สถานะ**: สำเร็จเรียบร้อย (Ready for MVP Deployment & Execution)
 
 ## [2026-08-04] Smart Nurse Call (SNC) MVP Validation & Demonstration Readiness Verified
@@ -791,13 +797,13 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 **รายละเอียดการอัปเดต:**
 - **การรวมฐานความรู้ระบบ Nurse Call (Upskill Phonik):**
-  - จัดโครงสร้างระบบฐานความรู้ใน [phonik_nurse_call_knowledge.md](file:///c:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/snc/doc/wiki/phonik_nurse_call_knowledge.md) ครอบคลุมข้อมูลฮาร์ดแวร์จริงของตู้ Phonik DX-32C/80C/144C และอุปกรณ์ข้างเตียง/ห้องน้ำ (DX-STATION, NCX-CORD, NCX-PULL) พร้อมข้อมูลการเดินสายและการจัดพอร์ต
+  - จัดโครงสร้างระบบฐานความรู้ใน [[phonik_nurse_call_knowledge]] ครอบคลุมข้อมูลฮาร์ดแวร์จริงของตู้ Phonik DX-32C/80C/144C และอุปกรณ์ข้างเตียง/ห้องน้ำ (DX-STATION, NCX-CORD, NCX-PULL) พร้อมข้อมูลการเดินสายและการจัดพอร์ต
   - เพิ่มการเชื่อมโยงระบบ (Cross-reference) ใน [.agents/skills/Phonik_SNC_Hardware_Spec/SKILL.md](file:///c:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/shc/.agents/skills/Phonik_SNC_Hardware_Spec/SKILL.md) 
 - **การอัปเดตแผนงานตามผังจริงชั้น 11 (รพ.ราชเวช):**
   - ประเมินและสอบประสานข้อมูลกับ [แผนงาน-NC-F11-ราชเวช.md](file:///C:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/T.C.Com/business/active/sales/รพ.ราชเวช/F11-NC/แผนงาน-NC-F11-ราชเวช.md) ของทีมขาย
   - **การสำรวจและวิเคราะห์ปัญหาอุปกรณ์ไม่เพียงพอ:** ค้นพบว่าอุปกรณ์เดิมตามสต็อกของใบแจ้งหนี้จริง (IV3781) มี DX-STATION เพียง 18 เครื่อง และ NCX-CORD 20 เส้น ซึ่ง**ไม่เพียงพอต่อการใช้งานชั้น 11** ที่มีความต้องการจริง 27 สถานีห้องพัก (ต้องจัดซื้อเพิ่มอีก ~9 สถานี และจัดหาชุด NCX-PULL/NCX-LED/KEY station เพิ่มทั้งชุดตามแผนงาน)
 - **การซิงค์แผนหลัก (Project Plan Update):**
-  - อัปเดตไฟล์ [smart_nurse_call_project_plan.md](file:///c:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/snc/doc/wiki/smart_nurse_call_project_plan.md) ใน Phase 5 ในด้านการสำรวจสต็อกและการจัดเตรียมความพร้อมติดตั้งชั้น 11 อย่างละเอียดครบถ้วน
+  - อัปเดตไฟล์ [[smart_nurse_call_project_plan]] ใน Phase 5 ในด้านการสำรวจสต็อกและการจัดเตรียมความพร้อมติดตั้งชั้น 11 อย่างละเอียดครบถ้วน
 - **รายการจัดเก็บข้อมูลเฝ้ารอยืนยัน (Pending Items):**
   - บันทึกรายการ [ยืนยัน] ในด้านเลขห้องจริง, จำนวนเตียงข้างเตียงเพื่อระบุจำนวนสาย Call Cord, และการตรวจสอบความถูกต้องเทียบใบเสนอราคา 3629
 
@@ -809,8 +815,8 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 **รายละเอียดการอัปเดต:**
 - **ความสำเร็จขั้น Burn-in 48 ชั่วโมง:** สิ้นสุดเวลาสังเกตการณ์ระบบที่ดำเนินมาตั้งแต่วันที่ 13 ส.ค. 03:03 น. ถึงวันที่ 15 ส.ค. 03:03 น. อย่างไร้รอยต่อด้วยผลลัพธ์ **0 FAIL (100% Stable)** การรับส่งสัญญาณและบริการ `snc-backend` / `snc-pbx-listener` แข็งแกร่งตลอดการรัน 41+ รอบตรวจวัด
 - **การลีนระบบอย่างสมบูรณ์ (SNC Lean Refactoring):** ดำเนินการคัดแยกและล้างชุดคำสั่งที่ส่งผิดของโครงการโรงแรม (SHC / Hotel ECS) ออกจากระบบ ทำให้โค้ดเนทีฟ กฎความปลอดภัยใน `.agents/AGENTS.md` และทักษะใน `SKILL.md` เป็นแบบ Pure SNC 100% สอดคล้องกับมาตรฐาน HL7 FHIR
-- **สร้างเอกสารส่งมอบชุดใหม่:** จัดทำไฟล์ [`doc/wiki/SESSION_HANDOVER_2026-08-15.md`](file:///c:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/snc/doc/wiki/SESSION_HANDOVER_2026-08-15.md) รวบรวมคำสั่งดึงผลรายงานสรุปตัวใหม่, การคำนวณอุปกรณ์ส่วนขาดชั้น 11 (ต้องการ 27 สถานี แต่ในใบแจ้งหนี้เดิมมีเพียง 18 สถานี - ขาด 9 สถานีที่ต้องจัดหาเพิ่ม), และจับคู่กำหนดการเข้าทดสอบหน้างานจริงกับทางทีมโรงพยาบาลราชเวช
-- **จัดทำแผนทดสอบใช้จริงหลังเบิร์น:** สร้างไฟล์ [`doc/wiki/POST_BURNIN_FIELD_TEST_PLAN.md`](file:///c:/Users/Nithep/ไดรฟ์ของฉัน%20(cnithep@gmail.com)/snc/doc/wiki/POST_BURNIN_FIELD_TEST_PLAN.md) บันทึกสรุปคีย์ความปลอดภัย (`SNC_API_KEY`), พิกัดระบบไฟล์ และร้อยเรียงขั้นตอนทดสอบจริง 4 สถานการณ์ร่วมกับพยาบาลและช่างหน้างานสำหรับ รพ.ราชเวช ชั้น 11
+- **สร้างเอกสารส่งมอบชุดใหม่:** จัดทำไฟล์ [[SESSION_HANDOVER_2026-08-15]] รวบรวมคำสั่งดึงผลรายงานสรุปตัวใหม่, การคำนวณอุปกรณ์ส่วนขาดชั้น 11 (ต้องการ 27 สถานี แต่ในใบแจ้งหนี้เดิมมีเพียง 18 สถานี - ขาด 9 สถานีที่ต้องจัดหาเพิ่ม), และจับคู่กำหนดการเข้าทดสอบหน้างานจริงกับทางทีมโรงพยาบาลราชเวช
+- **จัดทำแผนทดสอบใช้จริงหลังเบิร์น:** สร้างไฟล์ [[SNC_POST_BURNIN_FIELD_TEST_PLAN]] บันทึกสรุปคีย์ความปลอดภัย (`SNC_API_KEY`), พิกัดระบบไฟล์ และร้อยเรียงขั้นตอนทดสอบจริง 4 สถานการณ์ร่วมกับพยาบาลและช่างหน้างานสำหรับ รพ.ราชเวช ชั้น 11
 - **สถานะ:** แพลตฟอร์มแกนหลัก (FastAPI, Dashboard v2.0, TCP Proxy 2323, SQLite WAL) ได้รับการรับรองและเสถียรสูงสุด พร้อมสนับสนุนทีมทดสอบสายและเดินระบบติดตั้งจริงที่หน้างานรพ.ราชเวช ชั้น 11 ทันที
 
 

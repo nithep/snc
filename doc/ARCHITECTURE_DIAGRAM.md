@@ -1,3 +1,9 @@
+---
+title: "SNC System Architecture - Visual Guide"
+type: doc
+tags: [architecture]
+---
+
 # SNC System Architecture - Visual Guide
 
 ## 🏗️ System Overview

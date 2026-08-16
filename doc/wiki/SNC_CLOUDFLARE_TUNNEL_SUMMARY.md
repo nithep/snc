@@ -1,3 +1,9 @@
+---
+title: "🌐 คู่มือการกำหนดค่าและรักษาเสถียรภาพ Cloudflare Tunnel (SNC Cloudflare Tunnel Summary)"
+type: wiki
+tags: [knowledge]
+---
+
 # 🌐 คู่มือการกำหนดค่าและรักษาเสถียรภาพ Cloudflare Tunnel (SNC Cloudflare Tunnel Summary)
 
 เอกสารนี้สรุปมาตรฐานขั้นตอนปฏิบัติงาน (SOP) ในการกำหนดค่าและดูแลความเชื่อมโยงระบบ **Cloudflare Tunnel** สำหรับระบบ **Smart Nurse Call (SNC) PoC** บนบอร์ด Raspberry Pi 4 เพื่อป้องกันปัญหาการเข้าถึงระบบไม่ได้เนื่องจากเราเตอร์เปลี่ยนหมายเลข IP ด้วย DHCP (ป้องกันปัญหา 502 Bad Gateway อย่างถาวร)

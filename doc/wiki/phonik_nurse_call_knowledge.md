@@ -1,3 +1,9 @@
+---
+title: "📚 ฐานความรู้ระบบ Phonik Nurse Call (Help Call) — Hardware, Wiring, Config"
+type: wiki
+tags: [knowledge]
+---
+
 # 📚 ฐานความรู้ระบบ Phonik Nurse Call (Help Call) — Hardware, Wiring, Config
 
 **จัดทำ:** 2026-08-14 · **ที่มา:** เอกสารคู่มือใน `Phonik/` (Install Manual, Programming Manual, ManualConfig Builder 150, help-call-m2335, Nurse Call Manager Manual, PC Operator manual) + ผังการเชื่อมสาย `ผัง-NC.jpg` + ใบแจ้งหนี้จริง `ราชเวช_IV3781.pdf` + ไฟล์โปรเจกต์ Config Builder (`*.pnk`)

@@ -1,3 +1,9 @@
+---
+title: "คู่มือพนักงาน — ระบบ Smart Nurse Call (SNC)"
+type: guide
+tags: [staff, thai]
+---
+
 # คู่มือพนักงาน — ระบบ Smart Nurse Call (SNC)
 
 > ฉบับใช้งานจริง — อัปเดต 13 ส.ค. 2569

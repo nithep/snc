@@ -1,3 +1,9 @@
+---
+title: "คู่มือตั้งค่า API Key (X-API-Key) และการจัดการสายค้าง — Smart Nurse Call (SNC)"
+type: guide
+tags: [security]
+---
+
 # คู่มือตั้งค่า API Key (X-API-Key) และการจัดการสายค้าง — Smart Nurse Call (SNC)
 
 **อัปเดตล่าสุด:** 2026-08-14

@@ -1,3 +1,9 @@
+---
+title: "SESSION_HANDOVER_2026-08-16 — Cloud Run Deploy + Verify/Monitoring Hardening + Firestore Persistent DB"
+type: handover
+tags: [status]
+---
+
 # SESSION_HANDOVER_2026-08-16 — Cloud Run Deploy + Verify/Monitoring Hardening + Firestore Persistent DB
 
 > จัดทำ: 16 ส.ค. 2569 | แทนที่ handover ก่อนหน้าเฉพาะส่วน Ops/Deploy

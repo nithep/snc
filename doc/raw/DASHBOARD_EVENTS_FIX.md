@@ -1,3 +1,9 @@
+---
+title: "SMDR Events Not Displaying on Dashboard - Diagnosis & Fix"
+type: raw
+tags: [knowledge]
+---
+
 # SMDR Events Not Displaying on Dashboard - Diagnosis & Fix
 
 ## ปัญหา (Problem)

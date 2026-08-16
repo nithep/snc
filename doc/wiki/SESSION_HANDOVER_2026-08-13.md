@@ -1,3 +1,9 @@
+---
+title: "📦 Session Handover — 13 ส.ค. 2569 (SNC Pre-Release สู่ Go-Live)"
+type: handover
+tags: [status]
+---
+
 # 📦 Session Handover — 13 ส.ค. 2569 (SNC Pre-Release สู่ Go-Live)
 
 > เอกสารส่งต่อสำหรับ session ถัดไป — สรุปงานที่ทำแล้ว, สถานะระบบปัจจุบัน, สิ่งที่ห้ามทำระหว่าง Burn-in, และขั้นตอนถัดไป

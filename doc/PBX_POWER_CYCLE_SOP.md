@@ -1,3 +1,9 @@
+---
+title: "SOP — การ Power Cycle ตู้ Phonik PBX (แก้ session ค้าง)"
+type: sop
+tags: [ops]
+---
+
 # SOP — การ Power Cycle ตู้ Phonik PBX (แก้ session ค้าง)
 
 **อัปเดต:** 13 ส.ค. 2569 | **ผู้ใช้:** ช่างเทคนิคหน้างาน / ผู้ดูแลระบบ

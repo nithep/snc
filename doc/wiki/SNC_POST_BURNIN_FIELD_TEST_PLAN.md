@@ -1,3 +1,9 @@
+---
+title: "📋 แผนการทดสอบใช้งานจริงหลังเสร็จสิ้นการ Burn-in (Post-Burn-In Field-Test Plan)"
+type: checklist
+tags: [testing]
+---
+
 # 📋 แผนการทดสอบใช้งานจริงหลังเสร็จสิ้นการ Burn-in (Post-Burn-In Field-Test Plan)
 
 > **โครงการ:** Smart Nurse Call (SNC) PoC — โรงพยาบาลราชเวช ชั้น 11 (F11-NC)  
