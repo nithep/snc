@@ -20,9 +20,14 @@ uptime check + alerting policy (→ bridge → Telegram)
    หรือแก้ `versions.tf` ให้ชี้ bucket ของคุณ
 3. **Secrets ผ่าน Secret Manager** — ไม่ต้องตั้ง `TELEGRAM_BOT_TOKEN`/`MONITOR_WEBHOOK_TOKEN`
    ใน env ของ Cloud Run (mount จาก secret) ตรงกับ ADR 0002/0005
+   - `SNC_API_KEY` (backend) ก็ผ่าน secret `snc-api-key` แล้ว (ไม่ใช้ plain env) — ดู main.tf
 4. ตั้งค่าตัวแปร (`backend_image`, `bridge_image`, `snc_api_key`, `telegram_*`, `monitor_webhook_token`)
    ใน `terraform.tfvars` หรือ env `TF_VAR_*`
 5. รัน: `terraform init` → `terraform plan` → `terraform apply`
+
+## การแก้ hardening (ล่าสุด)
+- `snc_api_key` ย้ายจาก plain env → mount จาก Secret Manager (`snc-api-key`) + IAM accessor
+- `deletion_protection = true` บน Firestore (กัน destroy โดยไม่ตั้งใจใน prod)
 
 ## หมายเหตุ design
 - `backend_image`/`bridge_image` ควรชี้ **digest** (ไม่ใช่ tag) เพื่อกัน Cloud Run cache tag เก่า

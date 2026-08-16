@@ -23,10 +23,24 @@ resource "google_firestore_database" "snc" {
   name                              = "(default)"
   location_id                       = var.region
   type                              = "FIRESTORE_NATIVE"
-  deletion_protection               = false
+  deletion_protection               = true
 }
 
 # ── Secret Manager ───────────────────────────────────────────────────────
+# SNC_API_KEY ก็ผ่าน Secret Manager (ไม่ส่ง plain env) — ห้ามมี secret ใน env
+resource "google_secret_manager_secret" "snc_api_key" {
+  project   = var.project_id
+  secret_id = "snc-api-key"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "snc_api_key" {
+  secret      = google_secret_manager_secret.snc_api_key.id
+  secret_data = var.snc_api_key
+}
+
 resource "google_secret_manager_secret" "telegram_bot_token" {
   project   = var.project_id
   secret_id = "snc-telegram-bot-token"
@@ -69,12 +83,18 @@ resource "google_cloud_run_v2_service" "backend" {
       }
       env {
         name  = "SNC_API_KEY"
-        value = var.snc_api_key
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.snc_api_key.secret_id
+            version = "latest"
+          }
+        }
       }
     }
   }
 
   depends_on = [
+    google_secret_manager_secret_version.snc_api_key,
     google_secret_manager_secret_version.telegram_bot_token,
     google_secret_manager_secret_version.monitor_webhook_token,
     google_firestore_database.snc,
@@ -155,6 +175,13 @@ resource "google_project_iam_member" "run_sa_firestore" {
 resource "google_secret_manager_secret_iam_member" "bridge_bot_accessor" {
   project   = var.project_id
   secret_id = google_secret_manager_secret.telegram_bot_token.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_apikey_accessor" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.snc_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.run_sa.email}"
 }
