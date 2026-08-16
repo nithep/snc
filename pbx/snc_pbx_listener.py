@@ -14,6 +14,9 @@ import time
 import aiohttp
 from datetime import datetime
 
+# Durable Outbox — กัน event หาย/ซ้ำ (ADR 0004)
+from event_outbox import EventOutbox
+
 # โหลด .env (ไม่มี python-dotenv) — PBX_PASS / SNC_API_KEY มาจากไฟล์ ไม่ฝังในโค้ด
 _env_file = pathlib.Path(__file__).resolve().parent / ".env"
 if _env_file.exists():
@@ -130,6 +133,10 @@ class PhonikSNCListener:
         self.proxy_port = int(os.getenv("PROXY_PORT", "2323"))
         self.connected_clients = set()
         self.proxy_server = None
+        # Outbox (ADR 0004): กัน event หาย/ซ้ำ
+        self.outbox = EventOutbox()
+        self._outbox_retry_task = None
+        self._outbox_retry_interval = float(os.getenv("OUTBOX_RETRY_INTERVAL", "15"))
         # สถานะ RDSS สำหรับตรวจจับ transition (0->active / active->0)
         self.rdss_states = {}          # ห้อง -> สถานะล่าสุดที่รู้จัก
         self._rdss_pending = {}        # สถานะค้างภายในรอบ dump เดียว (last-wins)
@@ -200,7 +207,9 @@ class PhonikSNCListener:
 
         return {
             "resourceType": "CommunicationRequest",
-            "id": f"snc-event-{formatted_room}-{int(datetime.now().timestamp())}",
+            # id ใช้ microsecond → event ต่างกันในเสี้ยววินาทีไม่ชนกัน แต่ retry ของ event
+            # เดียวกันยังได้ id เดิม (idempotency ตาม id) — อ้างอิง ADR 0004
+            "id": f"snc-event-{formatted_room}-{int(datetime.now().timestamp() * 1000000)}",
             "status": "active" if is_active_call else "completed",
             "category": [
                 {
@@ -302,27 +311,45 @@ class PhonikSNCListener:
 
     async def send_event_to_backend(self, event_data: dict):
         try:
-            await self.init_http_session()
-            payload = {
-                "room_id": event_data["extension"]["roomId"],
-                "event_type": event_data["payload"][0]["contentString"],
-            }
-
-            # ส่งไป local backend ก่อน (critical path) แล้วค่อย cloud (best-effort)
-            targets = [("local", self.backend_url)]
-            if CLOUD_RUN_API_URL:
-                targets.append(("cloud", CLOUD_RUN_API_URL))
-
-            for label, url in targets:
-                await self._post_event(label, url, payload)
-
+            # Outbox pattern (ADR 0004): เขียน durable ลง SQLite ก่อนส่งเสมอ
+            self.outbox.enqueue(event_data)
+            await self._flush_outbox()
         except Exception as e:
             logging.error(f"❌ Error sending event to Backend: {e}")
             import traceback
             logging.error(traceback.format_exc())
 
-    async def _post_event(self, label: str, url: str, payload: dict):
-        """POST 1 event ไปยังปลายทาง (local/cloud) — แยกเพื่อ log/เวลาให้ชัด"""
+    async def _flush_outbox(self):
+        """ส่ง event ที่ยัง pending ทั้งหมดใน outbox — retry แบบ backoff ตามจำนวนครั้ง"""
+        try:
+            await self.init_http_session()
+        except Exception:
+            return
+        for row in self.outbox.pending():
+            event_id = row["id"]
+            payload = row["payload"]
+            if not payload:
+                continue
+            body = {
+                "room_id": payload.get("extension", {}).get("roomId", ""),
+                "event_type": payload.get("payload", [{}])[0].get("contentString", ""),
+                "event_id": event_id,   # idempotency key — backend dedup
+            }
+            # critical path = local backend; cloud เป็น best-effort (ไม่ gate sent)
+            local_ok = await self._post_event("local", self.backend_url, body)
+            if CLOUD_RUN_API_URL:
+                await self._post_event("cloud", CLOUD_RUN_API_URL, body)
+
+            if local_ok:
+                self.outbox.mark_sent(event_id)
+                logging.info(f"✅ Outbox: event {event_id} sent")
+            else:
+                # backoff ตามจำนวนครั้ง (ยังเป็น pending → รอ retry รอบถัดไป)
+                self.outbox.mark_failed(event_id, "local backend unreachable")
+                logging.error(f"⏳ Outbox: event {event_id} ยังส่งไม่ได้ (pending)")
+
+    async def _post_event(self, label: str, url: str, payload: dict) -> bool:
+        """POST 1 event ไปยังปลายทาง (local/cloud) — คืน True ถ้าสำเร็จ/duplicate"""
         logging.info(f"Attempting to send event to {label} backend: {payload}")
         try:
             async with self.http_session.post(
@@ -331,20 +358,23 @@ class PhonikSNCListener:
                 headers={"X-API-Key": BACKEND_API_KEY},
                 timeout=aiohttp.ClientTimeout(total=20),
             ) as response:
-                if response.status == 200:
+                if response.status in (200, 409):
                     result = await response.json()
                     logging.info(
                         f"✅ Event sent to {label}: Room {payload['room_id']} - "
                         f"{payload['event_type']} (ID: {result.get('event', {}).get('id', 'unknown')})"
                     )
+                    return True
                 else:
                     body = await response.text()
                     logging.error(
                         f"❌ {label} rejected event. Status: {response.status} Body: {body[:200]}"
                     )
+                    return False
         except Exception as e:
             # cloud (cold start/network) ล้มไม่ควรทำให้ local event สูญหาย — log อย่างเดียว
             logging.error(f"❌ Error sending event to {label} backend ({url}): {e}")
+            return False
 
     async def _process_line(self, raw_line: str):
         if PhonikTelnetSession.is_banner_line(raw_line):
@@ -619,6 +649,22 @@ class PhonikSNCListener:
         except Exception as e:
             logging.warning(f"Error in watchdog loop: {e}")
 
+    async def _outbox_retry_loop(self):
+        """Retry event ที่ยัง pending ใน outbox เป็นระยะ (กัน event หายเมื่อ backend down นาน)"""
+        logging.info(f"Outbox retry loop started (interval={self._outbox_retry_interval:.0f}s)")
+        try:
+            while self.is_running:
+                await asyncio.sleep(self._outbox_retry_interval)
+                if not self.is_running:
+                    break
+                if self.outbox.count_pending() > 0:
+                    logging.info(f"Outbox retry: เหลือ pending {self.outbox.count_pending()} event(s)")
+                    await self._flush_outbox()
+        except asyncio.CancelledError:
+            logging.info("Outbox retry loop cancelled")
+        except Exception as e:
+            logging.warning(f"Error in outbox retry loop: {e}")
+
     async def start_listening(self):
         self.is_running = True
         await self.init_http_session()
@@ -636,6 +682,15 @@ class PhonikSNCListener:
         except Exception as e:
             logging.error(f"❌ ไม่สามารถเริ่มรัน TCP Proxy Server ที่พอร์ต {self.proxy_port} ได้: {e}")
             self.proxy_server = None
+
+        # Outbox retry loop (ADR 0004) — retry event ที่ค้างจากรอบก่อนเป็นระยะ
+        self._outbox_retry_task = asyncio.create_task(self._outbox_retry_loop())
+
+        # flush event ที่ค้างจากครั้งก่อน (โปรแกรมเคยถูกปิดกลางคันตอน backend down)
+        leftover = self.outbox.count_pending()
+        if leftover > 0:
+            logging.info(f"Outbox: พบ event ค้างจากรอบก่อน {leftover} รายการ — flush ตอนเริ่ม")
+            await self._flush_outbox()
 
         while self.is_running:
             writer = None
@@ -712,7 +767,15 @@ class PhonikSNCListener:
 
     async def stop_listening(self):
         self.is_running = False
-        
+
+        # ปิด Outbox retry task (ถ้ารันอยู่)
+        if self._outbox_retry_task and not self._outbox_retry_task.done():
+            self._outbox_retry_task.cancel()
+            try:
+                await self._outbox_retry_task
+            except Exception:
+                pass
+
         # ปิด Proxy Server
         if self.proxy_server:
             logging.info("Stopping Built-in TCP Proxy Server...")

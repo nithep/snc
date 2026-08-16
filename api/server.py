@@ -151,6 +151,7 @@ manager = ConnectionManager()
 class CallEventRequest(BaseModel):
     room_id: str
     event_type: str
+    event_id: str = ""   # Idempotency key: listener ส่ง id ของ event เอง → backend dedup
 
 class DemoScenarioRequest(BaseModel):
     room_id: str = "400"
@@ -190,7 +191,15 @@ async def trigger_event(req: CallEventRequest):
 
     # Use microseconds to ensure unique IDs even for events in the same second
     import time
-    unique_id = f"snc-event-{formatted_room}-{int(time.time() * 1000000)}"
+    if req.event_id:
+        # Idempotency: ใช้ id ที่ listener ส่งมา — ถ้า event นี้เคยบันทึกแล้ว (retry) ให้ข้าม
+        unique_id = req.event_id
+        if store.event_exists(unique_id):
+            existing = {"resourceType": "CommunicationRequest", "id": unique_id}
+            logging.info(f"↩️ Idempotent: event {unique_id} มีอยู่แล้ว — ข้าม (no duplicate)")
+            return {"status": "duplicate", "event": existing}
+    else:
+        unique_id = f"snc-event-{formatted_room}-{int(time.time() * 1000000)}"
 
     event_payload = {
         "resourceType": "CommunicationRequest",

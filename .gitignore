@@ -64,3 +64,6 @@ ops/post_burnin_report_*.txt
 
 # Project specific non-code assets
 Phonik/
+
+# opencode runtime (track skills, not node_modules)
+.opencode/node_modules/

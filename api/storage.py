@@ -115,8 +115,10 @@ class SqliteStore:
         ext = event_data.get("extension", {})
         room_id = ext["roomId"]
         event_type = ext.get("sourceEventType") or event_data["payload"][0]["contentString"]
+        # INSERT OR IGNORE: idempotent ตาม id — ถ้า event id มีอยู่แล้ว (ส่งซ้ำ) ไม่ทับ
+        # (เดิมใช้ REPLACE ซึ่งจะทับทำลาย ack/clear — เปลี่ยนเพื่อความถูกต้องของ SLA)
         cursor.execute("""
-            INSERT OR REPLACE INTO nurse_call_events (id, room_id, event_type, status, timestamp, fhir_payload)
+            INSERT OR IGNORE INTO nurse_call_events (id, room_id, event_type, status, timestamp, fhir_payload)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
             event_data["id"],
@@ -128,6 +130,14 @@ class SqliteStore:
         ))
         conn.commit()
         conn.close()
+
+    def event_exists(self, event_id: str) -> bool:
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM nurse_call_events WHERE id = ?", (event_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row is not None
 
     def get_recent_events(self, limit: int = 200) -> List[dict]:
         conn = self._connect()
@@ -315,6 +325,10 @@ class FirestoreStore:
     def get_recent_events(self, limit: int = 200) -> List[dict]:
         query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(limit)
         return [self._snap_to_event(snap) for snap in query.stream()]
+
+    def event_exists(self, event_id: str) -> bool:
+        snap = self._events.document(event_id).get()
+        return snap.exists
 
     def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict]]:
         ref = self._room_state.document(room_id)
