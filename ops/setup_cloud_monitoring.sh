@@ -4,27 +4,31 @@
 # ----------------------------------------------------------------------------
 # วิธีใช้ (Cloud Shell — https://shell.cloud.google.com):
 #
-#   export TELEGRAM_BOT_TOKEN="<token จาก api/.env บน Pi4>"
-#   export TELEGRAM_CHAT_ID="7346817215"
 #   bash ops/setup_cloud_monitoring.sh
 #
+# ข้อกำหนด: deploy bridge service ก่อน (service แยก — alert ถึงแม้ backend หลัก down):
+#   export TELEGRAM_BOT_TOKEN="<token จาก api/.env บน Pi4>"
+#   export TELEGRAM_CHAT_ID="7346817215"
+#   bash ops/deploy_bridge_cloudshell.sh
+#
 # สิ่งที่สคริปต์ทำ (idempotent — รันซ้ำได้):
-#   1. enable monitoring.googleapis.com
-#   2. สร้าง MONITOR_WEBHOOK_TOKEN (ถ้ายังไม่มี) + ตั้ง env บน Cloud Run
-#      (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / MONITOR_WEBHOOK_TOKEN)
-#      → ต้อง deploy server.py ที่มี /api/webhooks/gcp-alert ก่อน!
-#   3. สร้าง uptime check ที่ /health (ทุก 5 นาที)
-#   4. สร้าง notification channel (webhook) ชี้ไปที่ bridge endpoint
-#   5. สร้าง alerting policy: uptime fail 120s → ส่ง webhook → Telegram
-#   6. ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram)
-# อ้างอิง: doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md, doc/BLUEPRINT_5CORE.md
+#   [0] ตรวจ bridge ว่า live (ถ้ายังไม่ → บอกให้ deploy ก่อน)
+#   [1] enable monitoring.googleapis.com
+#   [2] ดึง MONITOR_WEBHOOK_TOKEN จาก env ของ bridge service (source of truth)
+#   [3] สร้าง uptime check ที่ /health ของ service หลัก (ทุก 5 นาที)
+#   [4] สร้าง notification channel (webhook) ชี้ไปที่ bridge
+#   [5] สร้าง alerting policy: uptime fail 120s → ส่ง webhook → bridge → Telegram
+#   [6] ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram)
+# อ้างอิง: doc/wiki/TELEGRAM_ALERTS.md, doc/BLUEPRINT_5CORE.md
 # ============================================================================
 set -euo pipefail
 
 PROJECT_ID="${GCP_PROJECT_ID:-hotel-ecs-nithep}"
 SERVICE_NAME="snc-cloud-backend"
+BRIDGE_NAME="snc-alert-bridge"
 REGION="asia-southeast1"
 SERVICE_URL="https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
+BRIDGE_URL="https://snc-alert-bridge-59781590359.asia-southeast1.run.app"
 UPTIME_ID="snc-cloud-run-health"
 CHANNEL_NAME="SNC Telegram alert bridge"
 POLICY_NAME="SNC Cloud Run uptime alert"
@@ -32,38 +36,46 @@ API="https://monitoring.googleapis.com/v3/projects/$PROJECT_ID"
 
 echo "═══════════ Cloud Monitoring Setup (uptime → Telegram) ═══════════"
 echo "Project : $PROJECT_ID"
-echo "Service : $SERVICE_URL"
+echo "Target  : $SERVICE_URL"
+echo "Bridge  : $BRIDGE_URL (service แยก — alert ถึงแม้ backend หลัก down)"
 
-# ── ตรวจ prerequisites ─────────────────────────────────────────────────────
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "❌ ไม่พบ gcloud — ใช้ Cloud Shell (https://shell.cloud.google.com) เท่านั้น" >&2
   exit 1
 fi
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-  echo "❌ ต้อง export TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (ดูจาก api/.env บน Pi4)" >&2
-  echo "   รันบน Pi: grep -E 'TELEGRAM' /home/ecs-agent/snc-poc/api/.env" >&2
+gcloud config set project "$PROJECT_ID" >/dev/null
+
+# ── [0] ตรวจ bridge ว่า live ────────────────────────────────────────────────
+echo "[0/6] ตรวจ bridge service..."
+if ! curl -s --max-time 15 "$BRIDGE_URL/health" 2>/dev/null | grep -q '"healthy"'; then
+  echo "❌ bridge ยังไม่ทำงาน ($BRIDGE_URL)" >&2
+  echo "   รันก่อน (Cloud Shell):" >&2
+  echo "     export TELEGRAM_BOT_TOKEN=\"<token จาก api/.env บน Pi4>\"" >&2
+  echo "     export TELEGRAM_CHAT_ID=\"7346817215\"" >&2
+  echo "     bash ops/deploy_bridge_cloudshell.sh" >&2
   exit 1
 fi
-echo "✅ TELEGRAM env พร้อม (bot token len ${#TELEGRAM_BOT_TOKEN})"
+echo "  ✅ bridge live"
 
-gcloud config set project "$PROJECT_ID" >/dev/null
-ACCESS_TOKEN="$(gcloud auth print-access-token)"
-
-# ── [1] enable Monitoring API ─────────────────────────────────────────────
+# ── [1] enable Monitoring API ───────────────────────────────────────────────
 echo "[1/6] enable monitoring.googleapis.com..."
 gcloud services enable monitoring.googleapis.com --project "$PROJECT_ID" >/dev/null 2>&1 \
   || echo "  ⚠️ enable ล้มเหลว (อาจ enable แล้ว) — ดำเนินการต่อ"
 
-# ── [2] ตั้ง env บน Cloud Run (bridge → Telegram) ──────────────────────────
-echo "[2/6] ตั้ง env บน Cloud Run (bridge webhook → Telegram)..."
-MONITOR_WEBHOOK_TOKEN="${MONITOR_WEBHOOK_TOKEN:-$(openssl rand -hex 16)}"
-echo "  MONITOR_WEBHOOK_TOKEN: ${MONITOR_WEBHOOK_TOKEN:0:8}... (len ${#MONITOR_WEBHOOK_TOKEN})"
-# บันทึก token ไว้ใช้ตอน deploy ครั้งถัดไปด้วย (ถ้ารัน deploy ใหม่จะได้ส่งต่อ)
-gcloud run services update "$SERVICE_NAME" \
-  --region "$REGION" --project "$PROJECT_ID" \
-  --update-env-vars "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID,MONITOR_WEBHOOK_TOKEN=$MONITOR_WEBHOOK_TOKEN" >/dev/null
+ACCESS_TOKEN="$(gcloud auth print-access-token)"
 
-# ── [3] สร้าง uptime check (GET /health ทุก 5 นาที) ─────────────────────────
+# ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก env ของ bridge (source of truth) ──────
+echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก bridge service..."
+BRIDGE_ENV="$(gcloud run services describe "$BRIDGE_NAME" --region "$REGION" \
+  --project "$PROJECT_ID" --format='value(spec.template.spec.containers[0].env)' 2>/dev/null || true)"
+MONITOR_WEBHOOK_TOKEN="$(echo "$BRIDGE_ENV" | tr ';' '\n' | sed -n 's/^MONITOR_WEBHOOK_TOKEN=//p' | head -1)"
+if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
+  echo "❌ bridge ไม่มี MONITOR_WEBHOOK_TOKEN — deploy bridge ใหม่ (deploy script จะสร้างให้)" >&2
+  exit 1
+fi
+echo "  ✅ token พร้อม (${MONITOR_WEBHOOK_TOKEN:0:8}... len ${#MONITOR_WEBHOOK_TOKEN})"
+
+# ── [3] สร้าง uptime check (GET /health ของ service หลัก ทุก 5 นาที) ─────────
 echo "[3/6] สร้าง uptime check (GET /health, ทุก 300s)..."
 HOST="${SERVICE_URL#https://}"
 curl -sS -X PUT "$API/uptimeCheckConfigs/$UPTIME_ID" \
@@ -78,17 +90,16 @@ curl -sS -X PUT "$API/uptimeCheckConfigs/$UPTIME_ID" \
   }" | python3 -c "import sys,json; d=json.load(sys.stdin); print('  ✅ uptime check:', d.get('name', d))" \
   || { echo "  ❌ สร้าง uptime check ล้มเหลว (ดู error ด้านบน)" >&2; exit 1; }
 
-# ── [4] สร้าง notification channel (webhook → bridge) ───────────────────────
-echo "[4/6] สร้าง notification channel (webhook)..."
+# ── [4] สร้าง notification channel (webhook → bridge) ────────────────────────
+echo "[4/6] สร้าง notification channel (webhook → bridge)..."
 CHANNEL_JSON='{
   "type": "webhook_tokenauth",
   "displayName": "'"$CHANNEL_NAME"'",
-  "labels": {"endpoint": "'"$SERVICE_URL"'/api/webhooks/gcp-alert?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": ""},
+  "labels": {"endpoint": "'"$BRIDGE_URL"'/webhook?token='"$MONITOR_WEBHOOK_TOKEN"'", "auth_token": ""},
   "userLabels": {"purpose": "telegram-alert"}
 }'
-# idempotent: ถ้ามี channel ชื่อเดียวกันอยู่แล้ว → ใช้เดิม (ไม่สร้างซ้ำ)
 EXISTING="$(curl -sS -G "$API/notificationChannels" -H "Authorization: Bearer $ACCESS_TOKEN" \
-  --data-urlencode "filter=user_labels.purpose=\"telegram-alert\"" | python3 -c "
+  --data-urlencode 'filter=user_labels.purpose="telegram-alert"' | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 chs = d.get('channels', [])
@@ -104,7 +115,7 @@ else
   echo "  ✅ channel ใหม่: $CHANNEL"
 fi
 
-# ── [5] สร้าง alerting policy (uptime fail 120s → webhook) ──────────────────
+# ── [5] สร้าง alerting policy (uptime fail 120s → webhook → bridge) ─────────
 echo "[5/6] สร้าง alerting policy..."
 POLICY_JSON='{
   "displayName": "'"$POLICY_NAME"'",
@@ -141,15 +152,14 @@ fi
 
 # ── [6] ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram) ────────────────────
 echo "[6/6] ทดสอบ webhook bridge → Telegram..."
-sleep 5
-TEST=$(curl -sS -X POST "$SERVICE_URL/api/webhooks/gcp-alert?token=$MONITOR_WEBHOOK_TOKEN" \
+T=$(curl -sS --max-time 20 -X POST "$BRIDGE_URL/webhook?token=$MONITOR_WEBHOOK_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"incident":{"state":"OPEN","summary":"ทดสอบจาก setup_cloud_monitoring.sh (uptime check พร้อมใช้)","condition_name":"Uptime check /health failed"}}')
-echo "  bridge → $TEST"
-echo "$TEST" | grep -q '"status": *"sent"' && echo "  ✅ Telegram ส่งแล้ว (เช็คแชทได้)" \
-  || echo "  ⚠️ bridge ยังส่งไม่ได้ — ตรวจว่า deploy server.py ที่มี /api/webhooks/gcp-alert แล้วหรือยัง"
+echo "  bridge → $T"
+echo "$T" | grep -q '"sent"' && echo "  ✅ Telegram ส่งแล้ว (เช็คแชทได้)" \
+  || echo "  ⚠️ bridge รับได้แต่ส่ง Telegram ไม่ได้ — ตรวจ TELEGRAM env บน bridge service"
 
 echo ""
 echo "✅ เสร็จสิ้น — uptime check: https://console.cloud.google.com/monitoring/uptime?project=$PROJECT_ID"
-echo "   หมายเหตุ: bridge อยู่บน snc-cloud-backend เอง — ถ้า service ทั้งตัว down จริง alert จะส่งไม่ถึง"
-echo "   (กรณีนั้นยังมี verify-daily บน Pi + Cloud Console เป็นทางสำรอง)"
+echo "   เส้นทาง alert: Cloud Monitoring → webhook → snc-alert-bridge → Telegram"
+echo "   (bridge อยู่คนละ service กับ backend หลัก — alert ส่งถึงแม้ backend หลัก down)"
