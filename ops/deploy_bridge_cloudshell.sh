@@ -52,9 +52,18 @@ else
 fi
 
 # ── MONITOR_WEBHOOK_TOKEN: ใช้ของเดิมถ้ามี (กัน channel URL เก่าแตก) ─────────
-CUR_ENV="$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" \
-  --project "$PROJECT_ID" --format='value(spec.template.spec.containers[0].env)' 2>/dev/null || true)"
-MONITOR_WEBHOOK_TOKEN="$(echo "$CUR_ENV" | tr ';' '\n' | sed -n 's/^MONITOR_WEBHOOK_TOKEN=//p' | head -1)"
+# parse JSON env ด้วย python3 (format gcloud เปลี่ยนได้ — กัน brittle)
+MONITOR_WEBHOOK_TOKEN="$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" \
+  --project "$PROJECT_ID" --format='json' 2>/dev/null | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    for e in d['spec']['template']['spec']['containers'][0].get('env', []):
+        if e.get('name') == 'MONITOR_WEBHOOK_TOKEN':
+            print(e.get('value', ''))
+except Exception:
+    pass
+" || true)"
 if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
   MONITOR_WEBHOOK_TOKEN="$(openssl rand -hex 16)"
   echo "  🔑 สร้าง MONITOR_WEBHOOK_TOKEN ใหม่ (${MONITOR_WEBHOOK_TOKEN:0:8}...)"

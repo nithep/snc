@@ -66,9 +66,17 @@ ACCESS_TOKEN="$(gcloud auth print-access-token)"
 
 # ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก env ของ bridge (source of truth) ──────
 echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก bridge service..."
-BRIDGE_ENV="$(gcloud run services describe "$BRIDGE_NAME" --region "$REGION" \
-  --project "$PROJECT_ID" --format='value(spec.template.spec.containers[0].env)' 2>/dev/null || true)"
-MONITOR_WEBHOOK_TOKEN="$(echo "$BRIDGE_ENV" | tr ';' '\n' | sed -n 's/^MONITOR_WEBHOOK_TOKEN=//p' | head -1)"
+MONITOR_WEBHOOK_TOKEN="$(gcloud run services describe "$BRIDGE_NAME" --region "$REGION" \
+  --project "$PROJECT_ID" --format='json' 2>/dev/null | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    for e in d['spec']['template']['spec']['containers'][0].get('env', []):
+        if e.get('name') == 'MONITOR_WEBHOOK_TOKEN':
+            print(e.get('value', ''))
+except Exception:
+    pass
+" || true)"
 if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
   echo "❌ bridge ไม่มี MONITOR_WEBHOOK_TOKEN — deploy bridge ใหม่ (deploy script จะสร้างให้)" >&2
   exit 1
