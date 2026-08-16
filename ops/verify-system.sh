@@ -218,6 +218,16 @@ run_checks() {
     CD=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$cloud_url/" 2>/dev/null || true)
     [ "$CD" = "200" ] && ok "dashboard / → 200" \
                      || bad "dashboard / → HTTP $CD (ควร 200)"
+    # persistent DB (Firestore): อ่าน KPI ด้วย key จาก api/.env — พิสูจน์ว่าข้อมูลไม่หาย
+    CLOUD_KEY=""
+    [ -f "$root/api/.env" ] && CLOUD_KEY=$(grep "^SNC_API_KEY=" "$root/api/.env" 2>/dev/null | head -1 | cut -d= -f2)
+    if [ -n "$CLOUD_KEY" ]; then
+      CK=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -H "X-API-Key: $CLOUD_KEY" "$cloud_url/api/analytics/kpi" 2>/dev/null || true)
+      [ "$CK" = "200" ] && ok "persistent DB: KPI → 200" \
+                       || bad "persistent DB: KPI → HTTP $CK (ควร 200)"
+    else
+      skip "ไม่มี SNC_API_KEY ใน api/.env — ข้ามตรวจ KPI"
+    fi
   else
     skip "ไม่ได้ตั้ง CLOUD_RUN_URL — ข้ามตรวจ Cloud Run"
   fi
