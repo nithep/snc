@@ -8,7 +8,7 @@ snc_telegram_agent.py — ตอบคำถามเกี่ยวกับ SN
 - ปลอดภัย: ตอบเฉพาะ chat_id ใน SNC_TG_ALLOWED_CHAT (ถ้าตั้ง) — ค่าอื่นตอบปฏิเสธ
 
 วิธีรัน (ง่ายสุด, ไม่ต้อง sudo):
-  cd /home/ecs-agent/snc-poc
+  cd /home/ecs-agent/snc
   nohup python3 ops/snc_telegram_agent.py >> tg_agent.log 2>&1 &
 
 วิธีถาวร (systemd — service snc-tg-agent, รอด reboot):
@@ -85,7 +85,7 @@ HELP = (
 ABOUT = (
     "🤖 <b>SNC Agent — Smart Nurse Call</b>\n\n"
     "📍 <b>ทำงานที่ไหน</b>\n"
-    "• Edge Pi <b>192.168.1.94</b> → /home/ecs-agent/snc-poc\n"
+    "• Edge Pi <b>192.168.1.94</b> → /home/ecs-agent/snc\n"
     "• 2 services (systemd): snc-backend (API :8000) + snc-pbx-listener\n"
     "• ฟัง SMDR จากตู้ Phonik PBX <b>192.168.1.91:23</b>\n"
     "• proxy mirror พอร์ต <b>2323</b> ให้ PC Room Manager\n\n"

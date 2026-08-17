@@ -6,12 +6,30 @@ Wants=network-online.target snc-backend.service
 [Service]
 Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc/ops
-ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc-poc/ops/snc_telegram_agent.py
+Group=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc/ops
+ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc/ops/snc_telegram_agent.py
 Restart=always
-RestartSec=5
-StandardOutput=append:/home/ecs-agent/snc-poc/tg_agent.log
-StandardError=append:/home/ecs-agent/snc-poc/tg_agent.log
+RestartSec=10
+TimeoutStopSec=10
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/home/ecs-agent/snc/api
+NoNewPrivileges=true
+ProtectHome=false
+
+# Network access for Telegram API polling
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+# Logging → journald
+SyslogIdentifier=snc-tg-agent
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits (Pi4: polling agent, minimal)
+MemoryMax=64M
+CPUQuota=20%
 
 [Install]
 WantedBy=multi-user.target

@@ -14,13 +14,13 @@
 #   ./burnin-monitor.sh --background 48  # รันเป็น background 48 ชม. (nohup) — ใช้กับ Pi
 #   ./burnin-monitor.sh --report         # สรุปผลจาก log ที่มีอยู่
 #
-# Log: /home/ecs-agent/snc-poc/burnin.log (บน Pi)
+# Log: /home/ecs-agent/snc/burnin.log (บน Pi)
 # ============================================================================
 set -uo pipefail
 
 # --- Config ---
-LOG_FILE="/home/ecs-agent/snc-poc/burnin.log"
-DB="/home/ecs-agent/snc-poc/api/nurse_call_events.db"
+LOG_FILE="/home/ecs-agent/snc/burnin.log"
+DB="/home/ecs-agent/snc/api/nurse_call_events.db"
 HEALTH_URL="http://localhost:8000/health"
 INTERVAL=60          # วินาทีระหว่างการตรวจแต่ละรอบ
 DEFAULT_HOURS=48

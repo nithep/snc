@@ -1,15 +1,36 @@
 [Unit]
 Description=SNC FastAPI Backend Service
 After=network.target
+Wants=network-online.target
 
 [Service]
+Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc/api
-ExecStart=/usr/bin/python3 /home/ecs-agent/snc-poc/api/server.py
+Group=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc/api
+ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc/api/server.py
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/ecs-agent/snc-poc/backend.log
-StandardError=append:/home/ecs-agent/snc-poc/backend_error.log
+TimeoutStopSec=10
+
+# Environment
+Environment=SNC_DB_BACKEND=sqlite
+Environment=SNC_SQLITE_PATH=/home/ecs-agent/snc/api/nurse_call_events.db
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/home/ecs-agent/snc/api /home/ecs-agent/snc/backups
+NoNewPrivileges=true
+ProtectHome=false
+
+# Logging → journald (dedicated user tag)
+SyslogIdentifier=snc-backend
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits (Pi4: 1GB RAM shared)
+MemoryMax=256M
+CPUQuota=80%
 
 [Install]
 WantedBy=multi-user.target

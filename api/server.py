@@ -27,9 +27,16 @@ from services.gemini_direct_service import GeminiDirectService
 # Event Store — abstraction เหนือ SQLite (Pi4) / Firestore (Cloud Run)
 # เลือก backend ผ่าน env SNC_DB_BACKEND (ดู api/storage.py)
 from storage import get_store
+from core.download_service import DownloadService
+from core.approval import ApprovalInbox
+from core.route_registry import RouteRegistry
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
+
+_download_service = DownloadService()
+_approval_inbox = ApprovalInbox()
+_route_registry = RouteRegistry()
 
 gemini_service = GeminiDirectService()
 store = get_store()
@@ -137,6 +144,43 @@ async def serve_dashboard():
         return FileResponse(dashboard_path)
     else:
         return {"error": "Dashboard not found. Please deploy dashboard-status.html to app/"}
+
+@app.get("/downloads")
+async def serve_downloads():
+    """Serve the service portal with installer links and access URLs."""
+    portal_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "surfaces", "gui", "service_portal.html")
+    if os.path.exists(portal_path):
+        return FileResponse(portal_path)
+    return {"error": "Service portal not found", "downloads": _download_service.get_downloads()}
+
+@app.get("/api/downloads")
+def list_downloads():
+    return {"downloads": _download_service.get_downloads(), "service": _download_service.get_service_urls()}
+
+@app.get("/api/routes")
+def list_routes():
+    return {"routes": _route_registry.list_routes()}
+
+@app.get("/api/approval/inbox")
+def approval_inbox():
+    return {"requests": _approval_inbox.list_requests()}
+
+@app.post("/api/approval/request")
+def create_approval_request(payload: dict):
+    action = str(payload.get("action", "unknown_action"))
+    details = str(payload.get("details", "No details provided"))
+    actor = str(payload.get("actor", "operator"))
+    request = _approval_inbox.create_request(action, details, actor)
+    return {"status": "pending", "request": request}
+
+@app.post("/api/approval/resolve/{request_id}")
+def resolve_approval_request(request_id: str, payload: dict):
+    approved = bool(payload.get("approved", False))
+    reviewer = str(payload.get("reviewer", "system"))
+    resolved = _approval_inbox.resolve_request(request_id, approved, reviewer)
+    if not resolved:
+        return {"status": "not_found", "request_id": request_id}
+    return {"status": "ok", "request": resolved}
 
 # WebSocket Manager for Real-time Nurse Station Broadcast
 class ConnectionManager:

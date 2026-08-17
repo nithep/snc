@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Downloads & Service Portal</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: #101c2f;
+      --panel-alt: #152742;
+      --line: #2a3f5d;
+      --text: #eaf2ff;
+      --muted: #9db0cb;
+      --accent: #57b4ff;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Arial, Helvetica, sans-serif; background: linear-gradient(180deg, var(--bg), #0d1b2a 100%);
+      color: var(--text); min-height: 100vh;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 36px 20px 70px; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 18px 0 30px; border-bottom: 1px solid var(--line); }
+    .brand { font-size: 1.6rem; font-weight: 700; }
+    .status { display: inline-flex; align-items: center; gap: 8px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.5); color: var(--success); padding: 8px 12px; border-radius: 999px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--success); display: inline-block; box-shadow: 0 0 10px rgba(52,211,153,0.7); }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 26px; margin-top: 28px; }
+    .panel {
+      border: 1px solid var(--line); background: rgba(16, 28, 47, 0.88); border-radius: 18px; padding: 22px; box-shadow: 0 14px 25px rgba(0,0,0,0.25);
+    }
+    h2 { margin: 0 0 14px; font-size: 1.1rem; }
+    .download-list { display: grid; gap: 14px; }
+    .download-item {
+      background: var(--panel-alt); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; gap: 12px; align-items: center;
+    }
+    .platform { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .label { font-size: 1.05rem; font-weight: 600; }
+    .meta { font-size: 0.8rem; color: var(--muted); }
+    .button {
+      display: inline-block; padding: 10px 16px; border-radius: 10px; text-decoration: none; color: white; background: linear-gradient(135deg, #2d75ff, #57b4ff); font-weight: 700; border: none;
+    }
+    .button.secondary { background: linear-gradient(135deg, #2f4a67, #3c6388); }
+    .button.warn { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #1d1b1a; }
+    .nav {
+      list-style: none; display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0 0 18px;
+    }
+    .nav li { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .nav a { display: block; padding: 10px 12px; text-decoration: none; color: var(--text); }
+    .approval-card { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.4); border-radius: 12px; padding: 16px; }
+    .approval-actions { display: flex; gap: 10px; margin-top: 12px; }
+    .button.approve { background: linear-gradient(135deg, #16a34a, #34d399); }
+    .button.reject { background: linear-gradient(135deg, #b91c1c, #f87171); }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .header { display: block; } .status { margin-top: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">SNC — Downloads & Service Portal</div>
+      <div class="status"><span class="dot"></span> Service online</div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="#downloads">Downloads</a></li>
+      <li><a href="#approval">Approval Inbox</a></li>
+      <li><a href="#service">Service</a></li>
+    </ul>
+
+    <div class="grid">
+      <section class="panel" id="downloads">
+        <h2>Verified installers</h2>
+        <div class="download-list">
+          <div class="download-item">
+            <div>
+              <div class="platform">macOS</div>
+              <div class="label">Apple Silicon · .dmg</div>
+              <div class="meta">Native build for M1/M2/M3</div>
+            </div>
+            <a class="button" href="https://example.invalid/snc-macos-arm64.dmg">Download</a>
+          </div>
+          <div class="download-item">
+            <div>
+              <div class="platform">macOS</div>
+              <div class="label">Intel · .pkg</div>
+              <div class="meta">Installer package for x64 Macs</div>
+            </div>
+            <a class="button secondary" href="https://example.invalid/snc-macos-x64.pkg">Download</a>
+          </div>
+          <div class="download-item">
+            <div>
+              <div class="platform">Windows</div>
+              <div class="label">Windows 10/11 · .exe</div>
+              <div class="meta">Signed desktop installer</div>
+            </div>
+            <a class="button" href="https://example.invalid/snc-windows-x64.exe">Download</a>
+          </div>
+          <div class="download-item">
+            <div>
+              <div class="platform">Windows</div>
+              <div class="label">Portable · .zip</div>
+              <div class="meta">No-install utility build</div>
+            </div>
+            <a class="button secondary" href="https://example.invalid/snc-windows-x64.zip">Download</a>
+          </div>
+          <div class="download-item">
+            <div>
+              <div class="platform">Raspberry Pi OS</div>
+              <div class="label">ARM64 · .deb</div>
+              <div class="meta">Pi deployment package</div>
+            </div>
+            <a class="button warn" href="https://example.invalid/snc-pi-arm64.deb">Download</a>
+          </div>
+          <div class="download-item">
+            <div>
+              <div class="platform">Raspberry Pi OS</div>
+              <div class="label">Docker image</div>
+              <div class="meta">Containerized deployment</div>
+            </div>
+            <a class="button secondary" href="https://example.invalid/snc-pi-docker.tar">Download</a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <h2>Service access</h2>
+        <div class="approval-card" id="service">
+          <div><strong>Backend</strong></div>
+          <p><a href="https://nursecall.nithep.com/health" style="color: #57b4ff;">https://nursecall.nithep.com/health</a></p>
+          <p><a href="https://nursecall.nithep.com/" style="color: #57b4ff;">https://nursecall.nithep.com/</a></p>
+        </div>
+      </aside>
+    </div>
+
+    <section class="panel" id="approval" style="margin-top: 28px;">
+      <h2>Approval-gated inbox</h2>
+      <div class="approval-card">
+        <div><strong>Critical PBX override request</strong></div>
+        <p style="color: var(--muted); margin-top: 10px;">Firmware reset or high-risk override commands require explicit human approval before the action is sent.</p>
+        <div class="approval-actions">
+          <button class="button approve" type="button">Approve</button>
+          <button class="button reject" type="button">Reject</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -8,7 +8,7 @@ set -e
 BACKEND_PORT=8000
 PBX_IP="192.168.1.91"
 PBX_PORT=23
-LOG_DIR="/home/ecs-agent/snc-poc/logs"
+LOG_DIR="/home/ecs-agent/snc/logs"
 TIMEOUT_BACKEND=5    # seconds
 TIMEOUT_PBX=3        # seconds
 ACK_INTERVAL=10      # seconds between status checks

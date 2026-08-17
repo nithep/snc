@@ -1,0 +1,28 @@
+[Unit]
+Description=Cloudflare Tunnel for SNC (nursecall.nithep.com)
+After=network-online.target snc-backend.service
+Wants=network-online.target snc-backend.service
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+
+# Load tunnel token from env file ( tokenId stored in /etc/snc/cloudflared.env )
+EnvironmentFile=-/etc/snc/cloudflared.env
+
+# Logging → journald
+SyslogIdentifier=snc-cloudflared
+StandardOutput=journal
+StandardError=journal
+
+# Cloudflare tunnel needs DNS resolution
+ProtectSystem=false
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target
