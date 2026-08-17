@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,11 +33,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # ยังไม่มี package.json/pyproject — ติดตั้งเฉพาะ deps ที่ build ต้องการ (ถ้ามี)
-
-      - name: Build Pi OS (.deb) installer
-        run: |
-          python packaging/build_installers.py --platform pi
-          ls -la packaging/dist
 
       - name: Determine release tag
         id: version
@@ -51,18 +48,71 @@ jobs:
           fi
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
+      - name: Build Pi OS (.deb) installer
+        run: |
+          python packaging/build_installers.py --platform pi --version ${{ steps.version.outputs.tag }}
+          ls -la packaging/dist
+
+      - name: Verify build artifacts
+        shell: bash
+        run: |
+          set -uo pipefail
+          DEB="$(ls packaging/dist/snclite_*_arm64.deb 2>/dev/null | head -n1 || true)"
+          MANIFEST="packaging/dist/download_manifest.json"
+          if [ -z "${DEB}" ] || [ ! -f "${DEB}" ] || [ ! -s "${DEB}" ]; then
+            echo "::error::No .deb installer produced in packaging/dist — check build_installers.py (dpkg-deb missing?)"
+            exit 1
+          fi
+          if [ ! -f "${MANIFEST}" ] || [ ! -s "${MANIFEST}" ]; then
+            echo "::error::download_manifest.json missing or empty in packaging/dist"
+            exit 1
+          fi
+          if ! grep -qF "$(basename "${DEB}")" "${MANIFEST}"; then
+            echo "::error::download_manifest.json does not reference $(basename "${DEB}")"
+            exit 1
+          fi
+          echo "✅ Verified: $(basename "${DEB}") ($(stat -c %s "${DEB}") bytes) + download_manifest.json"
+
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          set -uo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          # หา tag ก่อนหน้า = tag semver ตัวที่ 2 นับจากบนสุด (เรียง version ใหม่ → เก่า)
+          PREV_TAG="$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sed -n '2p' || true)"
+
+          if [ -n "${PREV_TAG}" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+            CHANGELOG_TITLE="## 🚀 Changelog — ${PREV_TAG} → ${TAG}"
+          else
+            RANGE="HEAD"
+            CHANGELOG_TITLE="## 🚀 Changelog — release แรก"
+          fi
+          COUNT="$(git rev-list --count "${RANGE}")"
+
+          {
+            echo "## Smart Nurse Call — Installers"
+            echo ""
+            echo "Build จาก \`packaging/build_installers.py\` (Pi OS ARM64)."
+            echo ""
+            echo "> สคริปต์นี้ build เฉพาะ \`.deb\` (รันบน Ubuntu) — สำหรับ Windows \`.exe\` (Inno Setup) และ"
+            echo "> macOS \`.dmg/.pkg\` (py2app) ต้อง build บนเครื่องเป้าหมายตาม \`packaging/INSTALL.md\`"
+            echo ""
+            echo "---"
+            echo ""
+            echo "${CHANGELOG_TITLE} (${COUNT} commits)"
+            echo ""
+            git log --oneline --no-decorate "${RANGE}" | sed 's/^/- /' | head -100
+          } > release-body.md
+          echo "body_path=${PWD}/release-body.md" >> "${GITHUB_OUTPUT}"
+
       - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: SNC ${{ steps.version.outputs.tag }}
-          body: |
-            ## Smart Nurse Call — Installers
-
-            Build จาก `packaging/build_installers.py` (Pi OS ARM64).
-
-            > สคริปต์นี้ build เฉพาะ `.deb` (รันบน Ubuntu) — สำหรับ Windows `.exe` (Inno Setup) และ
-            > macOS `.dmg/.pkg` (py2app) ต้อง build บนเครื่องเป้าหมายตาม `packaging/INSTALL.md`
+          body_path: ${{ steps.changelog.outputs.body_path }}
           files: |
             packaging/dist/snclite_*_arm64.deb
             packaging/dist/download_manifest.json

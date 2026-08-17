@@ -20,6 +20,7 @@ build_installers.py — Build real SNC installers/packaging for macOS, Windows, 
 วิธีใช้:
   python3 packaging/build_installers.py                    # build ทุก platform ที่ compile ได้
   python3 packaging/build_installers.py --platform pi      # build เฉพาะ Pi OS
+  python3 packaging/build_installers.py --platform pi --version 1.1.0  # build + ระบุเวอร์ชัน (default 1.0.0)
   python3 packaging/build_installers.py --platform macos   # build เฉพาะ macOS
   python3 packaging/build_installers.py --platform windows # build เฉพาะ Windows (requires Inno Setup)
   python3 packaging/build_installers.py --list             # แสดง platform ที่ build ได้
@@ -618,10 +619,16 @@ def _sha256(path: Path) -> str:
 # ============================================================================
 
 def main():
+    global VERSION
     parser = argparse.ArgumentParser(description="Build SNC installers")
     parser.add_argument("--platform", choices=["macos", "windows", "pi", "all"], default="all")
+    parser.add_argument("--version", default=VERSION,
+                        help="Release version to stamp into artifacts (e.g. 1.0.0 or v1.0.0). Default: %(default)s")
     parser.add_argument("--list", action="store_true", help="List available platforms")
     args = parser.parse_args()
+
+    # ใช้เวอร์ชันจาก --version (strip ตัว v หน้า เพราะ Debian version ต้องขึ้นต้นด้วยตัวเลข)
+    VERSION = args.version.lstrip("v")
 
     if args.list:
         current = platform.system().lower()
