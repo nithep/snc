@@ -14,11 +14,11 @@
 #   ./burnin-reminder.sh --simulate    # จำลองผลลัพธ์โดยไม่เขียนอะไรเลย
 #   ./burnin-reminder.sh --help
 #
-# Log: /home/ecs-agent/snc-poc/burnin_reminder.log (บน Pi)
+# Log: /home/ecs-agent/snc/burnin_reminder.log (บน Pi)
 # ============================================================================
 set -uo pipefail
 
-BASE="${SNC_BASE:-/home/ecs-agent/snc-poc}"
+BASE="${SNC_BASE:-/home/ecs-agent/snc}"
 LOG_FILE="${BURNIN_LOG:-$BASE/burnin.log}"
 REMINDER_LOG="${BURNIN_REMINDER_LOG:-$BASE/burnin_reminder.log}"
 COMPLETE_MARKER="${BURNIN_COMPLETE_MARKER:-$BASE/.burnin_complete}"
@@ -43,7 +43,7 @@ WARN_DO_NOT=(
 "  7. ห้ามแก้ .env / เปลี่ยน API key / เปลี่ยน config ใด ๆ"
 "  8. ห้ามลบ-ย้าย burnin.log หรือ nurse_call_events.db"
 "✅ อนุญาต: เปิด dashboard ดูผล, อ่าน log ได้ตามปกติ (read-only เท่านั้น)"
-"   ตรวจผลด้วย: ssh pi4 '/home/ecs-agent/snc-poc/burnin-monitor.sh --report'"
+"   ตรวจผลด้วย: ssh pi4 '/home/ecs-agent/snc/ops/burnin-monitor.sh --report'"
 )
 
 print_warnings() {

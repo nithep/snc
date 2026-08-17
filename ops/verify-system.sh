@@ -21,7 +21,7 @@ CONF="${VERIFY_CONF:-$SCRIPT_DIR/verify-projects.conf}"
 
 # ── ค่า default (SNC บน Pi4) ──────────────────────────────────────────────
 D_NAME="snc"
-D_ROOT="/home/ecs-agent/snc-poc"
+D_ROOT="/home/ecs-agent/snc"
 D_CORE="api app pbx ops doc"
 D_SERVICES="snc-backend.service snc-pbx-listener.service"
 D_HEALTH="http://localhost:8000/health"

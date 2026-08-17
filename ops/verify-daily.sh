@@ -2,7 +2,7 @@
 # ============================================================================
 # verify-daily.sh — ตรวจระบบรายวัน (cron) + แจ้งเตือน Telegram เมื่อมีปัญหา
 # ----------------------------------------------------------------------------
-# cron (บน Pi):  0 7 * * * VERIFY_ALWAYS=1 /home/ecs-agent/snc-poc/ops/verify-daily.sh   # ส่งสรุปทุกเช้า + log ใน verify_daily.log
+# cron (บน Pi):  0 7 * * * VERIFY_ALWAYS=1 /home/ecs-agent/snc/ops/verify-daily.sh   # ส่งสรุปทุกเช้า + log ใน verify_daily.log
 #
 # พฤติกรรม:
 #   - รัน verify-system.sh (ค่าเริ่มต้น --all; หรือระบุชื่อโปรเจกต์ผ่าน VERIFY_ARGS)

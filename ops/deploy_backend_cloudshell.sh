@@ -38,7 +38,7 @@ echo "Service : $SERVICE_NAME ($REGION)"
 # ── ตรวจ env ที่จำเป็น ─────────────────────────────────────────────────────
 if [ -z "${SNC_API_KEY:-}" ]; then
   echo "❌ ต้อง export SNC_API_KEY ก่อน (key ตรงกับ api/.env บน Pi4)" >&2
-  echo "   ดู: grep SNC_API_KEY /home/ecs-agent/snc-poc/api/.env" >&2
+  echo "   ดู: grep SNC_API_KEY /home/ecs-agent/snc/api/.env" >&2
   exit 1
 fi
 echo "✅ SNC_API_KEY พร้อม (len ${#SNC_API_KEY})"

@@ -41,7 +41,7 @@ echo "Service : $SERVICE_NAME ($REGION)"
 # ── ตรวจ env ที่จำเป็น ─────────────────────────────────────────────────────
 if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
   echo "❌ ต้อง export TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID" >&2
-  echo "   (ดูจาก Pi: grep -E 'TELEGRAM' /home/ecs-agent/snc-poc/api/.env)" >&2
+  echo "   (ดูจาก Pi: grep -E 'TELEGRAM' /home/ecs-agent/snc/api/.env)" >&2
   exit 1
 fi
 echo "✅ TELEGRAM env พร้อม (bot token len ${#TELEGRAM_BOT_TOKEN})"

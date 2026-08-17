@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # snc-evening-digest.sh — สรุปสถานะ + ทิปการใช้งานประจำวัน ทุกเย็น → Telegram (@snc2569_bot)
 #
-# cron (บน Pi):  0 19 * * * /home/ecs-agent/snc-poc/ops/snc-evening-digest.sh
+# cron (บน Pi):  0 19 * * * /home/ecs-agent/snc/ops/snc-evening-digest.sh
 # อ่าน token/chat_id ผ่าน snc_telegram_agent.py (reuse env-loading เดิม) — ถ้าไม่มี key → SKIP เงียบ ๆ
 set -uo pipefail
 

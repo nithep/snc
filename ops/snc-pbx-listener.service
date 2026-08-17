@@ -1,17 +1,35 @@
 [Unit]
-Description=SNC PBX SMDR Listener
+Description=SNC PBX SMDR Telnet Listener
 After=network-online.target snc-backend.service
-Wants=network-online.target
+Wants=network-online.target snc-backend.service
 
 [Service]
 Type=simple
 User=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc/pbx
-ExecStart=/usr/bin/python3 /home/ecs-agent/snc-poc/pbx/snc_pbx_listener.py
+Group=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc/pbx
+ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc/pbx/snc_pbx_listener.py
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/ecs-agent/snc-poc/pbx_listener.log
-StandardError=append:/home/ecs-agent/snc-poc/pbx_listener.log
+TimeoutStopSec=10
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/home/ecs-agent/snc/api
+NoNewPrivileges=true
+ProtectHome=false
+
+# TCP socket access for PBX connection
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+# Logging → journald
+SyslogIdentifier=snc-pbx-listener
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits (Pi4: lightweight listener)
+MemoryMax=128M
+CPUQuota=40%
 
 [Install]
 WantedBy=multi-user.target

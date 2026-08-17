@@ -26,8 +26,10 @@ set -uo pipefail
 
 # --- Config -----------------------------------------------------------------
 PI_HOST="${PI_HOST:-pi4}"
-REMOTE_ROOT="/home/ecs-agent/snc-poc"  # 5-Core: path จริงบน Pi4 (Blueprint doc/BLUEPRINT_5CORE.md)
+REMOTE_ROOT="${SNC_ROOT:-/home/ecs-agent/snc}"  # 5-Core: path จริงบน Pi4
 REMOTE_BASE="$REMOTE_ROOT/api"
+REMOTE_APP="$REMOTE_ROOT/app"
+REMOTE_PBX="$REMOTE_ROOT/pbx"
 SERVICE="snc-backend.service"
 SIBLING_SERVICE="snc-pbx-listener.service"
 SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
@@ -36,7 +38,10 @@ SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 FILES=(
   "api/server.py:api/server.py"
   "app/index.html:app/index.html"
+  "app/dashboard-status.html:app/dashboard-status.html"
   "pbx/snc_pbx_listener.py:pbx/snc_pbx_listener.py"
+  "ops/snc-backend.service:ops/snc-backend.service"
+  "ops/snc-pbx-listener.service:ops/snc-pbx-listener.service"
 )
 
 # --- 5-Core structure check (Blueprint: doc/BLUEPRINT_5CORE.md) ------------
