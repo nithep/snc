@@ -62,4 +62,4 @@ jobs:
           files: |
             packaging/dist/snclite_*_arm64.deb
             packaging/dist/download_manifest.json
-          draft: true
+          draft: false
