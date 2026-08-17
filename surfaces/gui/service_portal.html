@@ -72,56 +72,10 @@
     <div class="grid">
       <section class="panel" id="downloads">
         <h2>Verified installers</h2>
-        <div class="download-list">
-          <div class="download-item">
-            <div>
-              <div class="platform">macOS</div>
-              <div class="label">Apple Silicon · .dmg</div>
-              <div class="meta">Native build for M1/M2/M3</div>
-            </div>
-            <a class="button" href="https://example.invalid/snc-macos-arm64.dmg">Download</a>
-          </div>
-          <div class="download-item">
-            <div>
-              <div class="platform">macOS</div>
-              <div class="label">Intel · .pkg</div>
-              <div class="meta">Installer package for x64 Macs</div>
-            </div>
-            <a class="button secondary" href="https://example.invalid/snc-macos-x64.pkg">Download</a>
-          </div>
-          <div class="download-item">
-            <div>
-              <div class="platform">Windows</div>
-              <div class="label">Windows 10/11 · .exe</div>
-              <div class="meta">Signed desktop installer</div>
-            </div>
-            <a class="button" href="https://example.invalid/snc-windows-x64.exe">Download</a>
-          </div>
-          <div class="download-item">
-            <div>
-              <div class="platform">Windows</div>
-              <div class="label">Portable · .zip</div>
-              <div class="meta">No-install utility build</div>
-            </div>
-            <a class="button secondary" href="https://example.invalid/snc-windows-x64.zip">Download</a>
-          </div>
-          <div class="download-item">
-            <div>
-              <div class="platform">Raspberry Pi OS</div>
-              <div class="label">ARM64 · .deb</div>
-              <div class="meta">Pi deployment package</div>
-            </div>
-            <a class="button warn" href="https://example.invalid/snc-pi-arm64.deb">Download</a>
-          </div>
-          <div class="download-item">
-            <div>
-              <div class="platform">Raspberry Pi OS</div>
-              <div class="label">Docker image</div>
-              <div class="meta">Containerized deployment</div>
-            </div>
-            <a class="button secondary" href="https://example.invalid/snc-pi-docker.tar">Download</a>
-          </div>
+        <div class="download-list" id="download-list">
+          <div class="download-item"><div class="label">Loading installer list…</div></div>
         </div>
+        <p class="meta" id="download-hint" style="margin-top:12px;">รายการโหลดจาก <code>GET /api/downloads</code> — ไฟล์เผยแพร่ผ่าน GitHub Releases (nithep/snc)</p>
       </section>
 
       <aside class="panel">
@@ -146,5 +100,36 @@
       </div>
     </section>
   </div>
+  <script>
+    (async function loadDownloads() {
+      const listEl = document.getElementById('download-list');
+      const badge = {
+        dmg: 'button', pkg: 'button secondary', exe: 'button',
+        zip: 'button secondary', deb: 'button warn', docker: 'button secondary'
+      };
+      try {
+        const res = await fetch('/api/downloads', { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const downloads = data.downloads || [];
+        if (!downloads.length) throw new Error('empty');
+        listEl.innerHTML = downloads.map(function (d) {
+          const label = d.label || (d.platform + ' · ' + (d.type || ''));
+          const meta = d.meta || (d.platform + ' · ' + (d.type || '').toUpperCase());
+          const link = (d.link && d.link.indexOf('example.invalid') === -1) ? d.link : '#';
+          return '<div class="download-item">' +
+            '<div><div class="platform">' + (d.platform || '') + '</div>' +
+            '<div class="label">' + label + '</div>' +
+            '<div class="meta">' + meta + '</div></div>' +
+            '<a class="' + (badge[d.type] || 'button') + '" href="' + link + '"' +
+            (link === '#' ? ' onclick="return false; style=&quot;opacity:.5;&quot;"' : ' target="_blank" rel="noopener"') + '>Download</a>' +
+            '</div>';
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = '<div class="download-item"><div><div class="label">Unable to load installers</div>' +
+          '<div class="meta">' + e.message + ' — check backend /api/downloads</div></div></div>';
+      }
+    })();
+  </script>
 </body>
 </html>
