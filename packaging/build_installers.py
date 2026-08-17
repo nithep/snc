@@ -490,7 +490,8 @@ CMD ["python3", "-m", "uvicorn", "api.server:app", "--host", "0.0.0.0", "--port"
 
 def generate_manifest(artifacts: dict[str, list[Path]]):
     """Generate download_manifest.json + INSTALL.md."""
-    base_url = "https://nursecall.nithep.com/downloads"
+    # ไฟล์ installer เผยแพร่ผ่าน GitHub Releases (nithep/snc)
+    base_url = "https://github.com/nithep/snc/releases/latest/download"
 
     entries = []
     for platform_name, paths in artifacts.items():
@@ -498,10 +499,13 @@ def generate_manifest(artifacts: dict[str, list[Path]]):
             if p.exists():
                 entries.append({
                     "platform": platform_name,
+                    "label": p.name,
+                    "meta": "Published via GitHub Releases (nithep/snc)",
+                    "link": f"{base_url}/{p.name}",
+                    "type": p.suffix.lstrip(".") or "bin",
                     "filename": p.name,
                     "size_bytes": p.stat().st_size,
                     "sha256": _sha256(p),
-                    "download_url": f"{base_url}/{p.name}",
                 })
 
     manifest = {
