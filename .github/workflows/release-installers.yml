@@ -41,11 +41,15 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            echo "tag=${{ github.event.inputs.version }}"
-          else
-            echo "tag=${GITHUB_REF_NAME}"
+          TAG="${{ github.event.inputs.version }}"
+          if [ -z "${TAG}" ]; then
+            TAG="${GITHUB_REF_NAME}"
           fi
+          if [ -z "${TAG}" ]; then
+            echo "::error::Cannot determine release tag — pass 'version' input (workflow_dispatch) or push a tag (v*)"
+            exit 1
+          fi
+          echo "tag=${TAG}"
 
       - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
