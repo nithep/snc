@@ -49,7 +49,7 @@ jobs:
             echo "::error::Cannot determine release tag — pass 'version' input (workflow_dispatch) or push a tag (v*)"
             exit 1
           fi
-          echo "tag=${TAG}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
