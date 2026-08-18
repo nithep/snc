@@ -68,7 +68,7 @@ ACCESS_TOKEN="$(gcloud auth print-access-token)"
 # ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager (source of truth) ─────
 echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager..."
 MONITOR_WEBHOOK_TOKEN="$(gcloud secrets versions access latest \
-  --secret="$SECRET_MONITOR" --project "$PROJECT_ID" --format='get(payload.data)' 2>/dev/null || true)"
+  --secret="$SECRET_MONITOR" --project "$PROJECT_ID" 2>/dev/null || true)"
 if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
   echo "❌ bridge ไม่มี secret $SECRET_MONITOR — deploy bridge ใหม่ (deploy script จะสร้างให้)" >&2
   exit 1

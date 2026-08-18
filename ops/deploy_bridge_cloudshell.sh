@@ -23,6 +23,8 @@
 # ============================================================================
 set -euo pipefail
 
+# hotel-ecs-nithep = GCP Project ID จริง (คงไว้เป็น legacy id ตาม ADR 0007 / NOMENCLATURE)
+#   — ห้ามเปลี่ยน default จนกว่าจะ migrate resource ไป project ใหม่ (Firestore/secrets/IAM/services อยู่ที่นี่)
 PROJECT_ID="${GCP_PROJECT_ID:-hotel-ecs-nithep}"
 SERVICE_NAME="snc-alert-bridge"
 REGION="asia-southeast1"
@@ -81,7 +83,7 @@ rm -f "$TMP_TOKEN"
 
 # ── MONITOR_WEBHOOK_TOKEN: อ่านจาก Secret Manager เดิม ถ้ามี (กัน channel URL เก่าแตก) ──
 MONITOR_WEBHOOK_TOKEN="$(gcloud secrets versions access latest \
-  --secret="$SECRET_MONITOR" --project "$PROJECT_ID" --format='get(payload.data)' 2>/dev/null || true)"
+  --secret="$SECRET_MONITOR" --project "$PROJECT_ID" 2>/dev/null || true)"
 if [ -z "$MONITOR_WEBHOOK_TOKEN" ]; then
   MONITOR_WEBHOOK_TOKEN="$(openssl rand -hex 16)"
   TMP_TOKEN="$(mktemp)"

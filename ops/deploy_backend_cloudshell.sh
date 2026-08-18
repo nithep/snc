@@ -21,6 +21,8 @@
 # ============================================================================
 set -euo pipefail
 
+# hotel-ecs-nithep = GCP Project ID จริง (คงไว้เป็น legacy id ตาม ADR 0007 / NOMENCLATURE)
+#   — ห้ามเปลี่ยน default จนกว่าจะ migrate resource ไป project ใหม่ (Firestore/secrets/IAM/services อยู่ที่นี่)
 PROJECT_ID="${GCP_PROJECT_ID:-hotel-ecs-nithep}"
 SERVICE_NAME="snc-cloud-backend"
 REGION="asia-southeast1"
