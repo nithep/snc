@@ -36,7 +36,9 @@ tags: [nomenclature, standard, snc]
 | `pbx-connector/snc_pbx_listener.py` | `pbx/snc_pbx_listener.py` |
 | `frontend/index.html` | `app/index.html` |
 | `/home/ecs-agent/snc-poc/` | `/home/ecs-agent/nithep/snc/` |
-| `hotel-ecs` / `Hotel-ECS` / `HECS` | `snc` (หรือ `nithep/snc`) |
+| `hotel-ecs` / `Hotel-ECS` / `HECS` | ระบบโรงแรมคนละตัว (ไม่ใช่ SNC) — อ้างเฉพาะเมื่อพูดถึงระบบโรงแรม |
+| `hotel.nithep.com` | ระบบโรงแรม (Hotel-ECS) — ปรากฏใน CORS origins, ไม่ใช่ SNC |
+| `hotel-ecs-nithep` | **GCP Project ID เก่า** (terraform/cloudbuild) — คงไว้เป็น legacy id ตาม ADR |
 
 ---
 

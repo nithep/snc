@@ -35,18 +35,45 @@ tags: [knowledge, ops]
 
 ---
 
+## 🔧 Incident ที่พบและแก้ไขระหว่างการย้าย (19 ส.ค. 2569 ~01:05 UTC)
+
+หลัง pull โค้ดใหม่บน Pi เกิด **backend crash-loop** (`ModuleNotFoundError: No module named 'core'`)
+
+- **สาเหตุ:** `api/server.py` import `core.*` (อยู่ที่ repo root) แต่ systemd ตั้ง `WorkingDirectory=/home/ecs-agent/snc-poc/api` → Python หา `core/` ไม่เจอ → process ออก code=1 ทุกครั้ง → 502
+- **การแก้ไข (commit `e6bebe9`):** เพิ่ม repo root เข้า `sys.path` ใน `server.py` (ไม่ยุ่งกับ WorkingDirectory ที่มีผลต่อ import `services`/`storage`)
+- **ผล:** backend `active` + `/health` → 200 ทั้ง LAN (`localhost:8000`) และ public (`snc.nithep.com`) ✅
+
+---
+
 ## ⏳ สิ่งที่ยังต้องทำ / ยังไม่ได้ปรับ
 
 | # | รายการ | สถานะ |
 |---|---|---|
-| 1 | Redeploy backend บน Pi/Cloud Run ให้รับ CORS origins ใหม่ (`snc.nithep.com` ใน `api/server.py`) | ⚠️ ต้อง redeploy ให้ config ใหม่มีผลจริง |
-| 2 | ตรวจ CORS origins ที่ Cloud Run env (`SNC_ALLOWED_ORIGINS`) ให้มี `snc.nithep.com` | ⚠️ ตรวจ |
+| 1 | ~~Redeploy backend ให้ CORS origins ใหม่มีผล~~ | ✅ ทำแล้ว (backend restart ใช้ `snc.nithep.com` ได้) |
+| 2 | ตรวจ CORS origins ที่ Cloud Run env (`SNC_ALLOWED_ORIGINS`) ให้มี `snc.nithep.com` | ⚠️ ตรวจ (เฉพาะเมื่อใช้ Cloud Run) |
 | 3 | บุ๊กมาร์ก/ทางลัดบนเครื่องพยาบาล/เจ้าหน้าที่ — อัปเดตเป็น `https://snc.nithep.com` | ⚠️ แจ้งทีม |
 | 4 | เอกสารคู่มือภายใน (STAFF_GUIDE, FIELD_TEST_CHECKLIST) — เปลี่ยนแล้วใน repo ✅ แต่อย่าลืมเผยแพร่เวอร์ชันใหม่ | ✅ repo / ⚠️ เอกสารแจกจ่าย |
-| 5 | ตรวจ `deploy-snc-one-shot.sh` ตัวจริงบน Pi ที่อาจยังมี config ค้าง (ถ้าเคย deploy ก่อน commit) | ⚠️ ตรวจ |
-| 6 | ปิดการใช้งาน/ลบ tunnel เก่าที่ชี้ `nursecall` ฝั่ง Cloudflare (ถ้ายังเหลือ) | ⚠️ ตรวจ (DNS ถอดแล้ว) |
+| 5 | ตรวจ `deploy-snc-one-shot.sh` ตัวจริงบน Pi ที่อาจยังมี config ค้าง | ⚠️ ตรวจ |
+| 6 | ลบ Public Hostname เก่า `nursecall` ฝั่ง Cloudflare Zero Trust (DNS ถอดแล้ว ยังควรลบให้สะอาด) | ⚠️ ตรวจ |
 
-> ℹ️ **หมายเหตุ:** โดเมนเก่า `nursecall.nithep.com` ตอบ `Non-existent domain` แล้ว — แสดงว่า DNS ฝั่งถูกถอดออก (ไม่มีชื่อหลงเหลือ) แต่ควรยืนยันว่า Public Hostname เก่าใน Cloudflare Zero Trust ถูกเอาออกด้วยเพื่อความสะอาด
+> ℹ️ **หมายเหตุ:** โดเมนเก่า `nursecall.nithep.com` ตอบ `Non-existent domain` แล้ว — DNS ฝั่งถอดออกแล้ว แต่ควรยืนยัน Public Hostname เก่าใน Zero Trust ถูกเอาออกด้วย
+
+---
+
+## 🧹 งานถอนรากถอนโคนชื่อ legacy (แยกเป็นงานใหม่ — ดู NOMENCLATURE)
+
+จากการตรวจ `git grep` (19 ส.ค. 2569) ยังมีชื่อ legacy ที่ไม่ใช่ "SNC" หลงเหลือใน repo — ควรจัดการเป็นงานแยก:
+
+| ชื่อ legacy | จำนวน | ประเภท | ความเสี่ยง |
+|---|---|---|---|
+| `ecs-agent` (Pi username) | 264 จุด / 26 ไฟล์ non-doc | `ops/*`, `packaging` | 🔴 สูง — เป็น username จริงบน Pi |
+| `hotel-ecs` / `Hotel-ECS` | 83 จุด | `api/*.yaml`, `ops/terraform`, `AGENTS.md` | 🔴 สูง — บางจุดคือ GCP project id `hotel-ecs-nithep` |
+| `hotel.nithep.com` | 16 จุด | `api/server.py` CORS, `health_check`, `gemini` | 🟠 กลาง — runtime origin |
+| `hotel-gateway` (Pi hostname) | 4 จุด | doc/ops | 🟡 ต่ำ |
+| `api-nurse` / `liff.nithep.com` | 6 จุด | doc | 🟢 ต่ำ |
+
+> ⚠️ **ข้อควรระวัง:** `hotel-ecs-nithep` คือ **GCP project ID จริง** (terraform/cloudbuild) — การเปลี่ยนชื่อต้องย้าย resource บน GCP ด้วย ไม่ใช่แค่แก้โค้ด ส่วน `hotel.nithep.com` ใน CORS เป็นระบบโรงแรมเดิม (Hotel-ECS) ที่ SNC ผูกไว้ — ควรถามเจ้าของระบบก่อนเอาออก
+> ดูแผนรายละเอียดใน [`SNC_NOMENCLATURE_CLEANUP.md`](SNC_NOMENCLATURE_CLEANUP.md) (จะจัดทำ)
 
 ---
 
