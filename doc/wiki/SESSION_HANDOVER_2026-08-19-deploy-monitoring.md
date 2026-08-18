@@ -65,13 +65,22 @@ tags: [status]
 - ดูขั้นตอน: `doc/wiki/SNC_TELEGRAM_ROTATION_GUIDE.md`
 - หลัง rotate → ต้อง deploy bridge ใหม่ (update secret) แล้วเช็ค `sent` อีกครั้ง
 
-### 2. ลบ channel เก่าที่ไม่ใช้ (กันความรก/สับสน)
-- เหลือเฉพาะล่าสุด `6246499446847685992`
+### 2. ลบ channel เก่าที่ไม่ใช้ (กันความรก/สับสน) — ยังไม่ได้ลบ
+- เก็บเฉพาะล่าสุด `6246499446847685992`
 - ตัวเก่าที่สร้างซ้ำระหว่าง debug: `12417720015775998846`, `276357567739982957`, `3584692914350070116`, `9802072087643608996`
-- ลบผ่าน Monitoring console หรือ API
+- ลบผ่าน Monitoring console หรือ API (ระวัง: ถ้าผูกกับ alerting policy ต้อง unbind ก่อน)
 
-### 3. ตรวจ Cloudflare domain `snc.nithep.com` → Cloud Run
+### 3. ตรวจ Cloudflare domain `snc.nithep.com` → Cloud Run (ยังค้าง)
 - ยังค้างจาก handover 19 ส.ค. (main) — `SNC_ALLOWED_ORIGINS` ควรมี `snc.nithep.com`
+- **สถานะ ณ 19 ส.ค. (ต่อ):** env จริงบน Cloud Run backend **ยังไม่มี `SNC_ALLOWED_ORIGINS`** (มีแค่ `SNC_API_KEY` + `SNC_DB_BACKEND`)
+  - ตรวจ: `gcloud run services describe snc-cloud-backend --region=asia-southeast1 --format='yaml(spec.template.spec.containers[0].env)'`
+  - **ยังไม่ได้ตั้งค่า** — คำสั่ง `update` ยังไม่สำเร็จ (ติด shell quoting ของ comma/URL)
+  - วิธีที่เตรียมไว้ (หนี comma โดยใช้ JSON file, merge ครบ 3 env):
+    ```bash
+    printf '{"SNC_API_KEY":"SNC_API_KEY_REDACTED","SNC_DB_BACKEND":"firestore","SNC_ALLOWED_ORIGINS":"https://snc.nithep.com,https://hotel.nithep.com,https://snc-cloud-backend-59781590359.asia-southeast1.run.app"}' > /tmp/snc_env.json
+    gcloud run services update snc-cloud-backend --region=asia-southeast1 --project=hotel-ecs-nithep --env-vars-file /tmp/snc_env.json --remove-env-vars TEST_MARKER
+    ```
+  - ⚠️ **หมายเหตุ:** ระหว่าง debug ได้เพิ่ม env `TEST_MARKER=ok` ไว้บน Cloud Run (revision 00016) — **ต้องลบออก** (ยังอยู่) พร้อมตั้ง `SNC_ALLOWED_ORIGINS` จริง
 
 ---
 
