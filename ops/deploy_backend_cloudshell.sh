@@ -13,6 +13,9 @@
 #     (ไม่เก็บ plaintext ใน --set-env-vars) ตาม ADR 0005
 #   - grant IAM ให้ Cloud Run SA อ่าน secret
 #   - deploy ด้วย digest (กัน Cloud Run cache image ตาม tag เก่า)
+#   - ตั้ง SNC_DB_BACKEND=firestore + SNC_ALLOWED_ORIGINS (CORS, comma-separated)
+#     — ใช้ ^@^ เป็น delimiter เพราะ gcloud แยกค่า --set-env-vars ด้วย comma
+#       (ถ้าไม่หนี comma จะกลายเป็น KEY=VALUE,KEY=VALUE... แล้ว deploy พัง)
 #   - verify: /health (db=firestore) + auth (ไม่มี key → 401)
 #
 # ความปลอดภัย:
@@ -30,6 +33,8 @@ IMAGE_TAG="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
 SERVICE_URL="https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
 REPO_URL="https://github.com/nithep/snc.git"
 WORK_DIR="${WORK_DIR:-$HOME/snc}"
+# CORS origins (comma-separated — ตรงกับ _DEFAULT_ALLOWED_ORIGINS ใน api/server.py)
+ALLOWED_ORIGINS="https://snc.nithep.com,https://hotel.nithep.com,https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
 
 SECRET_API_KEY="snc-api-key"
 
@@ -105,8 +110,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --allow-unauthenticated \
   --project "$PROJECT_ID" \
   --set-secrets "SNC_API_KEY=$SECRET_API_KEY:latest" \
-  --set-env-vars "SNC_DB_BACKEND=firestore" \
-  --set-env-vars "SNC_ALLOWED_ORIGINS=https://snc.nithep.com,https://hotel.nithep.com,https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
+  --set-env-vars "^@^SNC_DB_BACKEND=firestore@SNC_ALLOWED_ORIGINS=$ALLOWED_ORIGINS"
 
 # ── verify: health + auth fail-closed ──────────────────────────────────────
 echo "[5/5] Verify..."
