@@ -41,7 +41,7 @@ flowchart TB
     end
 
     subgraph USER["ผู้ใช้"]
-        DASH["Nurse Dashboard<br/>nursecall.nithep.com"]
+        DASH["Nurse Dashboard<br/>snc.nithep.com"]
         TG["Telegram @snc2569_bot"]
     end
 
@@ -74,9 +74,9 @@ flowchart LR
     LIS --> BE["Pi4: snc-backend :8000<br/>SQLite WAL"]
     BE -->|WebSocket| CF["cloudflared (outbound)"]
     CF -->|HTTPS TLS1.3| CFE["Cloudflare Edge"]
-    CFE --> DASH["Dashboard<br/>nursecall.nithep.com"]
+    CFE --> DASH["Dashboard<br/>snc.nithep.com"]
 ```
-จุดสำคัญ: Tunnel เป็น **ขาออก (Zero Open Ports)** — `nursecall.nithep.com` ชี้ไป `http://172.17.0.1:8000` (เกตเวย์ Docker bridge) หา `snc-backend.service` พอร์ต 8000
+จุดสำคัญ: Tunnel เป็น **ขาออก (Zero Open Ports)** — `snc.nithep.com` ชี้ไป `http://172.17.0.1:8000` (เกตเวย์ Docker bridge) หา `snc-backend.service` พอร์ต 8000
 
 ### B) สาย Cloud (GCP Cloud Run)
 ```mermaid
@@ -105,7 +105,7 @@ Bridge อยู่คนละ service กับ backend หลัก → alert
 | D:\snc (MateBook) | ต้นทางโค้ด + สคริปต์ deploy | `git push` → GitHub |
 | GitHub `nithep/snc` | version control กลาง | Cloud Shell / Pi ดึงจากที่นี่ |
 | Pi 4 (192.168.1.94) | Edge — ฟังสัญญาณจริงจาก PBX | ดึงจาก git, รัน backend+listener+cloudflared |
-| Cloudflare | Tunnel + DNS | `cloudflared` ขาออก → `nursecall.nithep.com` |
+| Cloudflare | Tunnel + DNS | `cloudflared` ขาออก → `snc.nithep.com` |
 | Cloud Run | main backend + bridge | deploy จาก Cloud Shell, URL `*.run.app` |
 | GCP services | Firestore, Secret Manager, Monitoring | uptime → webhook → bridge |
 

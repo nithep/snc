@@ -54,7 +54,7 @@ tags: [status]
 
 | รายการ | ค่า |
 |---|---|
-| Public dashboard | https://nursecall.nithep.com (health: `/health`, API docs: `/docs`) |
+| Public dashboard | https://snc.nithep.com (health: `/health`, API docs: `/docs`) |
 | Hotel main (เดิม) | https://hotel.nithep.com → Docker `hotel-app:3000` |
 | Pi 4 | `192.168.1.94` (LAN) / SSH alias **`pi4`** (user `ecs-agent`) |
 | Services | `snc-backend.service` + `snc-pbx-listener.service` = **active ทั้งคู่** |
@@ -91,7 +91,7 @@ ssh pi4
 # ตรวจสถานะระบบ
 ssh pi4 'systemctl is-active snc-backend.service snc-pbx-listener.service'
 ssh pi4 'curl -s http://localhost:8000/health'
-curl -s https://nursecall.nithep.com/health
+curl -s https://snc.nithep.com/health
 
 # Burn-in
 ssh pi4 '/home/ecs-agent/nithep/snc/ops/burnin-monitor.sh --report'       # สรุปผล burn-in
@@ -103,7 +103,7 @@ ssh pi4 'tail -20 /home/ecs-agent/nithep/snc/logs/burnin_reminder.log'     # ป
 ./ops/deploy-snc-one-shot.sh --check-tunnel
 
 # ทดสอบ trigger ผ่าน tunnel (ห้ามใช้ห้อง 999 จริงซ้ำ — ใช้ scratch ได้)
-curl -s -X POST https://nursecall.nithep.com/api/events/trigger \
+curl -s -X POST https://snc.nithep.com/api/events/trigger \
   -H 'Content-Type: application/json' -H "X-API-Key: <key>" \
   -d '{"room_id":"999","event_type":"CALL_BEDSIDE"}'
 

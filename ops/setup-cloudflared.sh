@@ -108,7 +108,7 @@ if [ "$ACTION" = "status" ]; then
   echo ""
   echo "=== Tunnel connectivity ==="
   if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-    HEALTH=$(curl -s --max-time 10 https://nursecall.nithep.com/health 2>/dev/null || echo "UNREACHABLE")
+    HEALTH=$(curl -s --max-time 10 https://snc.nithep.com/health 2>/dev/null || echo "UNREACHABLE")
     echo "$HEALTH" | grep -qE '"status"' && ok "Public health: $HEALTH" || warn "Public health: $HEALTH"
   else
     warn "Cannot check — service not running"
@@ -175,7 +175,7 @@ else
   # Write inline if repo not present yet
   cat > "$SERVICE_FILE" <<'SVCEOF'
 [Unit]
-Description=Cloudflare Tunnel for SNC (nursecall.nithep.com)
+Description=Cloudflare Tunnel for SNC (snc.nithep.com)
 After=network-online.target snc-backend.service
 Wants=network-online.target snc-backend.service
 
@@ -224,7 +224,7 @@ echo "  • Service:    systemctl status $SERVICE_NAME"
 echo "  • Token file: $ENV_FILE (perms 600)"
 echo "  • Logs:       journalctl -u $SERVICE_NAME -f"
 echo ""
-echo "🔗 Public URL: https://nursecall.nithep.com"
+echo "🔗 Public URL: https://snc.nithep.com"
 echo ""
 echo "📝 คำสั่งที่มีประโยชน์:"
 echo "  sudo systemctl status $SERVICE_NAME"

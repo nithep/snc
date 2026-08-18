@@ -1,5 +1,5 @@
 [Unit]
-Description=Cloudflare Tunnel for SNC (nursecall.nithep.com)
+Description=Cloudflare Tunnel for SNC (snc.nithep.com)
 After=network-online.target snc-backend.service
 Wants=network-online.target snc-backend.service
 Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/

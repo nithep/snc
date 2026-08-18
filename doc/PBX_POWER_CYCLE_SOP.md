@@ -65,7 +65,7 @@ ssh pi4 'systemctl is-active snc-backend.service snc-pbx-listener.service'
 # คาดหวัง: active\nactive
 
 # 2. Dashboard กลับเป็น เชื่อมต่อสด (เขียว)
-# เปิด https://nursecall.nithep.com ตรวจ pill สถานะ WS
+# เปิด https://snc.nithep.com ตรวจ pill สถานะ WS
 
 # 3. ทดสอบสายจริง: กดปุ่มเรียกที่ห้องใดห้องหนึ่ง → ควรขึ้นบน dashboard < 3 วินาที
 ```

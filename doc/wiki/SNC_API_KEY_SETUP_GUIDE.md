@@ -74,7 +74,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8000/api/event
 2. ช่อง **API Key (X-API-Key)** → วาง key (เฉพาะถ้าเซิร์ฟเวอร์ตั้งไว้)
 3. กด **บันทึก**
    - ค่าเก็บใน `localStorage` ของเบราว์เซอร์ (จำเฉพาะเครื่องนี้ ไม่ส่งไปเซิร์ฟเวอร์)
-   - ทางเลือก: ใส่ผ่าน URL `https://nursecall.nithep.com/?api_key=xxxx`
+   - ทางเลือก: ใส่ผ่าน URL `https://snc.nithep.com/?api_key=xxxx`
 4. ทดสอบ: กดปุ่ม "รับเรื่อง" ที่ห้องใดก็ได้ — ถ้าไม่เจอ toast 401 = ผ่าน
 
 ---

@@ -16,7 +16,7 @@
                                                                       │
                                ┌──────────────────────────────────────┤
                                ▼                                      ▼
-  ฮาร์ดแวร์  PBX ─▶ Pi4(listener+backend) ─▶ cloudflared ─▶ nursecall.nithep.com
+  ฮาร์ดแวร์  PBX ─▶ Pi4(listener+backend) ─▶ cloudflared ─▶ snc.nithep.com
                                                                       │
                         Cloud Monitoring ─▶ bridge ─▶ Telegram ◀──────┘
 ```

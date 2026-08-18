@@ -29,7 +29,7 @@ tags: [testing]
 * **ตู้สาขาหลัก (Phonik PBX)**: `192.168.1.91:23` (สถานะปัจจุบัน: **Open/Ready ✅**)
 * **หน้ากากกระจายสัญญาณ (TCP SMDR Proxy)**: พอร์ต `2323` (ใช้จำลอง Handshake ให้โปรแกรม Room Manager ของตู้ดึงประวัติได้พร้อมกัน)
 * **หน้าเว็บแดชบอร์ดในวง LAN**: `http://192.168.1.94:8000/`
-* **หน้าเว็บแดชบอร์ดสาธารณะ (Public Ingress)**: `https://nursecall.nithep.com`
+* **หน้าเว็บแดชบอร์ดสาธารณะ (Public Ingress)**: `https://snc.nithep.com`
 
 ---
 

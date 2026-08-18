@@ -13,7 +13,7 @@ tags: [knowledge]
 
 ## [2026-08-14] จัดทำทะเบียนเบอร์ทดลอง PBX และตรวจสอบความสอดคล้องข้อมูล Dashboard (Extension Inventory)
 
-- **รายละเอียด**: ตรวจสอบข้อมูลจริงจากระบบ live (ผ่าน Public Tunnel `nursecall.nithep.com`) หลัง burn-in 48 ชม. ผ่านไป ~38 ชม. (0 FAIL) และจัดระเบียบข้อมูลบน dashboard ให้ตรงกับเบอร์ station จริงของ PBX
+- **รายละเอียด**: ตรวจสอบข้อมูลจริงจากระบบ live (ผ่าน Public Tunnel `snc.nithep.com`) หลัง burn-in 48 ชม. ผ่านไป ~38 ชม. (0 FAIL) และจัดระเบียบข้อมูลบน dashboard ให้ตรงกับเบอร์ station จริงของ PBX
 - **การเปลี่ยนแปลงหลัก**:
   1. **สร้างเอกสาร** [[SNC_TEST_EXTENSION_INVENTORY]]: ทะเบียนเบอร์ทดลองทั้งหมด (0101, 0400, 0401, 0405, 0777, 0778, 0999-scratch) แยกรายละเอียดต่อเบอร์ (จำนวนเหตุการณ์, ประเภท, สถานะ, SLA breach, ack/res time, ช่วงเวลา) + หลักการ mapping `station_ext` → `room_id` (zero-padded 4 หลัก) → แสดง "ห้อง XXX"
   2. **ตรวจสอบความสอดคล้อง KPI**: ตัวเลข KPI 24 รายการ / 23+1 ประเภท / compliance 83.33% / breach 4 (ทั้งหมดที่เบอร์ 0401) / avg res 1026.72s ตรงกับข้อมูลรายเหตุการณ์ 100%
@@ -385,13 +385,13 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
     * **Tunnel Status:** Healthy ✅
     * **Uptime:** รันต่อเนื่องสำเร็จยาวนานแล้วกว่า 2 ชั่วโมง (2 hours) ✅
     * **Active Replicas:** 1 Replica ✅
-    * **จำนวนเส้นทางที่เปิดใช้งาน (Routes Configured):** 2 เส้นทางหลัก (`hotel.nithep.com` และ `nursecall.nithep.com`) ✅
+    * **จำนวนเส้นทางที่เปิดใช้งาน (Routes Configured):** 2 เส้นทางหลัก (`hotel.nithep.com` และ `snc.nithep.com`) ✅
     * **สถาปัตยกรรมหน่วยประมวลผล (Architecture):** Linux ARM64 (บอร์ด Raspberry Pi 4 ในพื้นที่หน้างานจริง) ✅
     * **เครือข่ายตำแหน่ง Edge ที่เชื่อมโยง (Edge Locations):** Bangkok (bkk02) & Singapore (sin07, sin02) ✅
   - **URLs ระบบบริการสาธารณะที่เปิดให้เข้าถึงได้จริง:**
-    * 🏥 **Dashboard หน้าสถานะเตียงผู้ป่วย:** [https://nursecall.nithep.com](https://nursecall.nithep.com)
-    * 📊 **หน้าสุขภาพ Backend (Health endpoint):** [https://nursecall.nithep.com/health](https://nursecall.nithep.com/health)
-    * 📖 **หน้าเอกสาร API เชิงลึก (Interactive API Docs):** [https://nursecall.nithep.com/docs](https://nursecall.nithep.com/docs)
+    * 🏥 **Dashboard หน้าสถานะเตียงผู้ป่วย:** [https://snc.nithep.com](https://snc.nithep.com)
+    * 📊 **หน้าสุขภาพ Backend (Health endpoint):** [https://snc.nithep.com/health](https://snc.nithep.com/health)
+    * 📖 **หน้าเอกสาร API เชิงลึก (Interactive API Docs):** [https://snc.nithep.com/docs](https://snc.nithep.com/docs)
 - **จัดเก็บเอกสารและฐานความรู้คงทน (Evergreen Knowledge Base):** บันทึกมาตรฐานปฏิบัติงานทั้งหมดลงใน `/docs/wiki/SYSTEMD_SERVICES_SUMMARY.md` และ `/docs/wiki/CLOUDFLARE_TUNNEL_SUMMARY.md` ตามโครงสร้างมาตรฐาน OKF สู่เป้าหมายการบำรุงรักษาอย่างราบรื่นระยะยาว
 
 ## [2026-08-11] การคลี่คลายปัญหาเชื่อมต่อตู้ PBX ค้างด้วย "Power Cycle" และผลเชื่อมต่อเป็นประวัติการณ์สำเร็จ 100% (SNC PBX Handshake Success)
@@ -422,7 +422,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   - ผูกสคริปต์ดึงประวัติอัตโนมัติ (Auto-refresh ทุก 15 วินาที และอัปเดตทันทีเมื่อมีข้อมูล WebSocket ไหลเข้า)
 - **Deploy ขึ้นเซิร์ฟเวอร์ Pi 4 และทดสอบการเปิดใช้งานสาธารณะ (Production Live Certified):**
   - อัปโหลดไฟล์แดชบอร์ดใหม่ลงสู่ `/home/ecs-agent/snc-poc/backend/public/index.html` บน Pi 4 และทำการรีสตาร์ทบริการ `snc-backend.service` สำเร็จ
-  - ยืนยันการเข้าถึงผ่านระบบโดเมนสาธารณะ [https://nursecall.nithep.com](https://nursecall.nithep.com) แสดงผลตารางประวัติกิจกรรมย้อนหลังสดอย่างราบรื่น สวยงาม และพรีเมียมขั้นสุด 100%!
+  - ยืนยันการเข้าถึงผ่านระบบโดเมนสาธารณะ [https://snc.nithep.com](https://snc.nithep.com) แสดงผลตารางประวัติกิจกรรมย้อนหลังสดอย่างราบรื่น สวยงาม และพรีเมียมขั้นสุด 100%!
 
 ## [2026-08-12] พัฒนาระบบ Built-in TCP Proxy Server บน Pi 4 และแก้ไข Bug การระบุห้องพักสำเร็จ (SNC 24/7 Port-Sharing Proxy Solution)
 
@@ -469,11 +469,11 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
     `ERR error="Unable to reach the origin service... dial tcp [::1]:3000: connect: connection refused" originService=http://localhost:3000`
     * ตรวจพบว่า Ingress Configuration ล่าสุด (Version 7) บน Cloudflare Zero Trust Dashboard ถูกกำหนดเป้าหมายผิดพลาดอย่างร้ายแรง:
       1. **`hotel.nithep.com`** ถูกตั้งค่าชี้ไปที่ `http://localhost:3000` (ซึ่งในขอบเขตเครือข่าย Docker คอนเทนเนอร์ `cloudflare-tunnel` จะมองหาพอร์ต 3000 ในตัวเอง แทนที่จะชี้ไปที่คอนเทนเนอร์หลังบ้าน `hotel-app:3000`)
-      2. **`nursecall.nithep.com`** ถูกสลับไปตั้งค่าชี้ไปที่ `http://hotel-app:3000` (ซึ่งเป็นค่าของระบบโรงแรม ไม่ใช่ระบบไฟเรียกพยาบาล)
+      2. **`snc.nithep.com`** ถูกสลับไปตั้งค่าชี้ไปที่ `http://hotel-app:3000` (ซึ่งเป็นค่าของระบบโรงแรม ไม่ใช่ระบบไฟเรียกพยาบาล)
 - **แนวทางและขั้นตอนการปรับปรุงแก้ไขระบบให้เสถียรภาพสูง (SOP Permanent Fix):**
   - กำหนดค่าระเบียบที่ถูกต้องกลับคืนสู่ระบบคลาวด์เพื่อแยกแยะกลุ่มเครือข่าย (Ingress Rules Alignment):
     1. **`hotel.nithep.com`** ➔ ต้องตั้งค่าต้นทาง (Service URL) เป็น **`http://hotel-app:3000`** (ชี้ไปที่ชื่อคอนเทนเนอร์ Docker Backend หลัก)
-    2. **`nursecall.nithep.com`** ➔ ต้องตั้งค่าต้นทาง (Service URL) เป็น **`http://172.17.0.1:8000`** (ชี้ไปที่เกตเวย์ Docker Bridge เพื่อเชื่อมโยงหาบริการ `snc-backend.service` ในระดับ Host ที่พอร์ต 8000)
+    2. **`snc.nithep.com`** ➔ ต้องตั้งค่าต้นทาง (Service URL) เป็น **`http://172.17.0.1:8000`** (ชี้ไปที่เกตเวย์ Docker Bridge เพื่อเชื่อมโยงหาบริการ `snc-backend.service` ในระดับ Host ที่พอร์ต 8000)
 - **สถานะ**: ทำการวินิจฉัยปัญหาเสร็จสิ้นพร้อมจัดส่งสรุปวิธีตั้งค่าให้แก่ผู้ดูแลระบบตรวจสอบและอัปเดตบน Cloudflare Dashboard เพื่อให้ระบบกลับมาใช้งานได้เสถียรทันที!
 
 ## [2026-08-12] การคลี่คลาย Session Lock ของตู้ Phonik และค้นพบช่องทาง Real-time RDSS (SNC Go-Live: กดปุ่ม STA → Dashboard ครบวงจร Verified)
@@ -551,7 +551,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 **รายละเอียดการอัปเดต:**
 - **สร้าง Dashboard ใหม่ทั้งหมด (v2.0) ระดับพรีเมียมมาตรฐานสากล** ไฟล์เดียว self-contained (React-free, ไม่ต้อง build) ที่ `snc-poc/backend/public/index.html` (served ที่ `/`) และ mirror ที่ `snc-poc/frontend/index.html` (byte-identical):
-  - **Protocol-aware:** ใช้ relative URL + `wss://` ตาม protocol อัตโนมัติ — ทำงานได้ถูกต้องทั้ง HTTPS tunnel (`nursecall.nithep.com`), LAN และเปิดไฟล์ตรง (แก้บั๊ก Mixed Content เดิมที่ `ws://`/`http://` hardcode)
+  - **Protocol-aware:** ใช้ relative URL + `wss://` ตาม protocol อัตโนมัติ — ทำงานได้ถูกต้องทั้ง HTTPS tunnel (`snc.nithep.com`), LAN และเปิดไฟล์ตรง (แก้บั๊ก Mixed Content เดิมที่ `ws://`/`http://` hardcode)
   - **Settings Modal + API Key:** ตั้ง `X-API-Key` ได้ผ่านหน้าตั้งค่า (เก็บใน localStorage) รองรับ `?api_key=` และการตอบสนอง 401 อัตโนมัติ (เปิด modal ให้กรอก key) — แก้ปัญหาเดิมที่ `SNC_API_KEY=''` ทำให้ปุ่ม Ack/Clear ใช้งานจริงไม่ได้
   - **Room states อิงเซิร์ฟเวอร์ (Server as Source of Truth):** สถานะห้อง sync จาก `/api/events` — refresh แล้วสายเรียกที่ active ไม่หายอีกต่อไป และจับเวลา SLA แบบ count-up จาก timestamp จริงของเซิร์ฟเวอร์ (ไม่ใช่ timer เฉพาะหน้าจอ)
   - **แยกแยะเหตุการณ์ถูกต้อง:** ใช้ `extension.sourceEventType` (ดูหัวข้อ Backend ด้านล่าง) แสดง 🛎️ ข้างเตียง vs 🚿 ฉุกเฉินห้องน้ำ แบบเรียลไทม์บน WS และประวัติ
@@ -579,7 +579,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **ขั้นตอน Deploy ตาม SOP:** (1) ตรวจสอบสถานะระยะไกล — services ทั้งคู่ active, passwordless sudo พร้อม, `.env` มีอยู่ (2) เปรียบเทียบ content `server.py` ระยะไกลกับ local ก่อน overwrite — diff เหลือเฉพาะการแก้ `sourceEventType` (ปลอดภัย 100%) (3) Backup ไฟล์เดิม `server.py.bak.20260813004206` + `index.html.bak.20260813004206` (4) `scp` ไฟล์ขึ้น Pi แล้วตรวจ `md5sum` ตรงกับ local ทั้ง 2 ไฟล์ (`bce03880...` / `4aa14ed9...`) (5) `sudo systemctl restart snc-backend.service`
 - **ผลการตรวจสอบหลัง Deploy (Live Verified):**
   - Services: `snc-backend` + `snc-pbx-listener` **active** ทั้งคู่, `/health` → `healthy`, ไม่มี error ใน log
-  - Dashboard v2.0 ถูกเสิร์ฟที่ root (`<title>SNC Nurse Station — Live Monitor</title>`) — ทั้ง LAN และ **สาธารณะผ่าน Cloudflare Tunnel** [https://nursecall.nithep.com](https://nursecall.nithep.com) (Health + Events API ผ่าน)
+  - Dashboard v2.0 ถูกเสิร์ฟที่ root (`<title>SNC Nurse Station — Live Monitor</title>`) — ทั้ง LAN และ **สาธารณะผ่าน Cloudflare Tunnel** [https://snc.nithep.com](https://snc.nithep.com) (Health + Events API ผ่าน)
   - **Synthetic test บน production (scratch room 999):** trigger `CALL_BATHROOM_EMERGENCY` → ฐานข้อมูลเก็บ `event_type` = **`CALL_BATHROOM_EMERGENCY`** ตรงจริง (ยืนยัน sourceEventType fix ทำงานบน Pi), ack → clear ผ่าน, ล้างข้อมูลทดสอบเรียบร้อย
 - **สถานะ:** SNC v2.0 ใช้งานจริงเต็มรูปแบบแล้ว — พนักงานสามารถเปิด dashboard ผ่าน URL สาธารณะ กดรับเรื่อง/เคลียร์สายได้ (ต้องตั้งค่า API Key ในปุ่ม ⚙️ หากเซิร์ฟเวอร์เปิด auth)
 
@@ -600,7 +600,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   5. **md5 verify** — ยืนยัน integrity หลังส่ง (ไม่ตรง = หยุดก่อน restart)
   6. **Restart** — `sudo systemctl restart snc-backend.service` (ตรวจ passwordless sudo ก่อน)
   7. **Verify** — services active, `/health` OK, Dashboard v2.0 markers, ไม่มี error ใน journalctl
-  8. **(optional)** `--check-tunnel` ตรวจ tunnel สาธารณะ `nursecall.nithep.com`
+  8. **(optional)** `--check-tunnel` ตรวจ tunnel สาธารณะ `snc.nithep.com`
 - **Options:** `--dry-run` (จำลอง ไม่แตะ Pi), `--check-tunnel`, `--help`, ตั้งค่า `PI_HOST` env ได้
 - **ผลการทดสอบ:** `bash -n` syntax ผ่าน, dry-run ครบ 8 ขั้นตอนไม่แตะ Pi, code review (DeepSeek) พบ 3 จุดแล้วแก้หมด (`set -e` ตัด diagnostics, printf format-string, ls false-fail บน deploy ครั้งแรก)
 - **สถานะ:** พร้อมใช้ — deploy ครั้งถัดไปสั่งแค่ `./snc-poc/deploy-snc-one-shot.sh`
@@ -615,7 +615,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   - Backup timestamp: `20260813020928` (ย้อนกลับได้ทันที)
   - md5 ตรงกันทั้ง 2 ไฟล์: `server.py`=`bce03880...` / `index.html`=`4aa14ed9...`
   - Services: `snc-backend` + `snc-pbx-listener` active ทั้งคู่, restart สำเร็จ
-  - Backend `/health` → `{"status":"healthy"}` (LAN + tunnel สาธารณะ `nursecall.nithep.com`)
+  - Backend `/health` → `{"status":"healthy"}` (LAN + tunnel สาธารณะ `snc.nithep.com`)
   - Dashboard v2.0 เสิร์ฟถูก `<title>SNC Nurse Station — Live Monitor</title>`
 - **พบและแก้บั๊กในสคริปต์ (พบจริงระหว่างทดสอบ):**
   - สคริปต์ตรวจ health ด้วย pattern `"status".*OK` แต่ backend ตอบ `"status":"healthy"` → แจ้งเตือนผิด (false positive) ทั้ง health ภายในและ tunnel
@@ -627,7 +627,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 **ผู้ดำเนินการ:** Senior Software Engineer (Antigravity Agent)
 
 **รายละเอียดการอัปเดต:**
-- **ทดสอบวงจรสมบูรณ์ผ่าน `https://nursecall.nithep.com` (public tunnel) ครบทุกขั้นตอน:**
+- **ทดสอบวงจรสมบูรณ์ผ่าน `https://snc.nithep.com` (public tunnel) ครบทุกขั้นตอน:**
   1. Baseline ห้อง 0999 = 0 events ✅
   2. POST `/api/events/trigger` ไม่มี key → **401** (auth ทำงานผ่าน tunnel) ✅
   3. Trigger `CALL_BEDSIDE` + `CALL_BATHROOM_EMERGENCY` (ห้อง 999) ด้วย X-API-Key → success ทั้งคู่ ✅
@@ -644,7 +644,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 **รายละเอียดการอัปเดต:**
 - **ทดสอบ WS broadcast ผ่าน tunnel สาธารณะ 2 ชั้น (Python client + เบราว์เซอร์):**
-  - **ชั้นที่ 1 — Python WebSocket client ตรง:** เชื่อมต่อ `wss://nursecall.nithep.com/ws/nurse-station` สำเร็จ → POST `/api/events/trigger` (ห้อง 999) ได้ 200 → **รับ WS broadcast กลับมาทันที** (`CommunicationRequest` สถานะ `active` ของห้อง 0999) — พิสูจน์ว่า WS push ทำงานผ่าน Cloudflare tunnel สมบูรณ์
+  - **ชั้นที่ 1 — Python WebSocket client ตรง:** เชื่อมต่อ `wss://snc.nithep.com/ws/nurse-station` สำเร็จ → POST `/api/events/trigger` (ห้อง 999) ได้ 200 → **รับ WS broadcast กลับมาทันที** (`CommunicationRequest` สถานะ `active` ของห้อง 0999) — พิสูจน์ว่า WS push ทำงานผ่าน Cloudflare tunnel สมบูรณ์
   - **ชั้นที่ 2 — เบราว์เซอร์ (Chrome):** เปิด dashboard สาธารณะ → pill "เชื่อมต่อสด" (WebSocket Live Feed) เขียวติด ✅ → เห็นห้อง 999 โผล่ในประวัติ (13 ส.ค. 02:20:53) **โดยไม่ต้อง refresh** และตัวนับเวลาในบัตรห้องอัปเดตเรียลไทม์ (00:14 → 00:40) ✅ → แบนเนอร์ฉุกเฉินแดง "🚨 สายค้าง: 4 — ห้อง 400, 101, 777, 999" แสดงถูกต้อง → **ไม่มี console error** (WS/mixed content/fetch 0 รายการ)
 - **ล้างข้อมูลทดสอบ:** ลบแถวห้อง 0999 (2 แถว) กลับเหลือ 23 events ข้อมูลหน้างานจริง; `/health` ยัง `healthy` ✅
 - **สถานะ:** WebSocket real-time ผ่าน tunnel สาธารณะทำงานสมบูรณ์ — เหตุการณ์ใหม่ push ถึง dashboard แบบทันที ไม่ต้องรีเฟรชหน้า
@@ -662,7 +662,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   5. แก้ off-by-one ของตัวเลขครั้งที่ reconnect (แสดงครั้งที่ N ถูกต้อง)
 - **ผลการทดสอบจริงบน Production:**
   - Syntax (node --check) ผ่าน, code review (DeepSeek) พบ Critical bug 1 จุด (flag ติดค้าง) + Minor 3 จุด → แก้หมด
-  - **ทดสอบจริงกับเบราว์เซอร์บน `nursecall.nithep.com`:** รีสตาร์ต `snc-backend.service` กลางอากาศ → pill เปลี่ยนเป็นสถานะ reconnect แล้ว **auto-recover กลับเป็น 🟢 เชื่อมต่อสด โดยไม่ต้อง refresh หน้า** — room status ยัง render ถูกต้อง, ไม่มี console error
+  - **ทดสอบจริงกับเบราว์เซอร์บน `snc.nithep.com`:** รีสตาร์ต `snc-backend.service` กลางอากาศ → pill เปลี่ยนเป็นสถานะ reconnect แล้ว **auto-recover กลับเป็น 🟢 เชื่อมต่อสด โดยไม่ต้อง refresh หน้า** — room status ยัง render ถูกต้อง, ไม่มี console error
   - Deploy ขึ้น Pi ผ่าน `deploy-snc-one-shot.sh` (backup + md5 ตรงกัน), services active ทั้งคู่, /health healthy ทั้ง LAN และสาธารณะ
 - **สถานะ:** WS resilience สมบูรณ์ — สายหลุด/backend restart จะ reconnect อัตโนมัติและแสดงสถานะให้พนักงานเห็นชัดเจน
 

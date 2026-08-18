@@ -87,7 +87,7 @@ async def guard_write_endpoints(request, call_next):
 # จึงไม่ต้อง allow "*" ไว้; ระบุผ่าน env SNC_ALLOWED_ORIGINS (comma-separated) เผื่อเปิดจาก origin อื่น
 # เช่น Cloudflare tunnel / หน้า dev localhost ตั้งค่าแล้วจึง cross-origin fetch ได้
 _DEFAULT_ALLOWED_ORIGINS = [
-    "https://nursecall.nithep.com",
+    "https://snc.nithep.com",
     "https://hotel.nithep.com",
     "https://snc-cloud-backend-59781590359.asia-southeast1.run.app",
     "http://localhost:8000",

@@ -10,7 +10,7 @@
 #   5) ตรวจสอบ md5 ตรงกัน (รับประกัน integrity ของไฟล์ที่ส่ง)
 #   6) Restart snc-backend.service (systemd)
 #   7) Verify — services active, /health OK, Dashboard เสิร์ฟถูก, ไม่มี error ใน log
-#   8) (optional) ตรวจ tunnel สาธารณะ nursecall.nithep.com
+#   8) (optional) ตรวจ tunnel สาธารณะ snc.nithep.com
 #
 # วิธีใช้:
 #   ./ops/deploy-snc-one-shot.sh                 # deploy ปกติ
@@ -263,13 +263,13 @@ fi
 # 8) (optional) ตรวจ tunnel สาธารณะ
 # ============================================================================
 if [ "$CHECK_TUNNEL" -eq 1 ]; then
-  step "8/8 ตรวจ tunnel สาธารณะ nursecall.nithep.com"
+  step "8/8 ตรวจ tunnel สาธารณะ snc.nithep.com"
   if [ "$DRY_RUN" -eq 1 ]; then
-    info "(dry-run) curl https://nursecall.nithep.com/health"
+    info "(dry-run) curl https://snc.nithep.com/health"
   else
-    PUB_HEALTH=$(curl -s --max-time 10 https://nursecall.nithep.com/health 2>/dev/null || true)
+    PUB_HEALTH=$(curl -s --max-time 10 https://snc.nithep.com/health 2>/dev/null || true)
     echo "$PUB_HEALTH" | grep -qE '"status"[^,}]*"(OK|healthy)"' && ok "Tunnel public /health OK: $PUB_HEALTH" || warn "Tunnel ผิดปกติ: $PUB_HEALTH"
-    PUB_TITLE=$(curl -s --max-time 10 https://nursecall.nithep.com/ 2>/dev/null | grep -o "<title>[^<]*</title>" || true)
+    PUB_TITLE=$(curl -s --max-time 10 https://snc.nithep.com/ 2>/dev/null | grep -o "<title>[^<]*</title>" || true)
     [ -n "$PUB_TITLE" ] && ok "Public dashboard: $PUB_TITLE" || warn "อ่าน title dashboard สาธารณะไม่ได้"
   fi
 else
@@ -297,6 +297,6 @@ echo ""
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "  ${C_YELLOW}*** นี่คือ DRY-RUN — ไม่มีการเปลี่ยนแปลงใด ๆ เกิดขึ้น ***${C_RESET}"
 else
-  echo "  หน้า Dashboard:  https://nursecall.nithep.com  |  LAN: http://192.168.1.94:8000"
+  echo "  หน้า Dashboard:  https://snc.nithep.com  |  LAN: http://192.168.1.94:8000"
 fi
 echo ""

@@ -96,7 +96,7 @@ echo ==========================================
 echo Deployment Complete!
 echo ==========================================
 echo.
-echo Dashboard:  https://nursecall.nithep.com
+echo Dashboard:  https://snc.nithep.com
 echo LAN:        http://192.168.1.94:8000
 echo Health:     http://localhost:8000/health
 echo.

@@ -7,7 +7,7 @@ tags: [knowledge]
 # 📋 บันทึกโครงการ Smart Nurse Call & Predictive Analytics Architecture
 **โปรเจกต์:** ระบบเรียกพยาบาลอัจฉริยะและการวิเคราะห์เชิงคาดการณ์ (โรงพยาบาลราชเวช)  
 **สถาปัตยกรรมหลัก:** PBX – Raspberry Pi – GCP (Hybrid Cloud-Native Edge Architecture)  
-**โดเมนหลักของระบบ:** `nithep.com` (`nursecall.nithep.com` / `api-nurse.nithep.com` / `liff.nithep.com`)  
+**โดเมนหลักของระบบ:** `nithep.com` (`snc.nithep.com` / `api-nurse.nithep.com` / `liff.nithep.com`)  
 **วันที่บันทึก:** 1 สิงหาคม 2026  
 **สถานะปัจจุบัน:** 🟢 **วางระบบและเตรียมความพร้อมสำหรับการใช้งานจริงเสร็จสิ้น (Ready for Deployment)**
 
@@ -65,7 +65,7 @@ tags: [knowledge]
 +-----------------------------------------------------------------------------------+
 | 4. NOTIFICATION & PRESENTATION LAYER                                             |
 |  • LINE Messaging API / LIFF (`liff.nithep.com` - สแกน QR / รับแจ้งเตือน)         |
-|  • Nurse Station Web Dashboard (`nursecall.nithep.com` - แสดงผล Real-time)         |
+|  • Nurse Station Web Dashboard (`snc.nithep.com` - แสดงผล Real-time)         |
 |  • Google Workspace (Chat Webhooks & Sheets Audit Log)                            |
 |  • PBX Escalation Voice Call (โทรแจ้งหัวหน้ากะอัตโนมัติเมื่อเกินเวลา SLA)             |
 +-----------------------------------------------------------------------------------+
@@ -93,7 +93,7 @@ tags: [knowledge]
 ### 🔹 Phase 3: การเชื่อมต่อ Cloud, Analytics & Notification — ✅ Completed
 - [x] **Cloud Ingestion & Data Lake**: เชื่อมต่อ GCP Pub/Sub ➔ Cloud Functions ──> BigQuery สำหรับวิเคราะห์ประวัติและจัดทำรายงาน KPI ผ่าน Looker Studio
 - [x] **Google Workspace & LINE Integration**: ยิงการ์ดแจ้งเตือนสถานะการเรียกเข้า Google Chat และ LINE LIFF (`liff.nithep.com`) พร้อมลงบันทึก Audit Log ใน Google Sheets
-- [x] **Network Security**: ตั้งค่า Cloudflare Tunnel เชื่อมต่อ HTTPS (TLS 1.3) ไปยัง `nursecall.nithep.com` โดยไม่ต้องเปิดพอร์ตเราเตอร์โรงพยาบาล
+- [x] **Network Security**: ตั้งค่า Cloudflare Tunnel เชื่อมต่อ HTTPS (TLS 1.3) ไปยัง `snc.nithep.com` โดยไม่ต้องเปิดพอร์ตเราเตอร์โรงพยาบาล
 
 ### 🔹 Phase 4: การทดสอบ End-to-End & Software-in-the-Loop Validation — ✅ Completed
 - [x] รันการทดสอบจำลอง (Mock Listener & Event Pipeline) บนสภาพแวดล้อม Windows / Raspberry Pi ผ่านเกณฑ์ 100%
@@ -110,7 +110,7 @@ tags: [knowledge]
   1. ต่อสาย RS-232 จากตู้ Phonik Main Control เข้ากับ Raspberry Pi @ เคาน์เตอร์พยาบาล
   2. เสียบสาย LAN / เชื่อมต่อ Wi-Fi ให้ Pi ออกอินเทอร์เน็ตเพื่อสร้าง Cloudflare Tunnel
 - [ ] **การทำ UAT (User Acceptance Test)**:
-  1. ทดลองกดปุ่ม NCX-CORD ข้างเตียง ➔ ตรวจสอบว่า Nurse Station Dashboard (`nursecall.nithep.com`) และ LINE แจ้งเตือนขึ้นทันที
+  1. ทดลองกดปุ่ม NCX-CORD ข้างเตียง ➔ ตรวจสอบว่า Nurse Station Dashboard (`snc.nithep.com`) และ LINE แจ้งเตือนขึ้นทันที
   2. ทดลองกดปุ่ม NCX-PULL ในห้องน้ำ ➔ ตรวจสอบว่าเกิดเคส High Priority และนับถอยหลัง SLA 60 วินาที
   3. ทดลองกดถอดสายเน็ต ➔ ตรวจสอบว่าระบบเคาน์เตอร์พยาบาลยังเตือนได้ และเมื่อเสียบสายกลับ ข้อมูลจะซิงค์ขึ้น GCP/Google Sheets
 - [ ] **การฝึกอบรมทีมงาน (Knowledge Transfer)**:
@@ -122,7 +122,7 @@ tags: [knowledge]
 
 | ส่วนประกอบ | รายละเอียดการตั้งค่า / ลิงก์ | สภาพแวดล้อม |
 | :--- | :--- | :--- |
-| **Nurse Station Dashboard** | `https://nursecall.nithep.com` | Web UI (React/Vite) |
+| **Nurse Station Dashboard** | `https://snc.nithep.com` | Web UI (React/Vite) |
 | **Nurse Call API** | `https://api-nurse.nithep.com` | Backend Server (Node.js/Express) |
 | **LINE LIFF App** | `https://liff.nithep.com` | LINE MINI App / Mobile UI |
 | **Edge Listener Code** | `ops/nurse_call_serial_listener.py` | Python 3 (Raspberry Pi OS) |

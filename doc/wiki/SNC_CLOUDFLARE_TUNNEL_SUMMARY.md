@@ -27,7 +27,7 @@ tags: [knowledge]
 หากรัน Cloudflare daemon (`cloudflared`) เป็นบริการของระบบปฎิบัติการระดับ Host การชี้เป้าหมายกลับเข้ามาที่ API Server จะมีความคงทนสูงที่สุด:
 
 * **การคอนฟิกบน Cloudflare Zero Trust Dashboard:**
-  * **Public Hostname:** `nursecall.nithep.com` (หรือโดเมนย่อยที่ได้รับมอบหมาย)
+  * **Public Hostname:** `snc.nithep.com` (หรือโดเมนย่อยที่ได้รับมอบหมาย)
   * **Service Type:** `HTTP`
   * **Service URL:** `http://localhost:8000` หรือ `http://127.0.0.1:8000`
 

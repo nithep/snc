@@ -104,7 +104,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --project "$PROJECT_ID" \
   --set-secrets "SNC_API_KEY=$SECRET_API_KEY:latest" \
   --set-env-vars "SNC_DB_BACKEND=firestore" \
-  --set-env-vars "SNC_ALLOWED_ORIGINS=https://nursecall.nithep.com,https://hotel.nithep.com,https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
+  --set-env-vars "SNC_ALLOWED_ORIGINS=https://snc.nithep.com,https://hotel.nithep.com,https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
 
 # ── verify: health + auth fail-closed ──────────────────────────────────────
 echo "[5/5] Verify..."

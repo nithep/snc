@@ -7,7 +7,7 @@ tags: [knowledge]
 # ทะเบียนเบอร์ทดลอง / Extension Inventory — Smart Nurse Call (SNC)
 
 **วันที่จัดเก็บข้อมูล:** 2026-08-14 ~17:20 น.
-**แหล่งข้อมูล:** ระบบ Live ผ่าน Public Tunnel — `https://nursecall.nithep.com` (`/api/analytics/kpi`, `/api/events`)
+**แหล่งข้อมูล:** ระบบ Live ผ่าน Public Tunnel — `https://snc.nithep.com` (`/api/analytics/kpi`, `/api/events`)
 **ผู้จัดเก็บ:** Buffy (Freebuff Desktop) — อ้างอิง SESSION_HANDOVER_2026-08-13 (Pre-Release Go-Live)
 
 ---

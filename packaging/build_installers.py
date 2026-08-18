@@ -167,7 +167,7 @@ python3 -m uvicorn server:app --host 127.0.0.1 --port 8000
     formula = f"""# SNC Homebrew Formula — macOS ARM64 / Intel
 class Snc < Formula
   desc "{APP_NAME} — Raspberry Pi 4 Edge Backend"
-  homepage "https://nursecall.nithep.com"
+  homepage "https://snc.nithep.com"
   version "{VERSION}"
   license "MIT"
 
@@ -348,7 +348,7 @@ Description: {APP_NAME} — Raspberry Pi 4 Edge Backend
  api/ (FastAPI backend), app/ (nurse dashboard),
  pbx/ (SMDR listener), ops/ (DevOps scripts).
  .
- Public URL: https://nursecall.nithep.com
+ Public URL: https://snc.nithep.com
 """
     write_file(control_dir / "control", control)
 
@@ -520,9 +520,9 @@ def generate_manifest(artifacts: dict[str, list[Path]]):
         "downloads": entries,
         "service": {
             "name": APP_NAME,
-            "base_url": "https://nursecall.nithep.com",
-            "health": "https://nursecall.nithep.com/health",
-            "dashboard": "https://nursecall.nithep.com/",
+            "base_url": "https://snc.nithep.com",
+            "health": "https://snc.nithep.com/health",
+            "dashboard": "https://snc.nithep.com/",
         },
     }
     write_file(DIST / "download_manifest.json", json.dumps(manifest, indent=2))
@@ -598,8 +598,8 @@ brew install --formula snc.rb
 
 | Interface | URL |
 |-----------|-----|
-| Dashboard | https://nursecall.nithep.com |
-| Health | https://nursecall.nithep.com/health |
+| Dashboard | https://snc.nithep.com |
+| Health | https://snc.nithep.com/health |
 | LAN (Pi) | http://192.168.1.94:8000 |
 """
     write_file(DIST / "INSTALL.md", install_md)
