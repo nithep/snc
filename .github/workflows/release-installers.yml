@@ -89,7 +89,9 @@ jobs:
             RANGE="HEAD"
             CHANGELOG_TITLE="## 🚀 Changelog — release แรก"
           fi
-          COUNT="$(git rev-list --count "${RANGE}")"
+
+          git log --oneline --no-decorate "${RANGE}" > commits.tmp
+          COUNT="$(wc -l < commits.tmp)"
 
           {
             echo "## Smart Nurse Call — Installers"
@@ -103,8 +105,34 @@ jobs:
             echo ""
             echo "${CHANGELOG_TITLE} (${COUNT} commits)"
             echo ""
-            git log --oneline --no-decorate "${RANGE}" | sed 's/^/- /' | head -100
+            section() {
+              TYPE="$1"; LABEL="$2"
+              MATCHES="$(grep -E "^[0-9a-f]+ ${TYPE}(\([^)]*\))?!?: " commits.tmp || true)"
+              if [ -n "${MATCHES}" ]; then
+                echo "### ${LABEL}"
+                echo ""
+                echo "${MATCHES}" | sed -E "s/^[0-9a-f]+ ${TYPE}(\([^)]*\))?!?: /- /"
+                echo ""
+              fi
+            }
+            section feat "✨ Features"
+            section fix "🐛 Bug Fixes"
+            section docs "📝 Documentation"
+            section ci "🔧 CI / Release"
+            section chore "🧹 Chores"
+            section refactor "♻️ Refactoring"
+            section perf "⚡ Performance"
+            section test "🧪 Tests"
+            section build "📦 Build"
+            OTHERS="$(grep -vE "^[0-9a-f]+ (feat|fix|docs|ci|chore|refactor|perf|test|build)(\([^)]*\))?!?: " commits.tmp || true)"
+            if [ -n "${OTHERS}" ]; then
+              echo "### 📄 Other"
+              echo ""
+              echo "${OTHERS}" | sed -E 's/^[0-9a-f]+ /- /'
+              echo ""
+            fi
           } > release-body.md
+          rm -f commits.tmp
           echo "body_path=${PWD}/release-body.md" >> "${GITHUB_OUTPUT}"
 
       - name: Create/Update GitHub Release
