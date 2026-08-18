@@ -65,6 +65,23 @@ tags: [ops, nomenclature]
 | 2 | ย้าย GCP project `hotel-ecs-nithep` → project id ใหม่ของ snc | ย้าย resource บน GCP ใหญ่ | เมื่อวางแผน IaC ใหม่ (terraform) |
 | 3 | เอาออก `hotel.nithep.com` จาก CORS origins | เป็นระบบโรงแรม ต้องประสานเจ้าของ | เมื่อยืนยันว่าระบบโรงแรมไม่ใช้ backend ร่วม |
 
+> ⚠️ **กฎเหล็ก:** การลบชื่อจริง (OS username/hostname, GCP project id, โดเมน) **ห้ามทำในรอบแก้โค้ดปกติ**
+> ต้องเป็นงานแยก (dedicated task) ที่มี **maintenance window + rollback plan + backup เต็ม** เท่านั้น
+> เพราะชื่อพวกนี้ถูกฝังในระบบที่รันจริง (systemd, cron, GCP resource, tunnel) — แก้ทีละจุดไม่ได้
+
+---
+
+## 🎓 บทเรียนเพื่อโปรเจกต์ใหม่ (Best Practice)
+
+> **วางแผน naming ตั้งแต่จุดเริ่มต้นของโครงการ** — ก่อน commit โค้ดบรรทัดแรก ควร:
+> 1. เลือกชื่อโปรเจกต์สั้น/ชัดเจน (เช่น `snc`) — เลี่ยง `-poc`, `-v2`, `test`
+> 2. กำหนด namespace ครบชุดล่วงหน้า: repo / โดเมน / path / username / hostname / GCP project / image tag
+> 3. หลีกเลี่ยงคำที่ชนกับระบบอื่นในองค์กร (เช่น `hotel`) หรือแยกชื่อชัดเจนแต่ต้น
+> 4. บันทึกลง **ADR** (ถ้าจำเป็น) ตั้งแต่เริ่ม
+>
+> **ทำไม:** ถอนรากชื่อ legacy ทีหลังแพงและเสี่ยง (ต้อง maintenance window) — วางแผน naming ก่อน = ประหยัดสุด
+> ดูเพิ่ม: `NOMENCLATURE.md` §1, `ADR 0007`
+
 ---
 
 ## 🔍 วิธีตรวจสอบซ้ำ (Verify)

@@ -14,6 +14,17 @@ tags: [nomenclature, standard, snc]
 
 ## 1. หลักการตั้งชื่อ (Naming Rules)
 
+> [!IMPORTANT] บทเรียนจากโปรเจกต์ (Lesson Learned)
+> **วางแผน naming ก่อนเริ่มเขียนโค้ด** — ตั้งชื่อโปรเจกต์/โดเมน/โครงสร้าง/username/hostname/GCP project อย่างจงใจตั้งแต่ **วันแรก** ก่อน commit โค้ดแรก
+> ไม่งั้นต้อง "ถอนรากถอนโคน" ชื่อ legacy ทีหลัง ซึ่งแพงมาก (แก้ doc ทำได้ แต่แก้ชื่อ OS/โดเมน/GCP project ต้องมี maintenance window + เสี่ยงระบบ down)
+> ตัวอย่างจริงจาก SNC: ใช้ชื่อ `hotel-ecs`/`snc-poc` ตั้งแต่ต้น → ต้องย้ายมาเป็น `snc` ใช้เวลา/ความเสี่ยงมหาศาล (ดู ADR 0007, SNC_NOMENCLATURE_CLEANUP.md)
+>
+> **หลักการวางแผน naming ล่วงหน้า:**
+> 1. เลือก **ชื่อสั้น จำง่าย ไม่ซ้ำซ้อน** ตั้งแต่เริ่ม (เช่น `snc` แทน `snc-poc`)
+> 2. กำหนด **namespace ครบชุด** ก่อนเขียนโค้ด: ชื่อโปรเจกต์ / repo / โดเมนย่อย / path / username / hostname / GCP project id / Docker image tag
+> 3. **เลี่ยงคำพ้องกับระบบอื่น** ในองค์กร (เช่น `hotel`) — ถ้าจะใช้ต้องแยกชื่อให้ชัด (ADR 0007)
+> 4. บันทึก decision นี้ลง **ADR** ตั้งแต่เริ่ม (ADRs ต้น ๆ ควรครอบคลุม naming)
+
 1. **ชื่อโปรเจกต์**: เรียกสม่ำเสมอว่า **SNC** (Smart Nurse Call) หรือ **`nithep/snc`** — ห้ามใช้ `snc-poc`, `hotel-ecs`, `Hotel-ECS`, `HECS` ในบริบท SNC
 2. **ไฟล์ใน `doc/wiki/`**: ขึ้นต้นด้วย **`SNC_`** (ยกเว้น handover / timeline / project plan ที่มีชื่อเฉพาะ)
 3. **ตัวพิมพ์**: ใช้ **UPPER_SNAKE_CASE** สำหรับไฟล์คู่มือ/SOP (`SNC_DEPLOY_PI4`) — ยกเว้นชื่อเฉพาะ (`project_timeline`, `phonik_nurse_call_knowledge`)
