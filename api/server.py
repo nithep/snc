@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pathlib
+import sys
 import json
 import logging
 import time
@@ -23,6 +24,12 @@ if _env_file.exists():
             os.environ.setdefault(_k.strip(), _v.strip())
 
 from services.gemini_direct_service import GeminiDirectService
+
+# ทำให้ import core.* (อยู่ที่ repo root) ทำงานแม้ WorkingDirectory เป็น api/
+# (systemd ตั้ง WorkingDirectory=api → Python ต้องรู้จัก repo root ก่อน import core)
+_REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 # Event Store — abstraction เหนือ SQLite (Pi4) / Firestore (Cloud Run)
 # เลือก backend ผ่าน env SNC_DB_BACKEND (ดู api/storage.py)
