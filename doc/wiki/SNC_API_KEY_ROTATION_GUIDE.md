@@ -37,8 +37,8 @@ tags: [security]
 
 | Component | ตำแหน่ง | วิธีอ่าน |
 |---|---|---|
-| Backend (Pi4) | `/home/ecs-agent/snc-poc/api/.env` | `grep SNC_API_KEY api/.env` |
-| Listener (Pi4) | `/home/ecs-agent/snc-poc/pbx/.env` | `grep SNC_API_KEY pbx/.env` |
+| Backend (Pi4) | `/home/ecs-agent/snc/api/.env` | `grep SNC_API_KEY api/.env` |
+| Listener (Pi4) | `/home/ecs-agent/snc/pbx/.env` | `grep SNC_API_KEY pbx/.env` |
 | Cloud Run | env var `SNC_API_KEY` | `gcloud run services describe snc-cloud-backend --region asia-southeast1` |
 | Dashboard (เบราว์เซอร์) | `localStorage` ของแต่ละเครื่อง | ⚙️ ตั้งค่า → API Key |
 
@@ -59,7 +59,7 @@ openssl rand -hex 32
 ### Step 2: Backup .env เดิมบน Pi4 (กันพลาด)
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
+ssh pi4 "cd /home/ecs-agent/snc && ts=\$(date +%Y%m%d%H%M%S) && \
   cp api/.env backups/api.env.\$ts && cp pbx/.env backups/pbx.env.\$ts && \
   echo \"Backup: backups/*.\$ts\""
 ```
@@ -69,7 +69,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
 ```bash
 NEW_KEY="<key ที่สร้างใน Step 1>"
 
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   sed -i 's|^SNC_API_KEY=.*|SNC_API_KEY=$NEW_KEY|' api/.env pbx/.env && \
   chmod 600 api/.env pbx/.env && \
   grep '^SNC_API_KEY' api/.env pbx/.env | sed 's/=\(.\{6\}\).*/=\1.../'"
@@ -77,7 +77,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && \
 
 > ⚠️ **ถ้า `pbx/.env` ไม่มีอยู่** — สร้างใหม่ (ต้องมี `SNC_API_KEY` เท่านั้น):
 > ```bash
-> ssh pi4 "echo 'SNC_API_KEY=$NEW_KEY' > /home/ecs-agent/snc-poc/pbx/.env && chmod 600 /home/ecs-agent/snc-poc/pbx/.env"
+> ssh pi4 "echo 'SNC_API_KEY=$NEW_KEY' > /home/ecs-agent/snc/pbx/.env && chmod 600 /home/ecs-agent/snc/pbx/.env"
 > ```
 
 ### Step 4: Restart services
@@ -146,7 +146,7 @@ curl -s -o /dev/null -w 'no key → HTTP %{http_code}\n' \
 ## ↩️ Rollback (ถ้าจำเป็น)
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   cp backups/api.env.<ts> api/.env && cp backups/pbx.env.<ts> pbx/.env && \
   sudo systemctl restart snc-backend.service snc-pbx-listener.service"
 ```
@@ -166,7 +166,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && \
    ```
 3. sync Pi4 clone:
    ```bash
-   ssh pi4 "cd /home/ecs-agent/snc-poc && git fetch origin && git reset --hard origin/main"
+   ssh pi4 "cd /home/ecs-agent/snc && git fetch origin && git reset --hard origin/main"
    ```
 
 ---
