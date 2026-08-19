@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# ============================================================================
+# pre-commit — SNC (Smart Nurse Call) secret & PHI guard
+# ----------------------------------------------------------------------------
+# สแกนไฟล์ที่จะ commit หา:
+#   - กุญแจส่วนตัว / ไฟล์ความลับ (pem, p12, service-account, credentials, .env)
+#   - รูปแบบ token ที่รู้จัก (AWS/Google/Slack/GitHub/GitLab/OpenAI/Telegram)
+#   - การกำหนดค่าเชิงความลับที่มีค่าจริง (api_key=/secret=/token=/password=)
+#   - ไฟล์ PHI/PII (*.db, contacts.jsonl, pbx outbox)
+#
+# เปิดใช้งาน (รันครั้งเดียวใน repo):
+#   git config core.hooksPath ops/git-hooks
+#
+# ห้ามใช้ `git commit --no-verify` เพื่อหลีกเลี่ยงการตรวจสอบ เว้นแต่ผู้ดูแลระบบอนุญาต
+# อ้างอิง: SECURITY.md, .gitignore, AGENTS.md (ข้อ 5 เรื่อง ignore แบบเจาะจง)
+# ============================================================================
+set -uo pipefail
+
+RED='\033[0;31m'; YEL='\033[0;33m'; GRN='\033[0;32m'; RST='\033[0m'
+echo -e "${YEL}[pre-commit] ตรวจสอบรหัสผ่าน/ความลับ และข้อมูล PHI/PII...${RST}"
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)
+[ -z "$STAGED" ] && { echo -e "${GRN}[pre-commit] ไม่มีไฟล์เปลี่ยนแปลง${RST}"; exit 0; }
+
+# ── 1) ตรวจชื่อไฟล์ต้องห้าม (ข้าม .env.example) ──────────────────────────────
+DENY_NAMES=()
+while IFS= read -r f; do
+  b=$(basename "$f")
+  case "$f" in
+    *.pem|*.p12|*.pfx|*.jks|*.key|*.db|*.db-wal|*.db-shm|*.sqlite)
+      DENY_NAMES+=("$f (นามสกุลไฟล์ความลับ/ฐานข้อมูล)");;
+    contacts.jsonl|*.outbox.jsonl|outbox*.jsonl)
+      DENY_NAMES+=("$f (ข้อมูล PII/PHI)");;
+    *.env)
+      [ "$b" != ".env.example" ] && DENY_NAMES+=("$f (ไฟล์ env มีรหัสจริง)");;
+  esac
+  case "$b" in
+    *service-account*.json|*credentials*.json)
+      DENY_NAMES+=("$f (service-account/credentials json)");;
+  esac
+done <<< "$STAGED"
+
+# ── 2) ตรวจเนื้อหาไฟล์ (ข้าม doc/*.md เพื่อลด false-positive จากคู่มือ) ───────
+# รูปแบบ token ที่รู้จัก
+TOKENS=(
+  '-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----'
+  'AKIA[0-9A-Z]{16}'
+  'AIza[0-9A-Za-z_-]{35}'
+  'xox[baprs]-[0-9A-Za-z-]{10,}'
+  'gh[pousr]_[0-9A-Za-z]{36,}'
+  'glpat-[0-9A-Za-z_-]{20,}'
+  'sk-[A-Za-z0-9]{20,}'
+  '[0-9]{8,10}:[A-Za-z0-9_-]{30,}'
+)
+# การกำหนดค่าเชิงความลับ (ค่าจริง ไม่ใช่ placeholder)
+ASSIGN='(?i)\b(api[_-]?key|apikey|secret|token|passwd|password|client[_-]?secret|access[_-]?key)\b[[:space:]]*[:=][[:space:]]*['"'"'"]?[A-Za-z0-9_.\-]{16,}'
+
+HIT_FILES=()
+while IFS= read -r f; do
+  # ข้ามเอกสารคู่มือ (อาจมีคำว่า key/token เป็นตัวอย่าง)
+  case "$f" in
+    doc/*|*.md) continue;;
+  esac
+  [ -f "$f" ] || continue
+  # ข้ามไฟล์ไบนารี
+  grep -Iq . "$f" 2>/dev/null || continue
+
+  found=""
+  for pat in "${TOKENS[@]}"; do
+    if grep -nEq "$pat" "$f" 2>/dev/null; then
+      found="$found
+  ↳ token pattern: $(grep -nE "$pat" "$f" 2>/dev/null | head -1)"
+    fi
+  done
+  if grep -nEq "$ASSIGN" "$f" 2>/dev/null; then
+    # กรอง placeholder ที่ไม่ใช่ความลับจริง
+    match=$(grep -nEi "$ASSIGN" "$f" 2>/dev/null | grep -viE 'example|your-|changeme|xxxx|placeholder|<.*>|getenv|os\.environ|ENV\[|process\.env|${' | head -3)
+    [ -n "$match" ] && found="$found
+  ↳ secret assignment:
+$match"
+  fi
+  [ -n "$found" ] && { HIT_FILES+=("$f$found"); }
+done <<< "$STAGED"
+
+# ── สรุปผล ────────────────────────────────────────────────────────────────
+RC=0
+if [ "${#DENY_NAMES[@]}" -gt 0 ]; then
+  RC=1
+  echo -e "${RED}❌ พบไฟล์ต้องห้าม (ห้าม commit):${RST}"
+  printf '   - %s\n' "${DENY_NAMES[@]}"
+fi
+if [ "${#HIT_FILES[@]}" -gt 0 ]; then
+  RC=1
+  echo -e "${RED}❌ พบความลับ/PHI ในไฟล์ต่อไปนี้:${RST}"
+  printf '%s\n' "${HIT_FILES[@]}"
+fi
+
+if [ "$RC" -ne 0 ]; then
+  echo -e "${YEL}── วิธีแก้: ย้ายรหัสไปไว้ใน .env (gitignored) หรือ GCP Secret Manager${RST}"
+  echo -e "${YEL}   ดูเพิ่มเติมใน SECURITY.md หัวข้อ 4–5 ห้ามใช้ --no-verify${RST}"
+  exit 1
+fi
+
+echo -e "${GRN}✅ ไม่พบรหัสผ่าน/ความลับ/PHI ที่จะ commit${RST}"
+exit 0
