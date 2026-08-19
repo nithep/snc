@@ -81,3 +81,5 @@ tags: [knowledge]
 | [[0004-outbox-idempotency|0004]] | Durable delivery via Outbox + idempotency |
 | [[0005-iac-terraform|0005]] | IaC ด้วย Terraform |
 | [[0006-broker-dual-pi|0006]] | Broker บน Dual Pi |
+| [[0007-nomenclature-separation|0007]] | แยกชื่อ SNC ออกจาก Hotel-ECS |
+| [[0008-system-topology-interconnection|0008]] | โครงสร้างความเชื่อมโยงทั้งระบบ (topology) |

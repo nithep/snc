@@ -1,59 +1,159 @@
+<div align="center">
+
 # 🏥 SNC — Smart Nurse Call
 
-> ระบบ Smart Nurse Call (SNC) สำหรับโรงพยาบาล/ศูนย์ดูแลผู้ป่วย — ดัดแปลงตู้สาขา Phonik PBX
-> และบอร์ด Help Call (Call Station v.107) ให้เป็นระบบแจ้งเตือนพยาบาล Real-time
-> รันบน **Raspberry Pi 4** ภายใต้แบรนด์ **nithep** (`https://snc.nithep.com`)
+**ระบบแจ้งเตือนพยาบาล Real-time สำหรับโรงพยาบาล / ศูนย์ดูแลผู้ป่วย**
 
-![Status](https://img.shields.io/badge/Status-Production--Ready-green) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-red)
+ดัดแปลงตู้สาขา **Phonik PBX** + บอร์ด **Help Call (Call Station v.107)** ให้เป็น Nurse Call ยุคใหม่
+บน **Raspberry Pi 4** ภายใต้แบรนด์ **nithep**
 
-## 🧭 ผังสถาปัตยกรรม (รวม Edge + Cloud)
+[![Status](https://img.shields.io/badge/Status-Production--Ready-2ea44f?style=for-the-badge&logo=heart&logoColor=white)](https://snc.nithep.com)
+[![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-A81D33?style=for-the-badge&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![GCP](https://img.shields.io/badge/Google_Cloud-Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-844FBA?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
 
-ดูผังการเชื่อมสัมพันธ์เต็มรูปแบบ (D:\snc · GitHub · Pi4 · Cloudflare · Cloud Run · GCP) พร้อม Mermaid ได้ที่
-[**`doc/ARCHITECTURE_FLOW.md`**](doc/ARCHITECTURE_FLOW.md)
+**🌐 ดูระบบจริง: [https://snc.nithep.com](https://snc.nithep.com)**
 
+</div>
+
+---
+
+## ✨ คุณสมบัติ (Features)
+
+| ความสามารถ | รายละเอียด |
+|---|---|
+| 🔔 **Real-time Alert** | ผู้ป่วยกดปุ่ม/ดึงสายฉุกเฉิน → พยาบาลเห็นทันทีที่เคาน์เตอร์ |
+| 📡 **SMDR ผ่าน Telnet** | อ่านสัญญาณจากตู้ Phonik PBX (`192.168.1.91:23`) ถอดรหัสเป็น FHIR JSON |
+| 🗺️ **Dashboard ไทย/อังกฤษ** | Grid ห้องพัก (เขียว=ปกติ / แดงกะพริบ=ฉุกเฉิน / เหลือง=รับเรื่อง) + เสียงเตือน |
+| ⏱️ **SLA / Response Time** | จับเวลาตั้งแต่ Alert จนกว่าพยาบาลจะ Acknowledge/Clear |
+| ☁️ **Cloud + Edge** | Pi4 รัน local, Cloud Run เป็นสำรอง + แจ้งเตือน Telegram |
+| 🛡️ **FHIR Ready** | Payload มาตรฐาน HL7 FHIR JSON ตั้งแต่วันแรก พร้อมขึ้น GCP Healthcare API |
+
+---
+
+## 🧭 สถาปัตยกรรมทั้งระบบ (System Topology)
+
+> แผนที่ความเชื่อมโยงฉบับสมบูรณ์: [**ADR 0008**](doc/adr/0008-system-topology-interconnection.md) · [**ARCHITECTURE_FLOW.md**](doc/ARCHITECTURE_FLOW.md)
+
+```mermaid
+flowchart TB
+    subgraph EDGE["📍 Edge — Raspberry Pi 4 (192.168.1.94)"]
+        PBX["Phonik PBX<br/>(SMDR Telnet :23)"] --> LISTENER["snc-pbx-listener"]
+        LISTENER --> OUTBOX["event_outbox<br/>(idempotency)"]
+        OUTBOX --> BACKEND["snc-backend<br/>FastAPI :8000"]
+        BACKEND --> DB[(SQLite WAL)]
+    end
+
+    subgraph CLOUD["☁️ Cloud — GCP (hotel-ecs-nithep)"]
+        CR_BE["snc-cloud-backend<br/>(Cloud Run)"] --> FS[(Firestore)]
+        BRIDGE["snc-alert-bridge<br/>(Cloud Run)"]
+        SM["Secret Manager<br/>(3 secrets)"]
+        MON["Cloud Monitoring<br/>(uptime + alert)"]
+        MON --> BRIDGE
+    end
+
+    subgraph NET["🌐 Cloudflare"]
+        TUNNEL["cloudflared tunnel<br/>(outbound only)"]
+        DOMAIN["snc.nithep.com"]
+        TUNNEL --> DOMAIN
+    end
+
+    subgraph DASH["🖥️ Nurse Dashboard"]
+        UI["app/index.html<br/>(i18n TH/EN)"]
+    end
+
+    BACKEND --> TUNNEL
+    DOMAIN --> UI
+    UI --> BACKEND
+    BACKEND --> CR_BE
+    BRIDGE -->|"Telegram"| TG["@snc2569_bot"]
+    LISTENER -->|"rsync / git"| GIT["GitHub nithep/snc"]
 ```
-โค้ด  D:\snc ─▶ GitHub ─▶ [Cloud Shell → gcr.io] ─▶ Cloud Run (backend / bridge)
-                                                                      │
-                               ┌──────────────────────────────────────┤
-                               ▼                                      ▼
-  ฮาร์ดแวร์  PBX ─▶ Pi4(listener+backend) ─▶ cloudflared ─▶ snc.nithep.com
-                                                                      │
-                        Cloud Monitoring ─▶ bridge ─▶ Telegram ◀──────┘
-```
 
-## 🏛️ โครงสร้าง 5-Core (Standard Layout)
+---
 
-| โฟลเดอร์ | รายละเอียด |
-|---------|-----------|
-| `api/` | API Server (FastAPI) — จัดเก็บสถิติ, ประมวลผล SLA, WebSocket Real-time, เสิร์ฟ Dashboard |
-| `app/` | Nurse Dashboard v2.0 — หน้าเคาน์เตอร์พยาบาล (Dark Mode พรีเมียม, i18n ไทย/อังกฤษ) |
-| `pbx/` | SMDR Edge Listener — ถอดรหัสสัญญาณ CALL_BEDSIDE / CALL_BATHROOM_EMERGENCY ผ่าน TCP Telnet |
-| `ops/` | DevOps — สคริปต์ Deploy, Burn-in Monitor, Backup WAL, cron, ตรวจสอบสถานะ Pi |
-| `doc/` | เอกสาร OKF — คู่มือพยาบาล (STAFF_GUIDE), แผนและ SOP ฝ่ายเทคนิค, Knowledge Base |
+## 🏛️ โครงสร้าง 5-Core
+
+| โฟลเดอร์ | บทบาท |
+|---|---|
+| **`api/`** | 🔧 API Server (FastAPI + SQLite/Firestore + WebSocket) — Business Logic, SLA/KPI, FHIR |
+| **`app/`** | 🖥️ Nurse Dashboard (`index.html` self-contained, Dark Mode, i18n ไทย/อังกฤษ) |
+| **`pbx/`** | 📞 SMDR/Telnet Edge Listener (`snc_pbx_listener.py`) + Outbox + TCP proxy |
+| **`ops/`** | ⚙️ DevOps — Deploy, systemd units, Terraform IaC, Backup, Monitoring |
+| **`doc/`** | 📚 เอกสาร OKF + Obsidian vault — Blueprint, ADRs, Wiki, Handovers |
+
+---
 
 ## 🚀 Quick Start (บน Pi 4)
 
 ```bash
-cd ~/nithep/snc
-./ops/quick_start.sh            # รัน API + Listener
+# clone + รัน
+cd ~/snc
+./ops/quick_start.sh            # รัน API + Listener อัตโนมัติ
+
+# ตรวจสอบสถานะ
 curl -s http://localhost:8000/health
 ```
 
-## 🔄 สถาปัตยกรรม (Architecture)
-
+### Deploy ไป Pi 4 (จากเครื่อง dev)
+```bash
+./ops/deploy-snc-one-shot.sh    # rsync api/app/pbx + restart services
 ```
-ผู้ป่วยกดปุ่ม/ดึงสายฉุกเฉิน → Phonik PBX (192.168.1.91:23)
-    → pbx/snc_pbx_listener.py (SMDR Parser → FHIR JSON)
-    → api/server.py (FastAPI + SQLite WAL + WebSocket)
-    → app/ (Nurse Dashboard Real-time + SLA Timer + เสียงเตือน)
-```
-
-## 🛡️ ความปลอดภัย (Security)
-
-- ทุกคำสั่งควบคุมตู้สาขาต้องผ่านระบบ Verifier (Safety First)
-- API Key + Rate Limit กันการโจมตีจาก LAN (SNC_API_KEY)
-- SQLite WAL Mode + Auto-backup ผ่าน cron (`ops/backup-snc-db.sh`)
-- ระบบ Self-Healing ผ่าน systemd (`Restart=always`) + Burn-in Monitor (`ops/burnin-monitor.sh`)
 
 ---
-*ดำเนินการจัดทำและดูแลโดย nithep — Production-Grade Smart Systems*
+
+## 🔄 วงจรการทำงาน (Core Workflow)
+
+```
+ผู้ป่วยกดปุ่ม / ดึงสายฉุกเฉิน / ยกหู
+   →  Phonik PBX พ่น SMDR Log (TCP Telnet)
+   →  snc_pbx_listener (Parser → FHIR JSON) + Outbox
+   →  snc-backend (SQLite WAL + WebSocket broadcast)
+   →  Nurse Dashboard (Grid + Alarm + SLA Timer)
+   →  พยาบาลกด Acknowledge / Clear ✅
+```
+
+---
+
+## 🛡️ ความปลอดภัย & ความทนทาน (Security & Durability)
+
+- 🔑 **API Key** (`SNC_API_KEY`) กันการโจมตีจาก LAN — ตรงกันทั้ง Pi + Cloud Run
+- 📤 **Outbox + Idempotency** (ADR 0004) — กัน event หาย/ซ้ำ, SLA นับถูก
+- 🔁 **Self-Healing** — systemd `Restart=always` + PBX Watchdog
+- 💾 **SQLite WAL** + auto-backup (cron) + offsite backup
+- 🔐 **Secret Manager** บน GCP (ไม่ใช้ plaintext env) — ADR 0005
+- 🔄 **Token/Key Rotation Guide** — [`SNC_API_KEY_ROTATION_GUIDE.md`](doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md) · [`SNC_TELEGRAM_ROTATION_GUIDE.md`](doc/wiki/SNC_TELEGRAM_ROTATION_GUIDE.md)
+
+---
+
+## 🏛️ สถาปัตยกรรม Decision (ADR)
+
+| ADR | เรื่อง |
+|---|---|
+| [0001](doc/adr/0001-record-architecture-decisions.md) | มาตรฐานการบันทึก ADR |
+| [0002](doc/adr/0002-separate-alert-bridge.md) | แยก Alert Bridge เป็น service อิสระ |
+| [0003](doc/adr/0003-firestore-over-sqlite-cloud.md) | Firestore แทน SQLite บน Cloud Run |
+| [0004](doc/adr/0004-outbox-idempotency.md) | Outbox + Idempotency (กัน data loss) |
+| [0005](doc/adr/0005-iac-terraform.md) | IaC ด้วย Terraform |
+| [0006](doc/adr/0006-broker-dual-pi.md) | (อนาคต) Broker + Dual Pi |
+| [0007](doc/adr/0007-nomenclature-separation.md) | แยกชื่อ SNC ออกจาก Hotel-ECS |
+| [0008](doc/adr/0008-system-topology-interconnection.md) | โครงสร้างความเชื่อมโยงทั้งระบบ |
+
+---
+
+## 📚 เอกสารเพิ่มเติม (Docs)
+
+- 📘 [**BLUEPRINT_5CORE.md**](doc/BLUEPRINT_5CORE.md) — Blueprint & Conventions มาตรฐาน
+- 🚀 [**DEPLOYMENT_PI4.md**](doc/DEPLOYMENT_PI4.md) — คู่มือ Deploy บน Pi 4
+- 📐 [**ARCHITECTURE_FLOW.md**](doc/ARCHITECTURE_FLOW.md) — ผังสถาปัตยกรรม (Mermaid)
+- 📖 [**doc/INDEX.md**](doc/INDEX.md) — สารบัญความรู้ทั้งหมด
+
+---
+
+<div align="center">
+
+*ดำเนินการจัดทำและดูแลโดย **nithep** — Production-Grade Smart Systems* 🏥
+
+</div>
