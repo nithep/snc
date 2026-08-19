@@ -42,15 +42,15 @@ pip3 install fastapi uvicorn pydantic aiohttp
 From Windows machine, run: `deploy-to-pi.bat`
 
 Or manually copy via SCP:
-- [ ] `start-snc-system.sh` → `/home/ecs-agent/snc-poc/`
-- [ ] `monitor-snc-status.sh` → `/home/ecs-agent/snc-poc/`
-- [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/snc-poc/`
-- [ ] `verify-installation.sh` → `/home/ecs-agent/snc-poc/`
-- [ ] `view-logs.sh` → `/home/ecs-agent/snc-poc/`
-- [ ] `dashboard-status.html` → `/home/ecs-agent/snc-poc/`
-- [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/snc-poc/`
-- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/snc-poc/`
-- [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/snc-poc/`
+- [ ] `start-snc-system.sh` → `/home/ecs-agent/snc/`
+- [ ] `monitor-snc-status.sh` → `/home/ecs-agent/snc/`
+- [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/snc/`
+- [ ] `verify-installation.sh` → `/home/ecs-agent/snc/`
+- [ ] `view-logs.sh` → `/home/ecs-agent/snc/`
+- [ ] `dashboard-status.html` → `/home/ecs-agent/snc/`
+- [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/snc/`
+- [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/snc/`
+- [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/snc/`
 
 ### Backend Modifications
 - [ ] `api/server.py` updated with static file serving
@@ -210,7 +210,7 @@ Test each option:
 ### Verify PBX Data Flow
 Check PBX listener logs:
 ```bash
-tail -f /home/ecs-agent/snc-poc/pbx_listener.log
+tail -f /home/ecs-agent/snc/pbx_listener.log
 ```
 
 Look for:
@@ -242,7 +242,7 @@ watch -n 5 'ps aux | grep -E "uvicorn|snc_pbx" | grep -v grep'
 
 ### Log Rotation Check
 ```bash
-ls -lh /home/ecs-agent/snc-poc/
+ls -lh /home/ecs-agent/snc/
 ```
 - [ ] Logs being written
 - [ ] File sizes reasonable (< 100MB each)
@@ -250,8 +250,8 @@ ls -lh /home/ecs-agent/snc-poc/
 
 ### Database Integrity
 ```bash
-sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db ".tables"
-sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
+sqlite3 /home/ecs-agent/snc/api/nurse_call_events.db ".tables"
+sqlite3 /home/ecs-agent/snc/api/nurse_call_events.db "SELECT COUNT(*) FROM nurse_call_events;"
 ```
 - [ ] Database accessible
 - [ ] Tables exist
@@ -329,14 +329,14 @@ System is fully operational when ALL of the following are true:
 - ✅ Events flow: PBX → Listener → Backend → Dashboard
 - ✅ Status uses timeout/ACK logic (not static "Connected")
 - ✅ All scripts executable and functional
-- ✅ Logs being written to `/home/ecs-agent/snc-poc/`
+- ✅ Logs being written to `/home/ecs-agent/snc/`
 - ✅ verify-installation.sh passes all tests
 
 ## 📞 Support Information
 
 If issues persist after completing checklist:
 
-1. **Review Logs**: `/home/ecs-agent/snc-poc/*.log`
+1. **Review Logs**: `/home/ecs-agent/snc/*.log`
 2. **Run Diagnostics**: `./test-pbx-connectivity.sh`
 3. **Check Documentation**: `DEPLOYMENT_PI4.md` troubleshooting section
 4. **Verify Network**: Ensure Pi and PBX on same network segment

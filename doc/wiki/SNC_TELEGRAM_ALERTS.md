@@ -35,17 +35,17 @@ curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | python3 -m json.tool
 ### 3) ใส่ key ลง .env บน Pi (ห้าม commit ใน git)
 ```bash
 ssh pi4
-nano /home/ecs-agent/snc-poc/api/.env    # ต่อท้าย 2 บรรทัดนี้
+nano /home/ecs-agent/snc/api/.env    # ต่อท้าย 2 บรรทัดนี้
 ```
 ```
 TELEGRAM_BOT_TOKEN=1234567890:AAH...
 TELEGRAM_CHAT_ID=123456789
 ```
-บันทึกแล้ว `chmod 600 /home/ecs-agent/snc-poc/api/.env` (สคริปต์อ่านจาก env → `api/.env` → `.env` → `backend/.env` → `pbx-connector/.env` ตามลำดับ 5-Core)
+บันทึกแล้ว `chmod 600 /home/ecs-agent/snc/api/.env` (สคริปต์อ่านจาก env → `api/.env` → `.env` → `backend/.env` → `pbx-connector/.env` ตามลำดับ 5-Core)
 
 ### 4) ทดสอบ
 ```bash
-ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ SNC Telegram — OK"'
+ssh pi4 '/home/ecs-agent/snc/ops/notify-telegram.sh "🔔 ทดสอบ SNC Telegram — OK"'
 ```
 ควรได้ `[notify-telegram] ส่งสำเร็จ ✅` และข้อความเด้งในแอป
 ถ้ายังไม่ตั้ง key → ข้ามเงียบ ๆ (`SKIP`) ไม่ทำให้ cron ผิดพลาด
@@ -61,18 +61,19 @@ ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ SN
 |---|---|
 | Bot username | `@snc2569_bot` (ชื่อ "snc") |
 | ปลายทางแจ้งเตือน (chat_id) | `7346817215` (บัญชี "lnw") |
-| Token | เก็บใน `/home/ecs-agent/snc-poc/api/.env` → `TELEGRAM_BOT_TOKEN` (chmod 600) — **ไม่บันทึกใน wiki/git** |
+| Token | เก็บใน `/home/ecs-agent/snc/api/.env` → `TELEGRAM_BOT_TOKEN` (chmod 600) — **ไม่บันทึกใน wiki/git** |
 | สถานะ | ✅ ทดสอบส่งสำเร็จ 14 ส.ค. 2569 |
 | จุดผูก | `post-burnin-finalize.sh` step 6 — แจ้ง "Burn-in ครบ" อัตโนมัติ 15 ส.ค. 03:05 |
 | Verify รายวัน | `verify-daily.sh` (cron 07:00, `VERIFY_ALWAYS=1`) — ส่งสรุปทุกเช้า + แจ้งเตือนทันทีเมื่อพบปัญหา → `verify_daily.log` |
-| สคริปต์ | `ops/notify-telegram.sh` (repo) → `/home/ecs-agent/snc-poc/notify-telegram.sh` (Pi) |
+| สคริปต์ | `ops/notify-telegram.sh` (repo) → `/home/ecs-agent/snc/ops/notify-telegram.sh` (Pi) |
 
 ### ⚠️ หมายเหตุความปลอดภัย (token rotation)
 Token เคยถูกแชร์ในแชท (ตรวจแล้ว **ไม่มีการ commit ลง git**) แต่เพื่อความปลอดภัยสูงสุด
 แนะนำ **rotate token** ผ่าน @BotFather หลังยืนยันว่าระบบแจ้งเตือนทำงานครบแล้ว:
 1. Telegram → @BotFather → `/mybots` → @snc2569_bot → API Token → **Revoke** (สร้างใหม่)
-2. อัปเดต `/home/ecs-agent/snc-poc/backend/.env` → `TELEGRAM_BOT_TOKEN=<token ใหม่>`
-3. ทดสอบใหม่: `/home/ecs-agent/snc-poc/notify-telegram.sh "ทดสอบ rotate ✅"`
+2. อัปเดต `/home/ecs-agent/snc/api/.env` → `TELEGRAM_BOT_TOKEN=<token ใหม่>`
+3. ทดสอบใหม่: `/home/ecs-agent/snc/ops/notify-telegram.sh "ทดสอบ rotate ✅"`
+4. restart backend: `sudo systemctl restart snc-backend`
 (chat_id ไม่เปลี่ยน — ใช้ของเดิมได้)
 
 ## ☁️ Cloud Monitoring uptime check → Telegram (bridge service แยก, ไม่พึ่ง Pi)
@@ -124,8 +125,10 @@ bash ops/setup_cloud_monitoring.sh
 
 ### วิธีรัน (ง่ายสุด ไม่ต้อง sudo)
 ```bash
-ssh pi4 'cd /home/ecs-agent/snc-poc && nohup python3 ops/snc_telegram_agent.py >> tg_agent.log 2>&1 &'
+ssh pi4 'cd /home/ecs-agent/snc && nohup python3 ops/snc_telegram_agent.py >> tg_agent.log 2>&1 &'
 ```
+
+> ⚠️ **หมายเหตุ (ยืนยัน 20 ส.ค. 2569):** ตัว Q&A agent รุ่นเก่าที่ค้างอยู่ใน `/home/ecs-agent/snc-poc/ops/` เป็น **legacy ไม่มี .env** (ไม่อ่าน token — ใช้ไม่ได้จริง) ส่วนตัวที่อ่าน token ปัจจุบันคือ `snc-backend` (อ่าน `/home/ecs-agent/snc/api/.env`). ถ้าเปิดใช้ agent ใหม่ ให้รันจาก `/home/ecs-agent/snc/ops/` ตามคำสั่งบน เพื่อให้อ่าน `api/.env` ตัวเดียวกัน
 
 ### รันถาวร (systemd — ✅ ใช้จริงแล้ว)
 ติดตั้งเป็น service `snc-tg-agent` แล้ว (รอด reboot + auto-restart) — รันจาก repo root:

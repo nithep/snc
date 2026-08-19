@@ -38,9 +38,9 @@ tags: [security]
 
 | Component | ตำแหน่ง | วิธีอ่าน |
 |---|---|---|
-| Backend (Pi4) | `/home/ecs-agent/snc-poc/api/.env` | `grep TELEGRAM_BOT_TOKEN api/.env` |
+| Backend (Pi4) | `/home/ecs-agent/snc/api/.env` | `grep TELEGRAM_BOT_TOKEN api/.env` |
 | Bridge (Cloud Run) | env var `TELEGRAM_BOT_TOKEN` | `gcloud run services describe snc-alert-bridge --region asia-southeast1` |
-| TG Agent (Pi4) | service `snc-tg-agent` | อ่านจาก `api/.env` (env fallback) |
+| TG Agent (Pi4) | service `snc-tg-agent` (อ่านจาก `api/.env`) / `snc-backend` ใช้ token ส่ง alert | `systemctl status snc-backend` |
 
 ---
 
@@ -55,7 +55,7 @@ tags: [security]
 ### Step 2: Backup `.env` เดิมบน Pi4 (กันพลาด)
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
+ssh pi4 "cd /home/ecs-agent/snc && ts=\$(date +%Y%m%d%H%M%S) && \
   cp api/.env backups/api.env.\$ts && \
   echo \"Backup: backups/api.env.\$ts\""
 ```
@@ -65,7 +65,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
 ```bash
 NEW_TOKEN="<token ใหม่จาก Step 1>"
 
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   sed -i 's|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$NEW_TOKEN|' api/.env && \
   chmod 600 api/.env && \
   grep '^TELEGRAM_BOT_TOKEN' api/.env | sed 's/=\(.\{10\}\).*/=\1.../'"
@@ -73,7 +73,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && \
 
 > ⚠️ **ถ้า `api/.env` ยังไม่มี `TELEGRAM_BOT_TOKEN`** — ต่อท้ายด้วย:
 > ```bash
-> ssh pi4 "echo 'TELEGRAM_BOT_TOKEN=$NEW_TOKEN' >> /home/ecs-agent/snc-poc/api/.env && chmod 600 /home/ecs-agent/snc-poc/api/.env"
+> ssh pi4 "echo 'TELEGRAM_BOT_TOKEN=$NEW_TOKEN' >> /home/ecs-agent/snc/api/.env && chmod 600 /home/ecs-agent/snc/api/.env"
 > ```
 
 ### Step 4: อัปเดต token ที่ Cloud Run (bridge `snc-alert-bridge`)
@@ -99,7 +99,7 @@ ssh pi4 "sudo systemctl restart snc-tg-agent && \
 ### Step 6: ทดสอบการแจ้งเตือน
 
 ```bash
-ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ rotate Token — OK"'
+ssh pi4 '/home/ecs-agent/snc/ops/notify-telegram.sh "🔔 ทดสอบ rotate Token — OK"'
 ```
 
 ควรได้ `[notify-telegram] ส่งสำเร็จ ✅` และข้อความเด้งในแอป
@@ -120,9 +120,9 @@ ssh pi4 '/home/ecs-agent/snc-poc/ops/notify-telegram.sh "🔔 ทดสอบ ro
 ## ↩️ Rollback (ถ้าจำเป็น)
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   cp backups/api.env.<ts> api/.env && \
-  sudo systemctl restart snc-tg-agent"
+  sudo systemctl restart snc-backend"
 ```
 
 > ⚠️ หมายเหตุ: token เก่าถูก Revoke แล้วอาจใช้ไม่ได้ — rollback ต้องสร้าง token ใหม่แทน ไม่สามารถคืน token เดิมได้

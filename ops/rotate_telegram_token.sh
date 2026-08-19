@@ -35,8 +35,8 @@ set -euo pipefail
 
 # hotel-ecs-nithep = GCP Project ID จริง (คงไว้เป็น legacy id ตาม ADR 0007 / NOMENCLATURE)
 PROJECT_ID="${GCP_PROJECT_ID:-hotel-ecs-nithep}"
-# live path บน Pi4 (MIGRATION_RUNBOOK: ย้ายไป nithep/snc ไม่เคยเกิดขึ้นจริง — production คือ snc-poc)
-SNC_ROOT="${SNC_ROOT:-/home/ecs-agent/snc-poc}"
+# live path บน Pi4 (ยืนยัน 20 ส.ค. 2569: backend อ่าน /home/ecs-agent/snc/api/.env — ห้ามชี้ snc-poc อีก)
+SNC_ROOT="${SNC_ROOT:-/home/ecs-agent/snc}"
 CHAT_ID="${TELEGRAM_CHAT_ID:-7346817215}"
 
 BRIDGE="snc-alert-bridge"
@@ -87,6 +87,14 @@ echo ""
 if [ "$SKIP_PI" = "1" ] || [ "$HAS_SSH" != "1" ]; then
   echo "[Pi4] SKIP — $( [ "$SKIP_PI" = "1" ] && echo '--skip-pi' || echo 'ssh pi4 เข้าไม่ถึง (เครื่องนี้ไม่ได้อยู่บน LAN?)' )"
 else
+  # กัน path ผิดซ้ำ (เคยเจอ SNC_ROOT=...snc-poc → .env ไม่เจอ): ตรวจ .env จริงก่อน
+  REMOTE_ENV="$(ssh -o ConnectTimeout=8 pi4 "test -f '$SNC_ROOT/api/.env' && echo OK || echo MISSING")"
+  if [ "$REMOTE_ENV" != "OK" ]; then
+    echo "❌ ไม่พบ \$SNC_ROOT/api/.env ($SNC_ROOT) บน Pi4" >&2
+    echo "   ตำแหน่งจริง (ยืนยัน 20 ส.ค. 2569): /home/ecs-agent/snc/api/.env" >&2
+    echo "   ตั้ง SNC_ROOT='/home/ecs-agent/snc' แล้ว rerun — อย่าใช้ snc-poc" >&2
+    exit 1
+  fi
   echo "[Pi4] อัปเดต TELEGRAM_BOT_TOKEN ใน $SNC_ROOT/api/.env..."
   ssh -o ConnectTimeout=8 pi4 "SNC_ROOT='$SNC_ROOT' NEW_TOKEN='$NEW_TOKEN' bash -s" <<'REMOTE'
 set -euo pipefail
@@ -107,9 +115,9 @@ printf '  ✅ api/.env: '
 grep '^TELEGRAM_BOT_TOKEN' "$ENV" | sed 's/=\(.\{10\}\).*/=\1.../'
 REMOTE
 
-  echo "[Pi4] restart snc-tg-agent (อ่าน token จาก api/.env)..."
-  ssh -o ConnectTimeout=8 pi4 "sudo systemctl restart snc-tg-agent && sleep 2 && systemctl is-active snc-tg-agent" \
-    || echo "  ⚠️ restart snc-tg-agent ล้มเหลว/ไม่ active — ตรวจ sudo systemctl status snc-tg-agent"
+  echo "[Pi4] restart snc-backend (service ที่อ่าน token จาก api/.env)..."
+  ssh -o ConnectTimeout=8 pi4 "sudo systemctl restart snc-backend && sleep 2 && systemctl is-active snc-backend" \
+    || echo "  ⚠️ restart snc-backend ล้มเหลว/ไม่ active — ตรวจ sudo systemctl status snc-backend"
 
   echo "[Pi4] ทดสอบส่งจริง (notify-telegram.sh)..."
   ssh -o ConnectTimeout=8 pi4 "\"${SNC_ROOT}/ops/notify-telegram.sh\" '🔔 หมุน Telegram token เสร็จ (Pi4) — ระบบ SNC'" || true
@@ -168,7 +176,7 @@ echo ""
 # ── สรุป checklist ──────────────────────────────────────────────────────────
 echo "═══════════ สรุป rotation ═══════════"
 [ "$SKIP_PI" = "0" ] && [ "$HAS_SSH" = "1" ] \
-  && echo "  ✅ Pi4: api/.env + snc-tg-agent + notify ทดสอบแล้ว" \
+  && echo "  ✅ Pi4: api/.env + snc-backend + notify ทดสอบแล้ว" \
   || echo "  ⏳ Pi4: ยังไม่ได้ทำ — รันบนเครื่องที่ ssh pi4 ได้"
 [ "$SKIP_CLOUD" = "0" ] && [ "$HAS_GCLOUD" = "1" ] \
   && echo "  ✅ Cloud: secret + bridge redeploy + webhook sent" \

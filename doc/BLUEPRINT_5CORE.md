@@ -152,14 +152,14 @@ Cloud Run env vars     →  Production keys (same as Pi4)
 ```bash
 # Deploy API server
 rsync -avz --exclude='.env' \
-  api/ pi4:/home/ecs-agent/snc-poc/api/
+  api/ pi4:/home/ecs-agent/snc/api/
 
 # Deploy listener
 rsync -avz --exclude='.env' \
-  pbx/ pi4:/home/ecs-agent/snc-poc/pbx/
+  pbx/ pi4:/home/ecs-agent/snc/pbx/
 
 # Deploy dashboard
-rsync -avz app/ pi4:/home/ecs-agent/snc-poc/app/
+rsync -avz app/ pi4:/home/ecs-agent/snc/app/
 
 # Restart services
 ssh pi4 "sudo systemctl restart snc-backend snc-pbx-listener"
