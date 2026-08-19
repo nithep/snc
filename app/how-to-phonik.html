@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="วิธีติดตั้ง SNC บน Phonik PBX แบบ Step-by-step: เชื่อม Raspberry Pi 4 เข้า DX-32C/80C/144C ผ่าน Telnet 192.168.1.91:23 รัน snc_pbx_listener + FastAPI Dashboard วัด SLA เรียลไทม์">
+<meta name="theme-color" content="#060a13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E">
+<title>วิธีติดตั้ง SNC บน Phonik PBX — Step-by-step How-to | SNC</title>
+<link rel="canonical" href="https://snc.nithep.com/how-to-phonik.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNC — Smart Nurse Call">
+<meta property="og:title" content="วิธีติดตั้ง SNC บน Phonik PBX — Step-by-step How-to">
+<meta property="og:description" content="คู่มือติดตั้ง SNC เชื่อม Raspberry Pi 4 เข้า Phonik DX-32C/80C/144C ผ่าน Telnet 192.168.1.91:23 รัน snc_pbx_listener + Dashboard วัด SLA เรียลไทม์">
+<meta property="og:url" content="https://snc.nithep.com/how-to-phonik.html">
+<meta property="og:locale" content="th_TH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="วิธีติดตั้ง SNC บน Phonik PBX">
+<meta name="twitter:description" content="Step-by-step ติดตั้ง SNC เชื่อม Phonik PBX + Raspberry Pi 4 วัด SLA เรียลไทม์">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "วิธีติดตั้ง SNC บน Phonik PBX — Step-by-step How-to",
+  "author": { "@type": "Person", "name": "นิเทพ เชิญสวัสดิ์ (Nithep Choensawat)" },
+  "publisher": { "@type": "Organization", "name": "nithep.com", "url": "https://snc.nithep.com" },
+  "datePublished": "2026-08-20",
+  "inLanguage": "th",
+  "mainEntityOfPage": "https://snc.nithep.com/how-to-phonik.html",
+  "description": "คู่มือทีละขั้นตอนในการดัดแปลงตู้ Phonik DX-32C/80C/144C ให้เป็นระบบ Smart Nurse Call บน Raspberry Pi 4 รับ SMDR Log ผ่าน Telnet 192.168.1.91:23"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#060a13; --bg-1:#0b1222; --bg-2:#0f172a;
+  --card:rgba(255,255,255,0.045); --card-strong:rgba(255,255,255,0.07);
+  --stroke:rgba(148,163,184,0.16); --stroke-strong:rgba(148,163,184,0.28);
+  --text:#f1f5f9; --text-dim:#94a3b8; --text-faint:#64748b;
+  --indigo:#6366f1; --violet:#8b5cf6; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b;
+  --grad-soft:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(56,189,248,0.08));
+  --radius:18px; --font:'Prompt',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:radial-gradient(1200px 600px at 70% -10%,rgba(99,102,241,0.18),transparent),var(--bg-0);color:var(--text);line-height:1.75;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:var(--blue);text-decoration:none}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px}
+nav.top{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:700}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
+.brand small{display:block;font-size:11px;color:var(--text-faint);font-weight:500;letter-spacing:1px}
+.btn{display:inline-block;padding:13px 22px;border-radius:12px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid transparent;font-size:15px}
+.btn-primary{background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff}
+.btn-ghost{background:var(--card-strong);border-color:var(--stroke-strong);color:var(--text)}
+header.art{padding:48px 0 22px}
+.kicker{font-family:var(--mono);font-size:13px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;line-height:1.2;margin:0.5rem 0 1rem}
+.meta{color:var(--text-faint);font-size:14px;margin-bottom:8px}
+.lead{color:var(--text-dim);font-weight:300;font-size:1.12rem}
+article{padding:10px 0 40px}
+section.blk{margin:36px 0}
+h2{font-size:clamp(1.4rem,3.5vw,1.9rem);font-weight:700;margin-bottom:0.7rem;padding-top:6px}
+h3{font-size:1.1rem;font-weight:600;margin:1.2rem 0 0.4rem;color:#e2e8f0}
+p{color:var(--text-dim);font-weight:300;margin:0.6rem 0}
+strong{color:var(--text);font-weight:600}
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);padding:20px 24px;margin:16px 0}
+.card.grad{background:var(--grad-soft);border-color:var(--stroke-strong)}
+.step{display:flex;gap:14px;align-items:flex-start;margin:14px 0}
+.step .num{flex:0 0 34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet));display:grid;place-items:center;font-weight:700;color:#fff;font-family:var(--mono)}
+.step .body{flex:1}
+code,.formula{font-family:var(--mono);background:#0b1222;border:1px solid var(--stroke);border-radius:10px;padding:2px 8px;color:#cbd5e1;font-size:13.5px}
+.formula{display:block;padding:14px;margin:10px 0;overflow-x:auto;white-space:pre}
+ul{margin:0.5rem 0 0.5rem 1.2rem;color:var(--text-dim);font-weight:300}
+li{margin:0.3rem 0}
+.note{font-size:13px;color:var(--text-faint);font-style:italic}
+.cta-box{text-align:center;border-radius:var(--radius);padding:44px 28px;background:var(--grad-soft);border:1px solid var(--stroke-strong);margin:38px 0}
+.cta-box h2{font-size:clamp(1.6rem,4vw,2.2rem)}
+.cta-box p{color:var(--text-dim);margin:0.6rem auto 1.6rem;max-width:520px}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+footer{border-top:1px solid var(--stroke);padding:30px 0;color:var(--text-faint);font-size:14px}
+.faq{margin:14px 0}
+.faq dt{font-weight:600;color:var(--text);margin-top:14px}
+.faq dd{color:var(--text-dim);font-weight:300;margin:4px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/"><span class="logo">+</span><span>SNC<small>SMART NURSE CALL · nithep.com</small></span></a>
+    <a class="btn btn-ghost" href="/">← กลับหน้าหลัก</a>
+  </nav>
+
+  <header class="art">
+    <div class="kicker">How-to · Installation Guide</div>
+    <h1>วิธีติดตั้ง SNC บน Phonik PBX</h1>
+    <div class="meta">เผยแพร่ 20 ส.ค. 2569 · โดย นิเทพ เชิญสวัสดิ์ (Nithep Choensawat) · อ่าน 9 นาที</div>
+    <p class="lead">คู่มือทีละขั้นตอนในการดัดแปลงตู้สาขาโทรศัพท์ <strong>Phonik PBX</strong> (DX-32C/80C/144C) และบอร์ด <strong>Help Call</strong> ให้ทำงานเป็นระบบแจ้งเตือนพยาบาลเรียลไทม์บน <strong>Raspberry Pi 4</strong> — รับ SMDR Log ผ่าน Telnet แปลเป็นมาตรฐาน HL7 FHIR และวัด SLA บน Dashboard</p>
+  </header>
+
+  <article>
+    <section class="blk">
+      <h2>0. คุณสมบัติต้องมี (Prerequisites)</h2>
+      <div class="card">
+        <ul>
+          <li>ตู้ Phonik <strong>DX-32C / DX-80C / DX-144C</strong> ที่เปิดพอร์ต LAN ได้ (ค่าโรงงานมักเป็น <code>192.168.1.91:23</code>)</li>
+          <li>บอร์ด <strong>Help Call (Call Station v.107)</strong> + อุปกรณ์ห้อง (NCX-CORD / NCX-PULL / NCX-LED) ต่อเข้าตู้แล้ว</li>
+          <li><strong>Raspberry Pi 4</strong> (แนะนำ 2GB+), การ์ด microSD 16GB+, power supply</li>
+          <li>สาย LAN + (แนะนำ) <strong>Micro-USB to Ethernet Adapter</strong> เชื่อมตรงเข้าตู้ PBX</li>
+          <li>Raspberry Pi OS (Lite) + Python 3.12</li>
+        </ul>
+      </div>
+      <p class="note">รายละเอียดการเดินสาย/Config Builder ฉบับเต็มดูที่ <code>doc/wiki/phonik_nurse_call_knowledge.md</code> (จากคู่มือ Phonik + ผัง NC)</p>
+    </section>
+
+    <section class="blk">
+      <h2>1. ภาพรวมสถาปัตยกรรม</h2>
+      <div class="formula">[ห้องผู้ป่วย NCX-*] → ตู้ Phonik PBX (192.168.1.91:23)
+   → (Telnet SMDR "==SMDX... e.400 ...")
+   → Raspberry Pi 4 : snc_pbx_listener.py
+   → FastAPI + SQLite (nurse_call_events.db) + WebSocket
+   → Nurse Station Dashboard (เขียว/แดงกะพริบ/เหลือง) + Telegram</div>
+    </div>
+
+    <section class="blk">
+      <h2>1.1 ระบบ SOS CALL (Emergency Call) — บูรณาการวัดผล</h2>
+      <p>นอกจาก Nurse Call ปกติ SNC ยังรองรับ <strong>ระบบ SOS CALL</strong> (ระบบเรียกขอความช่วยเหลือฉุกเฉิน) ที่เหมาะกับพื้นที่ต้องการรักษาความปลอดภัย เช่น หน่วยงานราชการ ห้องตรวจรักษา ลานจอดรถ — มีทั้งไฟเตือนและเสียงเตือน</p>
+      <div class="card">
+        <h3 style="margin-top:0">อุปกรณ์หลักของ SOS CALL</h3>
+        <ul>
+          <li><strong>DX-SOS</strong> (SOS Station): เครื่องเรียกฉุกเฉิน มีปุ่มกด + ไฟสถานะ สนทนากับ Master Console ได้</li>
+          <li><strong>NCX-LED</strong>: ไฟแอลอีดีติดค้างเมื่อมีการเรียก จนกว่าห้องควบคุมจะสั่งปิด</li>
+          <li><strong>NCX-BUZ</strong> (Buzzer): ส่งเสียงดังเมื่อเรียก และ <strong>หยุดทันทีเมื่อห้องควบคุมรับสาย</strong> (ไม่รบกวนการสนทนา)</li>
+          <li><strong>PI-32G</strong> (Master Console): ตอบรับ/เรียกแต่ละเครื่อง มีไฟเตือนค้างจนกว่าจะ "ดับไฟ" เมื่อเสร็จงาน</li>
+          <li><strong>NCX-N-DSP</strong> (จอ 4 บรรทัด) / <strong>NCX-B-DSP</strong> (จอ 1 บรรทัด): แสดงหมายเลขสเตชั่นที่เรียกมา</li>
+          <li><strong>MDF90 / MDF180</strong>: กล่องพักและกระจายสาย · <strong>DX-8ATI</strong> สูงสุด 3/6/8 แผง (DX-32C/80C/144C)</li>
+        </ul>
+        <p class="note">ความจุสูงสุด: (PI-32G)+(DX-SOS)+(NCX-B-DSP)+(NCX-M-DSP) = 24+2 / 48+2 / 64 · DX-SERIES Version V.6.4rl</p>
+      </div>
+      <h3>วิธีที่ SNC วัดผล SOS CALL</h3>
+      <p>เมื่อเกิด SOS ตู้ Phonik จะพ่น SMDR เหตุการณ์ <code>e.{room_id}</code> แบบ <strong>EC (Emergency Call)</strong> — SNC จับเวลาเกิดเหตุ เปลี่ยน Dashboard เป็น <strong>แดงกะพริบ</strong> ทันที และเริ่มจับ <strong>Response Time</strong> จนกว่าจะ Acknowledge/Clear ที่ Master Console ผลลัพธ์ (เวลาตอบสนอง, SLA Level 1–3) ถูกบันทึกลง SQLite (FHIR JSON) นำไปทำรีพอร์ตพรีเมี่ยมรายวัน/รายเดือนได้ — นี่คือการ <strong>"บูรณาการกับระบบ SOS วัดผลการเรียก"</strong> โดยไม่ต้องเดินสายเพิ่ม</p>
+    </section>
+
+    <section class="blk">
+      <h2>2. เตรียมฮาร์ดแวร์ Edge (Pi 4)</h2>
+      <div class="step"><div class="num">1</div><div class="body"><h3 style="margin-top:0">เชื่อมเครือข่ายเข้าตู้ PBX โดยตรง</h3><p>ต่อ Pi 4 เข้าสาย LAN เดียวกับตู้ Phonik (ผ่าน Switch หรือ Adapter) ให้ Pi อยู่ในช่วง IP เดียวกับ <code>192.168.1.x</code> วิธีนี้ลดสัญญาณ Wi-Fi รบกวน ได้ Latency ต่ำและเสถียร</p></div></div>
+      <div class="step"><div class="num">2</div><div class="body"><h3 style="margin-top:0">ตั้ง IP ให้ Pi ตรวจถึงตู้ได้</h3><p>ทดสอบว่า Ping ถึง <code>192.168.1.91</code> ได้: <span class="formula">ping 192.168.1.91</span> ต้องตอบกลับ</p></div></div>
+    </section>
+
+    <section class="blk">
+      <h2>3. ติดตั้ง snc_pbx_listener</h2>
+      <div class="step"><div class="num">3</div><div class="body"><h3 style="margin-top:0"> clone โปรเจกต์และเตรียม Python</h3><p>รันบน Pi 4: ติดตั้ง dependencies แล้วตั้งค่า <code>.env</code> ให้ชี้ <code>PBX_HOST=192.168.1.91</code> และ <code>PBX_PORT=23</code></p></div></div>
+      <div class="step"><div class="num">4</div><div class="body"><h3 style="margin-top:0">รัน Listener + TCP Proxy</h3><p>สคริปต์มี <strong>TCP Proxy พอร์ต 2323</strong> ในตัว เพื่อจำลอง Handshake ให้โปรแกรม Room Manager/PC Operator เดิมดึงประวัติได้พร้อมกันโดยไม่ขัดแย้งกับ SNC และมีกลไก <strong>Heartbeat + Auto-Reconnect</strong> (ตู้ตัดสายทุก ~60 วินาที) แก้ปัญหาสายขาดอัตโนมัติ</p></div></div>
+    </section>
+
+    <section class="blk">
+      <h2>4. รัน Backend (FastAPI)</h2>
+      <div class="step"><div class="num">5</div><div class="body"><h3 style="margin-top:0">เปิด API + Dashboard</h3><p>รัน <code>api/server.py</code> (FastAPI + SQLite WAL + WebSocket) หน้าแดชบอร์ดจะเสิร์ฟที่พอร์ต 8000 ฐานข้อมูล <code>nurse_call_events.db</code> จะถูกสร้างอัตโนมัติ</p></div></div>
+      <div class="step"><div class="num">6</div><div class="body"><h3 style="margin-top:0">ตั้งเป็น systemd service (24/7)</h3><p>ลงทะเบียน <code>snc-backend.service</code> และ <code>snc-pbx-listener.service</code> ให้เริ่มพร้อมบูตและมี Watchdog กู้คืนเอง</p></div></div>
+    </section>
+
+    <section class="blk">
+      <h2>5. ทดสอบจริง</h2>
+      <div class="step"><div class="num">7</div><div class="body"><h3 style="margin-top:0">กด CALL / ดึงสาย NCX-PULL</h3><p>ที่ห้องผู้ป่วย ให้กดปุ่มเรียกหรือดึงสวิทช์ฉุกเฉิน แล้วสังเกต Dashboard เปลี่ยนเป็น <strong>แดงกะพริบ</strong> ทันที</p></div></div>
+      <div class="step"><div class="num">8</div><div class="body"><h3 style="margin-top:0">ตรวจ SMDR Log</h3><p>ใน log ของ listener จะเห็นบรรทัดเช่น:</p><span class="formula">==SMDX2005=03/08/26 18:59 401 e.400 EC 0:00'09 0 #1</span><p>ซึ่งระบบสกัดเบอร์ห้อง <code>401</code> และ Event <code>e.400</code> (ฉุกเฉิน) แปลงเป็น FHIR JSON ทันที</p></div></div>
+      <div class="step"><div class="num">9</div><div class="body"><h3 style="margin-top:0">วัด Response Time / SLA</h3><p>เมื่อพยาบาลกด <strong>Acknowledge/Clear</strong> ระบบจับเวลาตอบสนองและคำนวณ SLA Level 1–3 พร้อมรายงานรายวัน/รายเดือน</p></div></div>
+    </section>
+
+    <section class="blk">
+      <h2>6. การแก้ปัญหา (Troubleshooting)</h2>
+      <div class="card">
+        <ul>
+          <li><strong>สายตัดทุก 60 วินาที:</strong> ปกติของตู้ Phonik — ระบบมี Heartbeat + Reconnect กู้คืนอัตโนมัติ ตรวจ log ว่ามี "reconnect" เกิด</li>
+          <li><strong>โปรแกรมเดิมดึง log ไม่ได้:</strong> ใช้ TCP Proxy พอร์ต <code>2323</code> แทน โดยให้โปรแกรมเดิมต่อ 2323 SNC ต่อ 23</li>
+          <li><strong>Dashboard ไม่ขึ้นแดง:</strong> ตรวจ Ping ถึง <code>192.168.1.91</code> และสถานะ service ว่า active</li>
+          <li><strong>เวลาเพี้ยน:</strong> ตั้ง NTP บน Pi ให้ตรงเวลาโรงพยาบาล (SLA คิดจาก timestamp)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>7. คำถามที่พบบ่อย (FAQ)</h2>
+      <dl class="faq">
+        <dt>ต้องเดินสายใหม่ทั้งหมดหรือไม่?</dt>
+        <dd>ไม่ต้องครับ ใช้สาย LAN เดิมของตู้ Phonik และบอร์ด Help Call ที่มีอยู่แล้ว เพียงต่อ Pi 4 เข้าเครือข่ายเดียวกัน</dd>
+        <dt>ถ้าไม่มี Phonik ล่วงหน้าทำได้ไหม?</dt>
+        <dd>ได้ครับ ต่อบอร์ด Help Call เข้า Pi 4 โดยตรง หรือประเมินร่วมกับทีมงานเพื่อออกแบบให้เหมาะสม</dd>
+        <dt>ข้อมูลเก็บที่ไหน?</dt>
+        <dd>SQLite ในเครื่อง Pi มาตรฐาน HL7 FHIR รองรับนำส่งระบบภายนอก/ผู้กำกับดูแลได้</dd>
+        <dt>เสถียรพอสำหรับ 24/7 หรือไม่?</dt>
+        <dd>ได้ครับ มี systemd + Watchdog + Auto-Reconnect รักษาสายตลอดเวลา</dd>
+        <dt>รองรับระบบ SOS CALL ฉุกเฉินหรือไม่?</dt>
+        <dd>รองรับครับ DX-SOS + NCX-BUZ/NCX-LED จะถูกจับเป็นเหตุการณ์ EC SNC แสดงแดงกะพริบและวัด Response Time จนกว่าจะ Clear ที่ Master Console</dd>
+      </dl>
+    </section>
+
+    <div class="cta-box">
+      <h2>ต้องการให้ทีมงานติดตั้งให้?</h2>
+      <p>ส่งรุ่นตู้ Phonik และจำนวนเตียง ให้ทีมงานประเมินและติดตั้งบูรณาการรวมถึงรายงานพรีเมี่ยม</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/?utm_source=howto&utm_medium=cta&utm_campaign=snc_install">ขอใบเสนอราคา</a>
+        <a class="btn btn-ghost" href="snc-vs-imported.html?utm_source=howto&utm_medium=cta&utm_campaign=snc_vs">เปรียบเทียบ vs นำเข้า</a>
+      </div>
+    </div>
+  </article>
+
+  <footer>
+    <div>© 2026 nithep.com — Production-Grade Smart Systems 🏥 · สอบถามระบบได้ที่ <a href="https://snc.nithep.com">snc.nithep.com</a> : snc-bot</div>
+    <div style="margin-top:6px">📍 47 หมู่ 6 ต.ป่าสัก อ.เชียงแสน จ.เชียงราย 57150</div>
+    <div style="margin-top:6px">☎ <a href="https://snc.nithep.com/">ติดต่อผ่าน SNC-Bot / ฟอร์มติดต่อ</a> · 📊 <a href="roi.html">คำนวณ ROI</a> · 📊 <a href="snc-vs-imported.html">เปรียบเทียบ vs นำเข้า</a></div>
+  </footer>
+</div>
+</body>
+</html>

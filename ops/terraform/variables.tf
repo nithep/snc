@@ -37,6 +37,12 @@ variable "telegram_chat_id" {
   type        = string
 }
 
+variable "gemini_api_key" {
+  description = "Gemini API Key สำหรับ SNC-Bot (secret)"
+  type        = string
+  sensitive   = true
+}
+
 variable "monitor_webhook_token" {
   description = "token กันปลอมของ webhook bridge (secret)"
   type        = string

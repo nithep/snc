@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="SNC — Smart Nurse Call ระบบแจ้งเตือนพยาบาลเรียลไทม์สำหรับโรงพยาบาลและศูนย์ดูแลผู้ป่วย บน Raspberry Pi 4 พร้อมมาตรฐาน HL7 FHIR">
+<meta name="theme-color" content="#060a13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E">
+<title>SNC — Smart Nurse Call | ระบบแจ้งเตือนพยาบาลเรียลไทม์</title>
+<link rel="canonical" href="https://snc.nithep.com">
+
+<!-- ═══ Social / SEO: Open Graph + Twitter ═══ -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SNC — Smart Nurse Call">
+<meta property="og:title" content="SNC — Smart Nurse Call | ระบบแจ้งเตือนพยาบาลเรียลไทม์">
+<meta property="og:description" content="ระบบแจ้งเตือนพยาบาลเรียลไทม์สำหรับโรงพยาบาล ดัดแปลง Phonik PBX + Help Call บน Raspberry Pi 4 มาตรฐาน HL7 FHIR — มี SNC-Bot ตอบคำถาม AI ฟรี">
+<meta property="og:url" content="https://snc.nithep.com">
+<meta property="og:locale" content="th_TH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SNC — Smart Nurse Call">
+<meta name="twitter:description" content="ระบบแจ้งเตือนพยาบาลเรียลไทม์ บน Raspberry Pi 4 + AI SNC-Bot ฟรี">
+
+<!-- ═══ Structured Data (JSON-LD) ═══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Smart Nurse Call (SNC)",
+  "applicationCategory": "HealthApplication",
+  "operatingSystem": "Linux (Raspberry Pi OS)",
+  "url": "https://snc.nithep.com",
+  "description": "ระบบแจ้งเตือนพยาบาลเรียลไทม์สำหรับโรงพยาบาล ดัดแปลงตู้ Phonik PBX + บอร์ด Help Call บน Raspberry Pi 4 รองรับมาตรฐาน HL7 FHIR และมีผู้ช่วย AI (SNC-Bot)",
+  "author": { "@type": "Organization", "name": "nithep", "url": "https://nithep.com" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "THB" }
+}
+</script>
+
+<!-- ═══ LocalBusiness (สำหรับเฮลท์แคร์/ผู้สูงอายุ พื้นที่ไทย) ═══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://snc.nithep.com/#business",
+  "name": "nithep.com",
+  "url": "https://snc.nithep.com",
+  "description": "ระบบ Smart Nurse Call สำหรับโรงพยาบาลและศูนย์ดูแลผู้สูงอายุ ดัดแปลง Phonik PBX + Help Call บน Raspberry Pi 4 พร้อมรีพอร์ตบริการแบบพรีเมี่ยม",
+  "areaServed": "Thailand",
+  "serviceType": "Smart Nurse Call / Healthcare IoT",
+  "founder": {
+    "@type": "Person",
+    "name": "นิเทพ เชิญสวัสดิ์ (Nithep Choensawat)"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "47 หมู่ 6 ตำบลป่าสัก",
+    "addressLocality": "เชียงแสน",
+    "addressRegion": "เชียงราย",
+    "postalCode": "57150",
+    "addressCountry": "TH"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 20.2807338,
+    "longitude": 100.0156355
+  },
+  "hasMap": "https://www.google.com/maps/place/72J8+76P/@20.2807338,100.0156355,15z",
+  "telephone": "+66819508950",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+66819508950",
+    "contactType": "customer service",
+    "areaServed": "TH",
+    "availableLanguage": ["Thai", "English"]
+  },
+  "makesOffer": {
+    "@type": "Offer",
+    "name": "SNC Premium Service Reporting (เฮลท์แคร์ผู้สูงอายุ)",
+    "description": "รีพอร์ตการตอบสนองพยาบาล รายวัน/รายเดือน พร้อม AI สรุปผู้บริหาร สำหรับศูนย์ดูแลผู้สูงอายุ",
+    "price": "0",
+    "priceCurrency": "THB"
+  }
+}
+</script>
+
+<!-- ═══ FAQPage (ดักคำถามกลุ่มซื้อ + เฮลท์แคร์ผู้สูงอายุ) ═══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "SNC (Smart Nurse Call) คืออะไร?",
+      "acceptedAnswer": { "@type": "Answer", "text": "SNC คือระบบแจ้งเตือนพยาบาลเรียลไทม์ที่ดัดแปลงตู้สาขาโทรศัพท์ Phonik PBX และบอร์ด Help Call ให้ทำงานบน Raspberry Pi 4 พร้อม Dashboard และมาตรฐาน HL7 FHIR" }
+    },
+    {
+      "@type": "Question",
+      "name": "ใช้กับศูนย์ดูแลผู้สูงอายุหรือโรงพยาบาลได้หรือไม่?",
+      "acceptedAnswer": { "@type": "Answer", "text": "ได้ครับ รองรับทั้งโรงพยาบาลและศูนย์ดูแลผู้สูงอายุ (Long-term Care) โดยจับเวลาการตอบสนองพยาบาลและรายงานได้ตามมาตรฐาน" }
+    },
+    {
+      "@type": "Question",
+      "name": "มีรีพอร์ตบริการแบบพรีเมี่ยมสำหรับเฮลท์แคร์ผู้สูงอายุหรือไม่?",
+      "acceptedAnswer": { "@type": "Answer", "text": "มีครับ แพ็กเกจ Premium ให้รีพอร์ตการตอบสนองพยาบาลรายวัน/รายเดือน พร้อม AI สรุปผู้บริหาร (Executive Summary) สำหรับผู้บริหารศูนย์ดูแลและผู้กำกับดูแล" }
+    },
+    {
+      "@type": "Question",
+      "name": "โมเดลการให้บริการและราคาเป็นอย่างไร?",
+      "acceptedAnswer": { "@type": "Answer", "text": "แกนระบบเปิดให้ติดตั้งเองฟรี (self-host บน Raspberry Pi 4) และมีแพ็กเกจ Managed Cloud + SLA + รีพอร์ตพรีเมี่ยม สำหรับสถานพยาบาลที่ต้องการดูแลครบวงจร" }
+    },
+    {
+      "@type": "Question",
+      "name": "ติดตั้งเองได้หรือต้องจ้างผู้เชี่ยวชาญ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "ติดตั้งเองได้สำหรับทีม IT แต่หากเป็นศูนย์ดูแลผู้สูงอายุที่ไม่มี IT เรามีบริการติดตั้ง บูรณาการกับ Phonik PBX และฝึกอบรมพร้อมรายงานพรีเมี่ยม" }
+    }
+  ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #060a13;
+  --bg-1: #0b1222;
+  --bg-2: #0f172a;
+  --card: rgba(255,255,255,0.045);
+  --card-strong: rgba(255,255,255,0.07);
+  --stroke: rgba(148,163,184,0.16);
+  --stroke-strong: rgba(148,163,184,0.28);
+  --text: #f1f5f9;
+  --text-dim: #94a3b8;
+  --text-faint: #64748b;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --violet: #8b5cf6;
+  --grad: linear-gradient(135deg,#3b82f6 0%,#6366f1 50%,#a855f7 100%);
+  --grad-soft: linear-gradient(135deg, rgba(59,130,246,.16), rgba(168,85,247,.16));
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow: 0 24px 60px -22px rgba(0,0,0,.6);
+  --font: 'Prompt', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(99,102,241,.14), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,.10), transparent 55%),
+    linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+a { color: inherit; text-decoration: none; }
+::selection { background: rgba(99,102,241,.4); }
+.container { width: min(1160px, 92vw); margin-inline: auto; }
+.gradient-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* ── Nav ── */
+header {
+  position: sticky; top: 0; z-index: 80;
+  backdrop-filter: blur(14px);
+  background: rgba(6,10,19,.72);
+  border-bottom: 1px solid var(--stroke);
+}
+.nav { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 1rem; }
+.brand { display: flex; align-items: center; gap: .65rem; font-weight: 700; letter-spacing: .5px; }
+.brand .logo {
+  width: 38px; height: 38px; border-radius: 11px;
+  background: var(--grad); display: grid; place-items: center;
+  font-weight: 800; font-size: 22px; color: #fff;
+  box-shadow: 0 8px 22px -8px rgba(99,102,241,.8);
+}
+.brand small { display: block; font-weight: 400; font-size: 11px; color: var(--text-faint); letter-spacing: 1.5px; }
+.nav-links { display: flex; gap: 1.6rem; font-size: 15px; color: var(--text-dim); font-weight: 500; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  padding: .55rem 1.1rem; border-radius: 999px;
+  background: var(--grad); color: #fff; font-weight: 600; font-size: 14px;
+  box-shadow: 0 10px 24px -10px rgba(99,102,241,.8); transition: transform .2s;
+}
+.nav-cta:hover { transform: translateY(-2px); }
+@media (max-width: 820px){ .nav-links { display: none; } }
+
+/* ── Theme switch button ── */
+.theme-switch {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .5rem .8rem; border-radius: 999px; cursor: pointer;
+  background: var(--card-strong); border: 1px solid var(--stroke-strong);
+  color: var(--text-dim); font-size: 13px; font-weight: 500; font-family: var(--mono);
+  transition: transform .2s, color .2s, border-color .2s; user-select: none;
+}
+.theme-switch:hover { transform: translateY(-2px); color: var(--text); }
+.theme-switch .ic { font-size: 15px; line-height: 1; }
+
+/* ── Light theme tokens ── */
+[data-theme="light"] {
+  --bg-0: #f6f8fc;
+  --bg-1: #eef2f9;
+  --bg-2: #e3e9f3;
+  --card: rgba(15,23,42,.035);
+  --card-strong: rgba(15,23,42,.06);
+  --stroke: rgba(15,23,42,.12);
+  --stroke-strong: rgba(15,23,42,.22);
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #94a3b8;
+  --green-soft: rgba(16,185,129,.14);
+  --grad-soft: linear-gradient(135deg, rgba(59,130,246,.14), rgba(168,85,247,.14));
+}
+[data-theme="light"] body {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(99,102,241,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,.08), transparent 55%),
+    linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+}
+[data-theme="light"] header { background: rgba(246,248,252,.78); }
+[data-theme="light"] .preview { background: rgba(255,255,255,.7); }
+[data-theme="light"] .preview-bar { background: rgba(15,23,42,.03); }
+[data-theme="light"] .room.ok { background: rgba(16,185,129,.16); }
+[data-theme="light"] .room.ack { background: rgba(245,158,11,.18); }
+[data-theme="light"] .room.em { background: rgba(239,68,68,.22); }
+[data-theme="light"] .hero .glow { background: radial-gradient(600px 300px at 50% 0%, rgba(99,102,241,.16), transparent 70%); }
+
+/* ── Hero ── */
+.hero { position: relative; padding: 90px 0 70px; text-align: center; }
+.hero .glow {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(600px 300px at 50% 0%, rgba(99,102,241,.22), transparent 70%);
+}
+.hero > * { position: relative; z-index: 1; }
+.badge {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .4rem .9rem; border-radius: 999px; font-size: 13px; font-weight: 500;
+  background: var(--card-strong); border: 1px solid var(--stroke-strong); color: var(--text-dim);
+  margin-bottom: 1.6rem;
+}
+.badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(16,185,129,.2); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.hero h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 800; line-height: 1.05; letter-spacing: -1px; }
+.hero p.sub { max-width: 640px; margin: 1.4rem auto 0; color: var(--text-dim); font-size: clamp(1rem,2.2vw,1.2rem); font-weight: 300; }
+.hero-cta { display: flex; gap: .9rem; justify-content: center; flex-wrap: wrap; margin-top: 2.2rem; }
+.btn {
+  padding: .85rem 1.6rem; border-radius: 14px; font-weight: 600; font-size: 15px;
+  transition: transform .2s, box-shadow .2s; cursor: pointer; border: 1px solid transparent;
+}
+.btn-primary { background: var(--grad); color: #fff; box-shadow: 0 16px 40px -14px rgba(99,102,241,.9); }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 22px 50px -16px rgba(99,102,241,1); }
+.btn-ghost { background: var(--card-strong); border-color: var(--stroke-strong); color: var(--text); }
+.btn-ghost:hover { transform: translateY(-3px); border-color: var(--stroke-strong); background: rgba(255,255,255,.1); }
+
+/* ── Live preview mockup ── */
+.preview {
+  margin: 56px auto 0; width: min(960px, 94%); border-radius: var(--radius);
+  border: 1px solid var(--stroke-strong); background: var(--card);
+  box-shadow: var(--shadow); overflow: hidden; backdrop-filter: blur(8px);
+}
+.preview-bar { display: flex; align-items: center; gap: .5rem; padding: .8rem 1rem; border-bottom: 1px solid var(--stroke); background: rgba(255,255,255,.03); }
+.preview-bar .d { width: 11px; height: 11px; border-radius: 50%; }
+.preview-bar .d.r{background:var(--red)} .preview-bar .d.y{background:var(--amber)} .preview-bar .d.g{background:var(--green)}
+.preview-bar .url { margin-left: .6rem; font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
+.grid-rooms { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; padding: 22px; }
+.room { aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1px solid var(--stroke); position: relative; }
+.room.ok { background: var(--green-soft, rgba(16,185,129,.14)); color: var(--green); border-color: rgba(16,185,129,.3); }
+.room.ack { background: rgba(245,158,11,.14); color: var(--amber); border-color: rgba(245,158,11,.3); }
+.room.em { background: rgba(239,68,68,.18); color: #fff; border-color: rgba(239,68,68,.5); animation: blink 1.1s infinite; }
+@keyframes blink { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+@media (max-width:640px){ .grid-rooms{grid-template-columns:repeat(5,1fr)} }
+
+/* ── Section base ── */
+section { padding: 84px 0; }
+.section-head { text-align: center; max-width: 680px; margin: 0 auto 48px; }
+.section-head .kicker { font-family: var(--mono); font-size: 13px; letter-spacing: 2px; color: var(--violet); text-transform: uppercase; }
+.section-head h2 { font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 800; margin-top: .6rem; letter-spacing: -.5px; }
+.section-head p { color: var(--text-dim); margin-top: .9rem; font-weight: 300; }
+
+/* ── Stats ── */
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; }
+.stat { background: var(--card); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 28px 22px; text-align: center; }
+.stat .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.stat .lbl { color: var(--text-dim); font-size: 14px; margin-top: .5rem; }
+@media (max-width:720px){ .stats{grid-template-columns:repeat(2,1fr)} }
+
+/* ── Features ── */
+.features { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.feature { background: var(--card); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 28px; transition: transform .25s, border-color .25s; }
+.feature:hover { transform: translateY(-6px); border-color: var(--stroke-strong); background: var(--card-strong); }
+.feature .ico { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: var(--grad-soft); border: 1px solid var(--stroke-strong); margin-bottom: 1rem; }
+.feature h3 { font-size: 1.15rem; font-weight: 700; }
+.feature p { color: var(--text-dim); margin-top: .5rem; font-size: 14.5px; font-weight: 300; }
+@media (max-width:860px){ .features{grid-template-columns:1fr} }
+
+/* ── Workflow ── */
+.flow { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; counter-reset: step; }
+.step { background: var(--card); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 24px 18px; position: relative; }
+.step .n { font-family: var(--mono); font-size: 13px; color: var(--violet); }
+.step h4 { font-weight: 700; margin: .5rem 0 .4rem; font-size: 15px; }
+.step p { color: var(--text-dim); font-size: 13px; font-weight: 300; }
+@media (max-width:860px){ .flow{grid-template-columns:1fr} }
+
+/* ── Architecture ── */
+.arch { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.node { background: var(--card); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 24px; }
+.node h4 { font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+.node .tag { font-size: 11px; font-family: var(--mono); color: var(--text-faint); }
+.node ul { list-style: none; margin-top: 1rem; display: grid; gap: .55rem; }
+.node li { color: var(--text-dim); font-size: 14px; padding-left: 1.1rem; position: relative; }
+.node li::before { content: "▸"; position: absolute; left: 0; color: var(--violet); }
+@media (max-width:860px){ .arch{grid-template-columns:1fr} }
+
+/* ── Event history (table) ── */
+.history-wrap { max-width: 880px; margin-inline: auto; border: 1px solid var(--stroke); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table th, .history-table td { padding: 14px 18px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--stroke); vertical-align: middle; }
+.history-table th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); font-family: var(--mono); font-weight: 600; background: rgba(255,255,255,.02); }
+.history-table tbody tr { transition: background .2s; }
+.history-table tbody tr:hover { background: rgba(255,255,255,.03); }
+.history-table tbody tr:last-child td { border-bottom: none; }
+.rtype { font-weight: 600; }
+.rd { color: var(--text-dim); font-size: 12.5px; font-weight: 300; margin-top: 2px; }
+.room-no { font-family: var(--mono); font-weight: 600; font-size: 15px; padding: .25rem .6rem; border-radius: 8px; border: 1px solid var(--stroke-strong); }
+.room-no.em { background: rgba(239,68,68,.18); color: #fff; border-color: rgba(239,68,68,.5); }
+.room-no.ack { background: rgba(245,158,11,.16); color: var(--amber); border-color: rgba(245,158,11,.4); }
+.room-no.ok { background: var(--green-soft, rgba(16,185,129,.14)); color: var(--green); border-color: rgba(16,185,129,.3); }
+.st { font-size: 12px; font-weight: 600; padding: .3rem .7rem; border-radius: 999px; white-space: nowrap; display: inline-block; }
+.st.em { background: rgba(239,68,68,.18); color: #fb7185; }
+.st.ack { background: rgba(245,158,11,.16); color: var(--amber); }
+.st.ok { background: var(--green-soft, rgba(16,185,129,.14)); color: var(--green); }
+.mono { font-family: var(--mono); font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+.sla { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+.sla.ok { color: var(--green); }
+.sla.breach { color: var(--red); }
+.history-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 13px 18px; font-size: 13px; color: var(--text-faint); border-top: 1px solid var(--stroke); flex-wrap: wrap; }
+.history-foot .right { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.btn-csv { padding: .4rem .85rem; border-radius: 999px; background: var(--card-strong); border: 1px solid var(--stroke-strong); color: var(--text-dim); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: transform .2s, color .2s; }
+.btn-csv:hover { transform: translateY(-2px); color: var(--text); }
+@media (max-width:720px){
+  .history-wrap { overflow-x: auto; }
+  .history-table { min-width: 640px; }
+}
+
+/* ── Tech strip ── */
+.tech { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.chip { padding: .55rem 1.1rem; border-radius: 999px; background: var(--card); border: 1px solid var(--stroke); font-size: 13.5px; color: var(--text-dim); font-weight: 500; }
+.chip b { color: var(--text); }
+
+/* ── CTA ── */
+.cta-box { text-align: center; border-radius: var(--radius); padding: 60px 30px; background: var(--grad-soft); border: 1px solid var(--stroke-strong); position: relative; overflow: hidden; }
+.cta-box h2 { font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 800; }
+.cta-box p { color: var(--text-dim); margin: 1rem auto 1.8rem; max-width: 520px; font-weight: 300; }
+
+/* ── Care / Long-term Premium ── */
+.care-box { border-radius: var(--radius); padding: 56px 34px; background: linear-gradient(135deg, rgba(16,185,129,0.10), rgba(99,102,241,0.10)); border: 1px solid var(--stroke-strong); }
+.care-box .kicker { font-family: var(--mono); font-size: 13px; letter-spacing: 2px; color: var(--green); text-transform: uppercase; }
+.care-box h2 { font-size: clamp(1.6rem,3.6vw,2.4rem); font-weight: 800; margin: 0.5rem 0 0.8rem; }
+.care-box > p { color: var(--text-dim); font-weight: 300; max-width: 720px; line-height: 1.7; }
+.care-list { list-style: none; padding: 0; margin: 1.4rem 0 1.8rem; display: grid; gap: 0.7rem; max-width: 720px; }
+.care-list li { padding-left: 0.3rem; color: var(--text); font-weight: 300; line-height: 1.6; }
+
+/* ── Footer ── */
+footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px; }
+.foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; color: var(--text-faint); font-size: 14px; }
+.foot .brand small { color: var(--text-faint); }
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s, transform .7s; }
+.reveal.in { opacity: 1; transform: none; }
+
+/* ── Support widget (snc-bot) ── */
+.support-fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 90;
+  display: inline-flex; align-items: center; gap: .55rem;
+  padding: .8rem 1.1rem; border-radius: 999px; cursor: pointer; border: none;
+  background: var(--grad); color: #fff; font-family: var(--font); font-weight: 600; font-size: 14.5px;
+  box-shadow: 0 18px 44px -14px rgba(99,102,241,.9); transition: transform .2s, box-shadow .2s;
+}
+.support-fab:hover { transform: translateY(-3px); box-shadow: 0 24px 54px -16px rgba(99,102,241,1); }
+.support-fab .ic { font-size: 18px; }
+.support-panel {
+  position: fixed; right: 22px; bottom: 84px; z-index: 91; width: min(360px, 90vw);
+  background: var(--bg-2); border: 1px solid var(--stroke-strong); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; transform: translateY(16px) scale(.98); opacity: 0;
+  pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.support-panel.open { transform: none; opacity: 1; pointer-events: auto; }
+.support-head { display: flex; align-items: center; gap: .6rem; padding: 16px 18px; border-bottom: 1px solid var(--stroke); background: var(--grad-soft); }
+.support-head .av { width: 38px; height: 38px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; font-size: 19px; }
+.support-head .tt { font-weight: 700; }
+.support-head .ss { font-size: 12px; color: var(--text-dim); }
+.support-body { padding: 0; display: flex; flex-direction: column; }
+.chat-msgs { padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; }
+.bubble { max-width: 86%; padding: .6rem .8rem; border-radius: 14px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.bubble.bot { align-self: flex-start; background: var(--card-strong); border: 1px solid var(--stroke-strong); border-bottom-left-radius: 4px; }
+.bubble.user { align-self: flex-end; background: var(--grad); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.thinking { color: var(--text-faint); font-style: italic; }
+.chat-input { display: flex; gap: .5rem; padding: 12px 14px; border-top: 1px solid var(--stroke); background: rgba(255,255,255,.02); }
+.chat-input input { flex: 1; min-width: 0; padding: .6rem .8rem; border-radius: 10px; border: 1px solid var(--stroke-strong); background: var(--bg-1); color: var(--text); font-family: var(--font); font-size: 13.5px; outline: none; }
+.chat-input input:focus { border-color: var(--violet); }
+.chat-input button { padding: .6rem .9rem; border-radius: 10px; border: none; background: var(--grad); color: #fff; font-weight: 600; font-size: 13.5px; cursor: pointer; transition: transform .2s; }
+.chat-input button:hover { transform: translateY(-2px); }
+.chat-input button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.chat-foot { padding: 10px 14px 14px; border-top: 1px solid var(--stroke); display: flex; align-items: center; justify-content: space-between; gap: .6rem; font-size: 12px; color: var(--text-faint); }
+.chat-foot a { color: var(--blue); font-weight: 500; white-space: nowrap; }
+.chat-pw { font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); }
+
+/* ── Contact modal ── */
+.contact-overlay {
+  position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 1rem;
+  background: rgba(3,6,12,.66); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.contact-overlay.open { opacity: 1; pointer-events: auto; }
+.contact-modal {
+  width: min(460px, 94vw); background: var(--bg-2); border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transform: translateY(14px) scale(.98); transition: transform .25s;
+}
+.contact-overlay.open .contact-modal { transform: none; }
+.contact-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; background: var(--grad-soft); border-bottom: 1px solid var(--stroke); }
+.contact-head h3 { font-size: 1.05rem; font-weight: 700; }
+.contact-head p { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+.contact-close { background: none; border: none; color: var(--text-dim); font-size: 22px; cursor: pointer; line-height: 1; padding: 0 .2rem; }
+.contact-close:hover { color: var(--text); }
+.contact-body { padding: 20px; display: grid; gap: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-dim); margin-bottom: .4rem; }
+.field label .req { color: var(--red); }
+.field input, .field textarea {
+  width: 100%; padding: .7rem .85rem; border-radius: 11px; border: 1px solid var(--stroke-strong);
+  background: var(--bg-1); color: var(--text); font-family: var(--font); font-size: 14px; outline: none; resize: vertical;
+}
+.field input:focus, .field textarea:focus { border-color: var(--violet); }
+.contact-submit { padding: .8rem 1rem; border-radius: 12px; border: none; background: var(--grad); color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform .2s; }
+.contact-submit:hover { transform: translateY(-2px); }
+.contact-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.contact-status { font-size: 13.5px; min-height: 1.2em; }
+.contact-status.ok { color: var(--green); }
+.contact-status.err { color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container nav">
+    <a class="brand" href="#top">
+      <span class="logo">+</span>
+      <span>SNC<small>SMART NURSE CALL · nithep</small></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">คุณสมบัติ</a>
+      <a href="#workflow">การทำงาน</a>
+      <a href="#arch">สถาปัตยกรรม</a>
+      <a href="#history">เหตุการณ์</a>
+      <a href="#tech">เทคโนโลยี</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:.7rem">
+      <button class="theme-switch" id="themeSwitch" title="สลับธีม (มืด / สว่าง / ระบบ)" aria-label="สลับธีม">
+        <span class="ic" id="themeIcon">🌙</span><span id="themeLabel">มืด</span>
+      </button>
+      <a class="nav-cta" href="index.html">เข้าสู่ Dashboard →</a>
+    </div>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero">
+  <div class="glow"></div>
+  <div class="container">
+    <span class="badge"><span class="dot"></span> Production-Ready · ทำงานจริงบน Raspberry Pi 4</span>
+    <h1>แจ้งเตือนพยาบาล<span class="gradient-text">เรียลไทม์</span><br>ที่ไม่มีสายเรียกไหนหลุดมือ</h1>
+    <p class="sub">SNC ดัดแปลงตู้สาขา Phonik PBX + บอร์ด Help Call ให้เป็นระบบ Nurse Call ยุคใหม่
+    ถอดรหัสสัญญาณเป็นมาตรฐาน HL7 FHIR JSON — พยาบาลเห็นฉุกเฉินทันที จับเวลาตอบสนองได้แม่นยำ</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="index.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_home">เปิด Nurse Station Dashboard</a>
+      <a class="btn btn-ghost" href="#features">ดูคุณสมบัติระบบ</a>
+    </div>
+
+    <div class="preview reveal">
+      <div class="preview-bar">
+        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+        <span class="url">snc.nithep.com/dashboard</span>
+      </div>
+      <div class="grid-rooms">
+        <div class="room ok">101</div><div class="room ok">102</div><div class="room em">103</div>
+        <div class="room ok">104</div><div class="room ack">105</div><div class="room ok">106</div>
+        <div class="room ok">107</div><div class="room ok">108</div><div class="room ok">201</div>
+        <div class="room ok">202</div><div class="room ack">203</div><div class="room ok">204</div>
+        <div class="room ok">205</div><div class="room ok">206</div><div class="room em">207</div>
+        <div class="room ok">208</div><div class="room ok">301</div><div class="room ok">302</div>
+        <div class="room ok">303</div><div class="room ok">304</div><div class="room ok">305</div>
+        <div class="room ok">306</div><div class="room ok">307</div><div class="room ok">308</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="container">
+    <div class="stats reveal">
+      <div class="stat"><div class="num gradient-text" data-target="0" data-suffix=" ms">0</div><div class="lbl">Event Latency (edge → dashboard)</div></div>
+      <div class="stat"><div class="num gradient-text">24/7</div><div class="lbl">เฝ้าระวังต่อเนื่อง</div></div>
+      <div class="stat"><div class="num gradient-text">3</div><div class="lbl">Layer ป้องกัน Event หาย</div></div>
+      <div class="stat"><div class="num gradient-text">100%</div><div class="lbl">FHIR JSON Payload</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Features</div>
+      <h2>ระบบที่ออกแบบมาเพื่อวิกฤตจริง</h2>
+      <p>จากห้องพักผู้ป่วยถึงเคาน์เตอร์พยาบาล ทุกสัญญาณถูกส่งต่อแบบเรียลไทม์ พร้อมหลักฐานเชิงตัวเลขสำหรับ SLA</p>
+    </div>
+    <div class="features">
+      <div class="feature reveal"><div class="ico">🔔</div><h3>Real-time Alert</h3><p>ผู้ป่วยกดปุ่ม ดึงสายฉุกเฉิน หรือยกหูโทรศัพท์ พยาบาลเห็นทันทีที่เคาน์เตอร์ด้วย Grid ห้องพักสีแดงกะพริบ</p></div>
+      <div class="feature reveal"><div class="ico">📡</div><h3>SMDR ผ่าน Telnet</h3><p>อ่านสัญญาณสดจากตู้ Phonik PBX (192.168.1.91:23) ถอดรหัสเป็น FHIR JSON โดย Listener บน Pi 4</p></div>
+      <div class="feature reveal"><div class="ico">🗺️</div><h3>Dashboard ไทย/อังกฤษ</h3><p>Grid ห้องพัก เขียว=ปกติ แดง=ฉุกเฉิน เหลือง=รับเรื่อง พร้อมเสียงเตือน Alarm และโหมดมืดระดับพรีเมียม</p></div>
+      <div class="feature reveal"><div class="ico">⏱️</div><h3>SLA / Response Time</h3><p>จับเวลาตั้งแต่ Alert จนกว่าพยาบาลจะ Acknowledge / Clear วัดประสิทธิภาพได้เชิงตัวเลข</p></div>
+      <div class="feature reveal"><div class="ico">☁️</div><h3>Cloud + Edge</h3><p>Pi 4 รัน local ใกล้ชิดฮาร์ดแวร์ Cloud Run เป็นสำรอง + แจ้งเตือน Telegram ผ่าน Cloudflare Tunnel</p></div>
+      <div class="feature reveal"><div class="ico">🛡️</div><h3>FHIR Ready</h3><p>Payload มาตรฐาน HL7 FHIR JSON ตั้งแต่วันแรก พร้อมต่อยอดขึ้น GCP Healthcare API / Vertex AI</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="workflow">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">How it works</div>
+      <h2>วงจรการทำงาน 5 ขั้นตอน</h2>
+      <p>ปิดจบตั้งแต่ผู้ป่วยกดปุ่ม จนพยาบาลกด Clear — ไร้ช่องโหว่ ไม่มีสัญญาณหลุด</p>
+    </div>
+    <div class="flow">
+      <div class="step reveal"><div class="n">01</div><h4>Trigger</h4><p>ผู้ป่วยกดปุ่ม / ดึงสายฉุกเฉิน / ยกหูโทรศัพท์จากห้องพัก</p></div>
+      <div class="step reveal"><div class="n">02</div><h4>Capture</h4><p>Phonik PBX พ่น SMDR Log ผ่าน TCP Telnet แบบเรียลไทม์</p></div>
+      <div class="step reveal"><div class="n">03</div><h4>Process</h4><p>Listener แปลงเป็น FHIR JSON + Outbox (idempotency) ลง SQLite</p></div>
+      <div class="step reveal"><div class="n">04</div><h4>Broadcast</h4><p>Backend ส่ง WebSocket กระจาย Alert ไปยัง Nurse Dashboard</p></div>
+      <div class="step reveal"><div class="n">05</div><h4>Respond</h4><p>พยาบาลรับเรื่อง + จับเวลา SLA จนกด Acknowledge / Clear</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Architecture</div>
+      <h2>สถาปัตยกรรม Edge-to-Cloud</h2>
+      <p>แยกชัดเจนระหว่าง Edge (Pi 4), Cloud (GCP) และ Delivery — ทนทานต่อการหลุดของเครือข่าย</p>
+    </div>
+    <div class="arch">
+      <div class="node reveal"><h4>📍 Edge · Pi 4 <span class="tag">192.168.1.94</span></h4><ul>
+        <li>Phonik PBX (SMDR Telnet :23)</li>
+        <li>snc_pbx_listener + Parser</li>
+        <li>event_outbox (idempotency)</li>
+        <li>snc-backend FastAPI :8000</li>
+        <li>SQLite WAL (local store)</li>
+      </ul></div>
+      <div class="node reveal"><h4>☁️ Cloud · GCP <span class="tag">Cloud Run</span></h4><ul>
+        <li>snc-cloud-backend (Firestore)</li>
+        <li>snc-alert-bridge (Telegram)</li>
+        <li>Secret Manager (3 secrets)</li>
+        <li>Cloud Monitoring + Uptime</li>
+        <li>Terraform IaC</li>
+      </ul></div>
+      <div class="node reveal"><h4>🌐 Delivery <span class="tag">Cloudflare</span></h4><ul>
+        <li>cloudflared tunnel (outbound)</li>
+        <li>snc.nithep.com</li>
+        <li>Nurse Dashboard (i18n TH/EN)</li>
+        <li>WebSocket realtime channel</li>
+        <li>Self-healing systemd units</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="history">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Live Feed</div>
+      <h2>ประวัติเหตุการณ์ล่าสุด</h2>
+      <p>ตัวอย่างเหตุการณ์เรียกพยาบาลที่กระจายผ่าน WebSocket แบบเรียลไทม์ — ครบถ้วนตามมาตรฐาน FHIR</p>
+    </div>
+    <div class="history-wrap reveal">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>ห้อง</th>
+            <th>ประเภทเหตุการณ์</th>
+            <th>สถานะ</th>
+            <th>เวลารับเรื่อง</th>
+            <th>เวลาเคลียร์</th>
+            <th>SLA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="room-no em">207</span></td>
+            <td><div class="rtype">ฉุกเฉิน — ดึงสาย Call Cord</div><div class="rd">NCX-PULL · ห้อง 207</div></td>
+            <td><span class="st em">รอรับเรื่อง</span></td>
+            <td><span class="mono">—</span></td>
+            <td><span class="mono">—</span></td>
+            <td><span class="sla breach">เกิน SLA</span></td>
+          </tr>
+          <tr>
+            <td><span class="room-no ack">203</span></td>
+            <td><div class="rtype">เรียกพยาบาล — กดปุ่ม</div><div class="rd">NCX-CORD · ห้อง 203</div></td>
+            <td><span class="st ack">รับเรื่องแล้ว</span></td>
+            <td><span class="mono">14:29:10</span></td>
+            <td><span class="mono">—</span></td>
+            <td><span class="sla ok">ภายใน SLA</span></td>
+          </tr>
+          <tr>
+            <td><span class="room-no ok">105</span></td>
+            <td><div class="rtype">เรียกพยาบาล — ยกหูโทรศัพท์</div><div class="rd">Handset · ห้อง 105</div></td>
+            <td><span class="st ok">จบเหตุการณ์</span></td>
+            <td><span class="mono">14:21:40</span></td>
+            <td><span class="mono">14:23:02</span></td>
+            <td><span class="sla ok">ผ่าน 1:22</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="history-foot">
+        <span>ทั้งหมด: 3</span>
+        <div class="right">
+          <span>รีเฟรชอัตโนมัติทุก 10 วินาที + เรียลไทม์ผ่าน WebSocket</span>
+          <button class="btn-csv" type="button">⬇ Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Stack</div>
+      <h2>เทคโนโลยีที่ใช้งานจริง</h2>
+    </div>
+    <div class="tech reveal">
+      <span class="chip"><b>Raspberry Pi 4</b></span>
+      <span class="chip"><b>Python 3.12</b></span>
+      <span class="chip"><b>FastAPI</b></span>
+      <span class="chip"><b>SQLite WAL</b></span>
+      <span class="chip"><b>WebSocket</b></span>
+      <span class="chip"><b>HL7 FHIR</b></span>
+      <span class="chip"><b>Google Cloud Run</b></span>
+      <span class="chip"><b>Firestore</b></span>
+      <span class="chip"><b>Terraform</b></span>
+      <span class="chip"><b>Cloudflare Tunnel</b></span>
+      <span class="chip"><b>Telegram Bot</b></span>
+      <span class="chip"><b>Docker</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ เซกเมนต์เฮลท์แคร์ผู้สูงอายุ + รีพอร์ตพรีเมี่ยม ═══ -->
+<section id="care">
+  <div class="container">
+    <div class="care-box reveal">
+      <div class="kicker">Long-term Care · Premium</div>
+      <h2>เฮลท์แคร์ผู้สูงอายุ ที่ต้องการรีพอร์ตบริการแบบพรีเมี่ยม</h2>
+      <p>สำหรับศูนย์ดูแลผู้สูงอายุและโรงพยาบาลจิตเวช SNC จับเวลาการตอบสนองพยาบาลทุกครั้ง พร้อมแพ็กเกจ <b>รีพอร์ตบริการพรีเมี่ยม</b> ที่แสดง SLA รายวัน/รายเดือน และ <b>AI สรุปผู้บริหาร (Executive Summary)</b> สำหรับผู้บริหาร ผู้กำกับดูแล และญาติผู้รับบริการ</p>
+      <ul class="care-list">
+        <li>📈 รีพอร์ตการตอบสนองพยาบาล (Response Time) แยกตามช่วงเวลาและประเภทเหตุการณ์</li>
+        <li>📑 สรุปผู้บริหารรายเดือน พร้อม AI วิเคราะห์จุดที่ต้องปรับปรุง</li>
+        <li>🔒 ข้อมูลมาตรฐาน HL7 FHIR พร้อมส่งต่อผู้กำกับดูแล/กรมส่งเสริมคุณภาพ</li>
+        <li>🤝 ทีมงานติดตั้ง บูรณาการ Phonik PBX และฝึกอบรมพร้อมรายงาน</li>
+      </ul>
+      <div class="hero-cta">
+        <button class="btn btn-primary" id="careContact">ขอใบเสนอราคา Premium</button>
+        <a class="btn btn-ghost" href="index.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_care">ดู Dashboard ตัวอย่าง</a>
+        <a class="btn btn-ghost" href="roi.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_roi" style="border-color:var(--green);color:var(--green)">📊 อ่านบทความ ROI</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-box reveal">
+      <h2>พร้อมยกระดับการดูแลผู้ป่วยของคุณ?</h2>
+      <p>ดูระบบจริงที่ทำงานอยู่บน Pi 4 หรืออ่าน Blueprint สถาปัตยกรรมฉบับสมบูรณ์</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="index.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_home">เปิด Dashboard ทดลองใช้</a>
+        <a class="btn btn-ghost" href="#top">กลับขึ้นบน ↑</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container foot">
+    <a class="brand" href="#top">
+      <span class="logo">+</span>
+      <span>SNC<small>SMART NURSE CALL · nithep.com</small></span>
+    </a>
+    <div class="foot-nap">
+      © 2026 nithep.com — Production-Grade Smart Systems 🏥<br>
+      สอบถามระบบได้ที่ <a href="https://snc.nithep.com" style="color:var(--blue)">snc.nithep.com</a> : snc-bot<br>
+      📊 <a href="roi.html" style="color:var(--blue)">บทความ: คำนวณ ROI ระบบเรียกพยาบาล</a><br>
+      📊 <a href="snc-vs-imported.html" style="color:var(--blue)">เปรียบเทียบ: SNC vs ระบบนำเข้า</a><br>
+      🛠️ <a href="how-to-phonik.html" style="color:var(--blue)">วิธีติดตั้ง: SNC บน Phonik PBX</a><br>
+      📍 47 หมู่ 6 ต.ป่าสัก อ.เชียงแสน จ.เชียงราย 57150<br>
+      ☎ <a href="#" id="footContact" style="color:var(--blue)">ติดต่อผ่าน SNC-Bot / ฟอร์มติดต่อ</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Support widget: snc-bot -->
+<button class="support-fab" id="supportFab" aria-label="สอบถาม snc-bot">
+  <span class="ic">🤖</span> สอบถาม snc-bot
+</button>
+<div class="support-panel" id="supportPanel" role="dialog" aria-label="แชท snc-bot">
+  <div class="support-head">
+    <span class="av">🤖</span>
+    <div><div class="tt">snc-bot</div><div class="ss">เอเจนต์ผู้เชี่ยวชาญระบบ SNC</div></div>
+  </div>
+  <div class="support-body">
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="bubble bot">สวัสดีครับ ผมคือ <b>SNC-Bot</b> ผู้ช่วยระบบ Smart Nurse Call ถามอะไรเกี่ยวกับ Nurse Call, ปุ่มกดฉุกเฉิน, Dashboard, SLA หรือสถาปัตยกรรม SNC ได้เลยครับ</div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="พิมพ์คำถาม เช่น SLA คืออะไร..." autocomplete="off" maxlength="2000">
+      <button id="chatSend" aria-label="ส่ง">ส่ง</button>
+    </div>
+    <div class="chat-foot">
+      <span class="chat-pw">⚡ Powered by Gemini</span>
+      <button id="openContact" class="link-btn" style="background:none;border:none;color:var(--blue);font-weight:500;font-size:12px;cursor:pointer;font-family:var(--font)">✉️ ไม่ได้คำตอบ? ติดต่อทีมงาน</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contact modal -->
+<div class="contact-overlay" id="contactOverlay" role="dialog" aria-modal="true" aria-label="ติดต่อทีมงาน SNC">
+  <div class="contact-modal">
+    <div class="contact-head">
+      <div><h3>ติดต่อทีมงาน SNC</h3><p>กรอกข้อมูลด้านล่าง ทีมงานจะได้รับแจ้งเตือนทันที</p></div>
+      <button class="contact-close" id="contactClose" aria-label="ปิด">×</button>
+    </div>
+    <div class="contact-body">
+      <div class="field">
+        <label>ชื่อ <span class="req">*</span></label>
+        <input type="text" id="cName" maxlength="100" placeholder="ชื่อของคุณ">
+      </div>
+      <div class="field">
+        <label>อีเมลสำหรับรับการตอบกลับ</label>
+        <input type="email" id="cEmail" maxlength="200" placeholder="you@email.com">
+      </div>
+      <div class="field">
+        <label>ข้อความ <span class="req">*</span></label>
+        <textarea id="cMsg" rows="4" maxlength="2000" placeholder="สอบถามเรื่องระบบ SNC, นำไปใช้ที่โรงพยาบาล, หรือข้อเสนอแนะ..."></textarea>
+      </div>
+      <div class="contact-status" id="cStatus"></div>
+      <button class="contact-submit" id="cSubmit">ส่งข้อความ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Prevent theme flash: apply stored/system theme before paint
+(function(){
+  try {
+    var m = localStorage.getItem('snc-theme') || 'system';
+    var pref = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', m === 'system' ? pref : m);
+  } catch(e){}
+})();
+</script>
+<script>
+// Reveal on scroll
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: .15 });
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// Animated counter for the latency stat
+const lat = document.querySelector('[data-target]');
+let v = 0;
+const tick = ()=>{ v += Math.ceil((42 - v)/6); lat.textContent = v + ' ms'; if(v<42) setTimeout(tick, 40); };
+setTimeout(tick, 600);
+
+// ── Theme switch: Dark / Light / System ──
+const root = document.documentElement;
+const sw = document.getElementById('themeSwitch');
+const ic = document.getElementById('themeIcon');
+const lb = document.getElementById('themeLabel');
+const order = ['dark', 'light', 'system'];
+const meta = {
+  dark:   { icon: '🌙', label: 'มืด' },
+  light:  { icon: '☀️', label: 'สว่าง' },
+  system: { icon: '🖥️', label: 'ระบบ' },
+};
+function systemPref(){ return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; }
+function applyTheme(mode){
+  const resolved = mode === 'system' ? systemPref() : mode;
+  root.setAttribute('data-theme', resolved);
+  ic.textContent = meta[mode].icon;
+  lb.textContent = meta[mode].label;
+}
+let current = localStorage.getItem('snc-theme') || 'system';
+applyTheme(current);
+sw.addEventListener('click', ()=>{
+  current = order[(order.indexOf(current) + 1) % order.length];
+  localStorage.setItem('snc-theme', current);
+  applyTheme(current);
+});
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{
+  if(current === 'system') applyTheme('system');
+});
+
+// ── Support widget (snc-bot) toggle + live chat ──
+const fab = document.getElementById('supportFab');
+const panel = document.getElementById('supportPanel');
+const chatMsgs = document.getElementById('chatMsgs');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+let chatHistory = [];
+
+fab.addEventListener('click', ()=>{
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) setTimeout(()=>chatInput.focus(), 120);
+});
+document.addEventListener('click', (e)=>{
+  if(!panel.contains(e.target) && !fab.contains(e.target)) panel.classList.remove('open');
+});
+
+function addBubble(text, who){
+  const b = document.createElement('div');
+  b.className = 'bubble ' + who;
+  b.innerHTML = text;
+  chatMsgs.appendChild(b);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return b;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// [ข้อ 5] จำประวัติแชทข้ามการรีเฟร็ชหน้า (sessionStorage)
+const WELCOME_HTML = 'สวัสดีครับ ผมคือ <b>SNC-Bot</b> ผู้ช่วยระบบ Smart Nurse Call ถามอะไรเกี่ยวกับ Nurse Call, ปุ่มกดฉุกเฉิน, Dashboard, SLA หรือสถาปัตยกรรม SNC ได้เลยครับ';
+function saveChat(){ try { sessionStorage.setItem('snc_chat', JSON.stringify(chatHistory)); } catch(e){} }
+function loadChat(){
+  try {
+    const raw = sessionStorage.getItem('snc_chat');
+    if(!raw) return;
+    chatHistory = JSON.parse(raw);
+    chatMsgs.innerHTML = '';
+    addBubble(WELCOME_HTML, 'bot');
+    chatHistory.forEach(t => addBubble(escapeHtml(t.text), t.role));
+  } catch(e){}
+}
+
+async function sendChat(){
+  const msg = chatInput.value.trim();
+  if(!msg || chatSend.disabled) return;
+  addBubble(escapeHtml(msg), 'user');
+  chatHistory.push({ role: 'user', text: msg });
+  chatInput.value = '';
+  chatSend.disabled = true;
+  const thinking = addBubble('กำลังคิด...', 'bot thinking');
+  try {
+    const res = await fetch('/api/ai/snc-bot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: chatHistory.slice(-6) })
+    });
+    const data = await res.json();
+    thinking.remove();
+    const answer = data.answer || data.error || 'ขออภัย ระบบไม่สามารถตอบได้ในขณะนี้';
+    addBubble(escapeHtml(answer), 'bot');
+    chatHistory.push({ role: 'bot', text: answer });
+  } catch(err){
+    thinking.remove();
+    addBubble('⚠️ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ หากยังไม่ได้คำตอบ ส่งอีเมลหาทีมงานได้ที่ admin@nithep.com', 'bot');
+  } finally {
+    chatSend.disabled = false;
+    chatInput.focus();
+    saveChat();
+  }
+}
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendChat(); });
+loadChat();
+
+// ── Contact modal ──
+const contactOverlay = document.getElementById('contactOverlay');
+const cName = document.getElementById('cName');
+const cEmail = document.getElementById('cEmail');
+const cMsg = document.getElementById('cMsg');
+const cStatus = document.getElementById('cStatus');
+const cSubmit = document.getElementById('cSubmit');
+function openContact(){ contactOverlay.classList.add('open'); setTimeout(()=>cName.focus(), 120); }
+function closeContact(){ contactOverlay.classList.remove('open'); cStatus.textContent = ''; cStatus.className = 'contact-status'; }
+document.getElementById('openContact').addEventListener('click', openContact);
+document.getElementById('careContact')?.addEventListener('click', openContact);
+document.getElementById('footContact')?.addEventListener('click', (e)=>{ e.preventDefault(); openContact(); });
+document.getElementById('contactClose').addEventListener('click', closeContact);
+contactOverlay.addEventListener('click', (e)=>{ if(e.target === contactOverlay) closeContact(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeContact(); });
+
+async function submitContact(){
+  const name = cName.value.trim(), email = cEmail.value.trim(), msg = cMsg.value.trim();
+  if(!name || !msg){ cStatus.textContent = 'กรุณากรอกชื่อและข้อความ'; cStatus.className = 'contact-status err'; return; }
+  cSubmit.disabled = true; cStatus.textContent = 'กำลังส่ง...'; cStatus.className = 'contact-status';
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message: msg })
+    });
+    const data = await res.json();
+    if(res.ok && data.status === 'success'){
+      cStatus.textContent = '✅ ' + (data.message || 'ส่งข้อความเรียบร้อยแล้ว'); cStatus.className = 'contact-status ok';
+      cName.value = ''; cEmail.value = ''; cMsg.value = '';
+      setTimeout(closeContact, 1800);
+    } else {
+      cStatus.textContent = '⚠️ ' + (data.error || 'ไม่สามารถส่งได้'); cStatus.className = 'contact-status err';
+    }
+  } catch(err){
+    cStatus.textContent = '⚠️ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'; cStatus.className = 'contact-status err';
+  } finally {
+    cSubmit.disabled = false;
+  }
+}
+cSubmit.addEventListener('click', submitContact);
+</script>
+</body>
+</html>

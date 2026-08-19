@@ -10,8 +10,12 @@
 # หรือรันแบบครั้งเดียว:
 #   SNC_API_KEY="<key>" bash ops/deploy_cloudrun_cloudshell.sh
 #
-# สคริปต์จะ: clone repo (ถ้ายังไม่มี) → build image → deploy + ตั้ง SNC_API_KEY
-# อ้างอิง: doc/BLUEPRINT_5CORE.md, doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md
+# สคริปต์จะ: clone repo (ถ้ายังไม่มี) → build image → deploy + ตั้ง env ทั้งหมด
+#   env บังคับ: SNC_API_KEY
+#   env เลือกได้ (เพื่อแจ้งเตือน + SNC-Bot บน Cloud Run):
+#     GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+# อ้างอิง: doc/BLUEPRINT_5CORE.md, doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md,
+#         doc/wiki/GEMINI_API_KEY_ROTATION_GUIDE.md
 # ============================================================================
 set -euo pipefail
 
@@ -132,8 +136,24 @@ else
   gcloud builds submit --config "$WORK_DIR/api/cloudbuild.yaml" --project "$PROJECT_ID" "$WORK_DIR" || { echo "❌ gcloud builds submit ล้มเหลว" >&2; exit 1; }
 fi
 
+# ── รวม env ทั้งหมด (รวมตัวเลือกสำหรับแจ้งเตือน + SNC-Bot) ──────────────────
+# หากไม่ส่งตัวแปรเหล่านี้ Cloud Run จะ deploy ได้但 SNC-Bot/แจ้งเตือนจะไม่ทำงาน
+EXTRA_ENV="SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+if [ -n "${GEMINI_API_KEY:-}" ]; then
+  EXTRA_ENV="$EXTRA_ENV,GEMINI_API_KEY=$GEMINI_API_KEY"
+  echo "✅ GEMINI_API_KEY พร้อม (len ${#GEMINI_API_KEY}) — SNC-Bot จะตอบอัตโนมัติได้"
+else
+  echo "  ⚠️ ไม่พบ GEMINI_API_KEY — SNC-Bot บน Cloud Run จะตอบแบบสอบถามเท่านั้น"
+fi
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+  EXTRA_ENV="$EXTRA_ENV,TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID"
+  echo "✅ TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID พร้อม — ฟอร์มติดต่อจะแจ้งเตือนได้"
+else
+  echo "  ⚠️ ไม่พบ TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID — ฟอร์มติดต่อจะบันทึกได้แต่ไม่แจ้งเตือน"
+fi
+
 # ── deploy + set env ──────────────────────────────────────────────────────
-echo "[4/4] Deploy + ตั้ง SNC_API_KEY"
+echo "[4/4] Deploy + ตั้ง env ทั้งหมด"
 # ⚠️ ต้อง deploy ด้วย digest (sha256) ไม่ใช่ tag :latest — Cloud Run cache tag ไว้
 # ถ้า deploy tag เดิมซ้ำจะไม่ re-resolve → ใช้ image เก่า (เจอจริง 07/2569)
 IMAGE_DIGEST="$(gcloud container images describe "$IMAGE_TAG" --format='value(image_summary.digest)' 2>/dev/null || true)"
@@ -148,7 +168,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --region "$REGION" \
   --allow-unauthenticated \
   --project "$PROJECT_ID" \
-  --set-env-vars "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+  --set-env-vars "$EXTRA_ENV"
 
 # ── verify ────────────────────────────────────────────────────────────────
 echo ""
@@ -189,6 +209,19 @@ if echo "$KPI" | grep -q '"total_events"'; then
 else
   echo "  ❌ Firestore: KPI อ่านไม่ได้: $KPI" >&2
   exit 1
+fi
+
+# แจ้งเตือน (ถ้ามี token) — พิสูจน์ end-to-end ว่า "พร้อมส่งการแจ้งเตือน"
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  CNOTIFY=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+    -X POST "$SERVICE_URL/api/contact" \
+    -H 'Content-Type: application/json' \
+    -d '{"name":"verify","email":"verify@nithep.com","message":"[DEPLOY VERIFY] ตรวจสอบการแจ้งเตือน Telegram"}')
+  if [ "$CNOTIFY" = "200" ]; then
+    echo "  ✅ Contact → HTTP 200 (แจ้งเตือน Telegram ส่งแล้ว)"
+  else
+    echo "  ⚠️ Contact → HTTP $CNOTIFY (ตรวจ TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID)"
+  fi
 fi
 
 echo ""

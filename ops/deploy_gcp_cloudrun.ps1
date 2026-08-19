@@ -22,6 +22,9 @@ $SERVICE_URL  = "https://snc-cloud-backend-59781590359.asia-southeast1.run.app"
 $REPO_ROOT    = Split-Path -Parent $PSScriptRoot   # root ของ repo (ops/ อยู่ใต้ root)
 $API_DIR      = Join-Path $REPO_ROOT "api"
 $SNC_API_KEY  = $env:SNC_API_KEY
+$GEMINI_API_KEY       = $env:GEMINI_API_KEY
+$TELEGRAM_BOT_TOKEN   = $env:TELEGRAM_BOT_TOKEN
+$TELEGRAM_CHAT_ID     = $env:TELEGRAM_CHAT_ID
 
 Write-Host "Target GCP Project : $PROJECT_ID" -ForegroundColor Yellow
 Write-Host "Service            : $SERVICE_NAME" -ForegroundColor Yellow
@@ -84,6 +87,30 @@ try {
     Pop-Location
 }
 
+# --- รวม env ทั้งหมด (รวมตัวเลือกสำหรับแจ้งเตือน + SNC-Bot) ---
+$envPairs = @()
+if ($SNC_API_KEY) {
+    $envPairs += "SNC_API_KEY=$SNC_API_KEY"
+    Write-Host "  ✅ SNC_API_KEY พร้อม" -ForegroundColor Green
+} else {
+    Write-Host "  ⚠️ ไม่พบ SNC_API_KEY — จะ deploy โดยไม่ตั้ง key (POST ไร้ auth)" -ForegroundColor Yellow
+}
+$envPairs += "SNC_DB_BACKEND=firestore"
+if ($GEMINI_API_KEY) {
+    $envPairs += "GEMINI_API_KEY=$GEMINI_API_KEY"
+    Write-Host "  ✅ GEMINI_API_KEY พร้อม — SNC-Bot จะตอบอัตโนมัติได้" -ForegroundColor Green
+} else {
+    Write-Host "  ⚠️ ไม่พบ GEMINI_API_KEY — SNC-Bot จะตอบแบบสอบถามเท่านั้น" -ForegroundColor Yellow
+}
+if ($TELEGRAM_BOT_TOKEN -and $TELEGRAM_CHAT_ID) {
+    $envPairs += "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN"
+    $envPairs += "TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID"
+    Write-Host "  ✅ TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID พร้อม — ฟอร์มติดต่อจะแจ้งเตือนได้" -ForegroundColor Green
+} else {
+    Write-Host "  ⚠️ ไม่พบ TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID — ฟอร์มติดต่อจะบันทึกได้แต่ไม่แจ้งเตือน" -ForegroundColor Yellow
+}
+$EXTRA_ENV = $envPairs -join ","
+
 # --- deploy + set env ---
 # ⚠️ deploy ด้วย digest (sha256) ไม่ใช่ tag :latest — Cloud Run cache tag ไว้
 # ถ้า deploy tag เดิมซ้ำจะไม่ re-resolve → ใช้ image เก่า
@@ -102,8 +129,8 @@ $deployArgs = @(
     "--allow-unauthenticated",
     "--project", $PROJECT_ID
 )
-if ($SNC_API_KEY) {
-    $deployArgs += "--set-env-vars", "SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+if ($EXTRA_ENV) {
+    $deployArgs += "--set-env-vars", $EXTRA_ENV
 }
 & gcloud @deployArgs
 if ($LASTEXITCODE -ne 0) {
@@ -150,5 +177,15 @@ if ($SNC_API_KEY) {
     }
 }
 
+# --- verify แจ้งเตือน (ถ้ามี token) ---
+if ($TELEGRAM_BOT_TOKEN -and $TELEGRAM_CHAT_ID) {
+    try {
+        $resp = Invoke-WebRequest -Uri "$SERVICE_URL/api/contact" -Method POST -ContentType "application/json" -Body '{"name":"verify","email":"verify@nithep.com","message":"[DEPLOY VERIFY] ตรวจสอบการแจ้งเตือน Telegram"}' -TimeoutSec 20
+        Write-Host "  ✅ Contact → HTTP $($resp.StatusCode) (แจ้งเตือน Telegram ส่งแล้ว)" -ForegroundColor Green
+    } catch {
+        Write-Host "  ⚠️ Contact → ไม่สำเร็จ: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 Write-Host "`n✅ Deploy เสร็จสิ้น — Service: $SERVICE_URL" -ForegroundColor Green
-Write-Host "   จำไว้ว่า: แดชบอร์ดที่ใช้ Cloud Run ต้องกรอก key เดียวกับ SNC_API_KEY ในช่องตั้งค่า ⚙️" -ForegroundColor Gray
+Write-Host "   จำไว้ว่า: support ติดต่อผ่าน snc.nithep.com แล้วแจ้งเตือนเข้า Telegram ทีมงานอัตโนมัติ" -ForegroundColor Gray

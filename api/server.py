@@ -5,13 +5,15 @@ import sys
 import json
 import logging
 import time
+import urllib.request
+import urllib.error
 from collections import defaultdict
 from datetime import datetime
-from typing import List
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from typing import List, Optional, Dict
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel
 
 # โหลด .env เอง (ไม่มี python-dotenv) — ต้องรันก่อน import services ที่อ่าน GEMINI_API_KEY
@@ -49,6 +51,15 @@ gemini_service = GeminiDirectService()
 store = get_store()
 app = FastAPI(title="Smart Nurse Call (SNC) Backend API", version="1.0.0")
 
+# ป้องกันเบราว์เซอร์/Cloudflare แคชหน้า HTML (ให้แก้บทความเห็นผลทันที)
+@app.middleware("http")
+async def no_cache_html(request: Request, call_next):
+    resp = await call_next(request)
+    ct = resp.headers.get("content-type", "")
+    if "text/html" in ct:
+        resp.headers["Cache-Control"] = "no-store, max-age=0"
+    return resp
+
 # API Auth: กัน POST /api/events/trigger จากใครก็ได้ใน LAN (เปิดใช้เมื่อตั้ง SNC_API_KEY ใน .env)
 SNC_API_KEY = os.getenv("SNC_API_KEY", "")
 
@@ -85,7 +96,9 @@ async def guard_write_endpoints(request, call_next):
         )
 
     # กันการเขียน (trigger/ack/clear/AI) จากใครก็ได้ใน LAN — GET (dashboard/poll) ยังเปิด
-    if request.method in ("POST", "PUT", "DELETE") and SNC_API_KEY:
+    # ยกเว้น endpoint สาธารณะ: /api/ai/snc-bot (แชท SNC-Bot บนหน้า Landing ไม่มีคีย์)
+    _public_no_key = {"/api/ai/snc-bot", "/api/contact"}
+    if request.method in ("POST", "PUT", "DELETE") and SNC_API_KEY and request.url.path not in _public_no_key:
         if request.headers.get("X-API-Key", "") != SNC_API_KEY:
             return JSONResponse({"error": "invalid or missing X-API-Key"}, status_code=401)
     return await call_next(request)
@@ -136,7 +149,30 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 async def serve_root():
-    """Serve the original main nurse call dashboard (index.html)."""
+    """Serve the SNC marketing landing page (landing.html) as the public home."""
+    landing_path = os.path.join(static_dir, "landing.html")
+    if os.path.exists(landing_path):
+        return FileResponse(landing_path)
+    # Fallback ไปหน้า Dashboard หากยังไม่ได้ deploy landing
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return RedirectResponse(url="/dashboard-status.html")
+
+@app.get("/landing")
+@app.get("/landing.html")
+async def serve_landing():
+    """Serve the SNC marketing landing page explicitly."""
+    landing_path = os.path.join(static_dir, "landing.html")
+    if os.path.exists(landing_path):
+        return FileResponse(landing_path)
+    return RedirectResponse(url="/")
+
+@app.get("/dashboard")
+@app.get("/dashboard/")
+@app.get("/index.html")
+async def serve_dashboard():
+    """Serve the main nurse call dashboard (index.html)."""
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
@@ -144,13 +180,24 @@ async def serve_root():
         return RedirectResponse(url="/dashboard-status.html")
 
 @app.get("/dashboard-status.html")
-async def serve_dashboard():
+async def serve_dashboard_status():
     """Serve the status dashboard HTML file."""
     dashboard_path = os.path.join(static_dir, "dashboard-status.html")
     if os.path.exists(dashboard_path):
         return FileResponse(dashboard_path)
     else:
         return {"error": "Dashboard not found. Please deploy dashboard-status.html to app/"}
+
+@app.get("/{page}.html")
+async def serve_html_page(page: str):
+    """เสิร์ฟไฟล์ .html ทั่วไปจาก app/ (เช่น บทความ roi.html) อย่างปลอดภัย"""
+    if ".." in page or "/" in page or "\x00" in page:
+        raise HTTPException(status_code=404, detail="Not found")
+    real_static = os.path.realpath(static_dir)
+    real = os.path.realpath(os.path.join(real_static, page + ".html"))
+    if os.path.isfile(real) and real.startswith(real_static + os.sep):
+        return FileResponse(real)
+    raise HTTPException(status_code=404, detail="Not found")
 
 @app.get("/downloads")
 async def serve_downloads():
@@ -415,6 +462,97 @@ async def send_daily_summary_to_chat(webhook_url: str = None):
         "ai_summary": summary_text
     }
 
+class SncBotRequest(BaseModel):
+    message: str
+    history: Optional[List[Dict[str, str]]] = None
+
+@app.post("/api/ai/snc-bot")
+async def snc_bot_chat(req: SncBotRequest, request: Request):
+    """SNC-Bot: เอเจนต์ตอบคำถามเฉพาะระบบ Smart Nurse Call (Gemini Free Tier, ประหยัดโทเคน)"""
+    client_ip = request.client.host if request.client else "unknown"
+    if _rate_limited(client_ip, store=_bot_hits, limit=5, window=60):
+        return JSONResponse({"error": "ส่งคำถามบ่อยเกินไป กรุณารอสักครู่ (1 นาที)"}, status_code=429)
+    msg = (req.message or "").strip()
+    if not msg:
+        return JSONResponse({"error": "กรุณาระบุข้อความคำถาม"}, status_code=400)
+    if len(msg) > 2000:
+        return JSONResponse({"error": "ข้อความคำถามยาวเกินไป (สูงสุด 2000 ตัวอักษร)"}, status_code=400)
+    answer = await gemini_service.ask_snc_bot(msg, req.history)
+    return {"status": "success", "answer": answer}
+
+class ContactRequest(BaseModel):
+    name: str
+    email: str = ""
+    message: str
+
+# ตัวจำกัดอัตราเบื้องต้น (ป้องกัน spam/โควต้า_free_tier บน endpoint สาธารณะ) — ต่อ IP, 5 ครั้ง/นาที
+_contact_hits = {}
+_bot_hits = {}
+
+def _rate_limited(client_ip: str, store: dict = None, limit: int = 5, window: int = 60) -> bool:
+    if store is None:
+        store = _contact_hits
+    now = time.time()
+    hits = store.get(client_ip, [])
+    hits = [t for t in hits if now - t < window]
+    if len(hits) >= limit:
+        store[client_ip] = hits
+        return True
+    hits.append(now)
+    store[client_ip] = hits
+    return False
+
+def _send_telegram(text: str) -> bool:
+    """แจ้งเตือนทีมงานผ่าน Telegram (graceful หากไม่ได้ตั้ง Token/Chat ID)"""
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat = os.getenv("TELEGRAM_CHAT_ID")
+    if not (token and chat):
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = json.dumps({"chat_id": chat, "text": text, "parse_mode": "HTML"}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status == 200
+    except Exception as e:
+        logging.error(f"Telegram contact notify failed: {e}")
+        return False
+
+@app.post("/api/contact")
+async def contact_submit(req: ContactRequest, request: Request):
+    """รับข้อความติดต่อจากฟอร์มบน Landing แล้วบันทึก + แจ้งเตือนทีมงาน (Telegram)"""
+    client_ip = request.client.host if request.client else "unknown"
+    if _rate_limited(client_ip):
+        return JSONResponse({"error": "ส่งข้อความบ่อยเกินไป กรุณารอสักครู่ (1 นาที)"}, status_code=429)
+
+    name = (req.name or "").strip()
+    email = (req.email or "").strip()
+    message = (req.message or "").strip()
+    if not name or not message:
+        return JSONResponse({"error": "กรุณากรอกชื่อและข้อความ"}, status_code=400)
+    if len(name) > 100 or len(message) > 2000 or len(email) > 200:
+        return JSONResponse({"error": "ข้อมูลยาวเกินที่กำหนด"}, status_code=400)
+
+    # บันทึกเก็บไว้ในไฟล์ (contacts.jsonl) ที่รากโปรเจกต์
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_path = os.path.join(root, "contacts.jsonl")
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "ts": datetime.now().isoformat(timespec="seconds"),
+                "name": name, "email": email, "message": message, "ip": client_ip
+            }, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logging.error(f"_contact log write failed: {e}")
+
+    notified = _send_telegram(
+        f"📩 <b>ข้อความติดต่อใหม่จาก snc.nithep.com</b>\n"
+        f"👤 ชื่อ: {name}\n"
+        f"✉️ อีเมล: {email or '-'}\n"
+        f"💬 ข้อความ: {message}"
+    )
+    return {"status": "success", "notified": notified, "message": "ส่งข้อความถึงทีมงานเรียบร้อยแล้ว"}
+
 @app.post("/api/admin/reset-kpi")
 def reset_kpi_stats(request: Request):
     """Admin endpoint to reset KPI statistics (clears event history for calculation)."""
@@ -435,6 +573,42 @@ def reset_database(request: Request):
     store.reset()
     logging.warning("Database has been reset by admin command.")
     return {"status": "success", "message": "All events cleared."}
+
+# ═══ SEO: robots.txt + sitemap.xml ═══
+_SITE_URL = "https://snc.nithep.com"
+
+@app.get("/robots.txt", response_class=Response)
+def robots_txt():
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        f"Sitemap: {_SITE_URL}/sitemap.xml\n"
+    )
+    return Response(content=body, media_type="text/plain; charset=utf-8")
+
+@app.get("/sitemap.xml", response_class=Response)
+def sitemap_xml():
+    urls = [
+        ("/", "weekly", "1.0"),
+        ("/landing.html", "weekly", "0.8"),
+        ("/roi.html", "monthly", "0.7"),
+        ("/snc-vs-imported.html", "monthly", "0.7"),
+        ("/how-to-phonik.html", "monthly", "0.7"),
+        ("/dashboard", "monthly", "0.5"),
+    ]
+    locs = "\n".join(
+        f'  <url><loc>{_SITE_URL}{path}</loc><changefreq>{freq}</changefreq>'
+        f'<priority>{prio}</priority></url>'
+        for path, freq, prio in urls
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'{locs}\n'
+        '</urlset>\n'
+    )
+    return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 @app.get("/health")
 def health_check():

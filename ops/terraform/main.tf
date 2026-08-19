@@ -67,6 +67,19 @@ resource "google_secret_manager_secret_version" "monitor_webhook_token" {
   secret_data = var.monitor_webhook_token
 }
 
+resource "google_secret_manager_secret" "gemini_api_key" {
+  project   = var.project_id
+  secret_id = "snc-gemini-api-key"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "gemini_api_key" {
+  secret      = google_secret_manager_secret.gemini_api_key.id
+  secret_data = var.gemini_api_key
+}
+
 # ── Cloud Run: snc-cloud-backend ──────────────────────────────────────────
 resource "google_cloud_run_v2_service" "backend" {
   project  = var.project_id
@@ -90,11 +103,34 @@ resource "google_cloud_run_v2_service" "backend" {
           }
         }
       }
+      env {
+        name  = "GEMINI_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.gemini_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name  = "TELEGRAM_CHAT_ID"
+        value = var.telegram_chat_id
+      }
+      env {
+        name  = "TELEGRAM_BOT_TOKEN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.telegram_bot_token.secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
   depends_on = [
     google_secret_manager_secret_version.snc_api_key,
+    google_secret_manager_secret_version.gemini_api_key,
     google_secret_manager_secret_version.telegram_bot_token,
     google_secret_manager_secret_version.monitor_webhook_token,
     google_firestore_database.snc,
@@ -182,6 +218,20 @@ resource "google_secret_manager_secret_iam_member" "bridge_bot_accessor" {
 resource "google_secret_manager_secret_iam_member" "backend_apikey_accessor" {
   project   = var.project_id
   secret_id = google_secret_manager_secret.snc_api_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_bot_accessor" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.telegram_bot_token.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_gemini_accessor" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.gemini_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.run_sa.email}"
 }

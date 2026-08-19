@@ -14,6 +14,29 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # ⚠️ ต้อง set ใน .
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GOOGLE_CHAT_WEBHOOK_URL = os.getenv("GOOGLE_CHAT_WEBHOOK_URL", "")
 
+# ── SNC-Bot: Cache + Off-topic guard (ประหยัดโทเคน + กันคำถามนอกเหนือ SNC) ──
+_SNC_BOT_CACHE = {}          # message(lower) -> answer  (แคชคำตอบซ้ำ ประหยัดโทเคน Free Tier)
+_SNC_BOT_MAX_CACHE = 300
+_SNC_FALLBACK_MSG = (
+    "ขออภัยครับ ระบบ AI ไม่พร้อมให้บริการชั่วคราว "
+    "(อาจเกินโควต้ารายวันของ Gemini Free Tier หรือไม่พบ API Key) "
+    "กรุณาลองใหม่ในอีกสักครู่ หรือติดต่อทีมงานผ่านปุ่ม 'ติดต่อทีมงาน' ครับ"
+)
+_SNC_REFUSE_MSG = (
+    "ขออภัยครับ ผมคือ SNC-Bot ผู้ช่วยระบบ Smart Nurse Call เท่านั้น "
+    "สามารถตอบคำถามได้เฉพาะเรื่องระบบ SNC (Nurse Call, ปุ่มกด/สายฉุกเฉิน, Dashboard, SLA, "
+    "สถาปัตยกรรม และการดูแลผู้ป่วย) หากต้องการสอบถามเรื่องอื่น แนะนำติดต่อทีมงานผ่านปุ่ม 'ติดต่อทีมงาน' ครับ"
+)
+_SNC_TOPIC_KEYWORDS = [
+    "snc", "พยาบาล", "เรียก", "nurse", "nurses", "pbx", "phonik", "help call", "helpcall",
+    "dashboard", "sla", "ห้อง", "ปุ่ม", "ฉุกเฉิน", "emergency", "เซิร์ฟเวอร์", "server", "servers",
+    "raspberry", "pi 4", "pi4", "cloudflare", "fhir", "outbox", "idempot", "โรงพยาบาล",
+    "ผู้ป่วย", "ack", "acknowledge", "เคลียร์", "clear", "listener", "telnet", "smdr", "bridge",
+    "telegram", "api", "เว็บ", "หน้าเว็บ", "ติดตั้ง", "deploy", "ops", "monitor", "alarm", "เสียง",
+    "เวร", "ward", "หัวเตียง", "สาย", "cord", "handset", "หมอ", "คลินิก", "nithep", "helpcall",
+    "acknowledged", "resolution", "response time", "latency", "เวชระเบียน", "ห้องพัก", "call station"
+]
+
 class GeminiDirectService:
     """Service for interacting with Gemini Direct REST API (Google AI Studio) or OpenRouter API via zero-dependency HTTP requests."""
     
@@ -28,7 +51,7 @@ class GeminiDirectService:
             self.model = model or GEMINI_MODEL
             self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
 
-    def _sync_generate_content(self, prompt: str, max_retries: int = 3) -> Optional[str]:
+    def _sync_generate_content(self, prompt: str, max_retries: int = 3, max_output_tokens: int = 2048) -> Optional[str]:
         """Synchronous HTTP POST using standard urllib supporting both Gemini Native API and OpenRouter API."""
         if not self.api_key:
             logger.warning("API_KEY is not configured.")
@@ -48,8 +71,8 @@ class GeminiDirectService:
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.2,
-                "max_tokens": 2048
-            }
+                    "max_tokens": max_output_tokens
+                }
         else:
             url = f"{self.base_url}?key={self.api_key}"
             headers = {"Content-Type": "application/json"}
@@ -59,7 +82,7 @@ class GeminiDirectService:
                 ],
                 "generationConfig": {
                     "temperature": 0.2,
-                    "maxOutputTokens": 2048
+                    "maxOutputTokens": max_output_tokens
                 }
             }
 
@@ -98,10 +121,10 @@ class GeminiDirectService:
         
         return "❌ การเชื่อมต่อ API ล้มเหลวหลังจากพยายามหลายครั้ง"
 
-    async def generate_content(self, prompt: str, max_retries: int = 3) -> Optional[str]:
+    async def generate_content(self, prompt: str, max_retries: int = 3, max_output_tokens: int = 2048) -> Optional[str]:
         """Asynchronous wrapper for generate_content."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._sync_generate_content, prompt, max_retries)
+        return await loop.run_in_executor(None, self._sync_generate_content, prompt, max_retries, max_output_tokens)
 
     async def generate_daily_executive_summary(self, kpi_data: Dict[str, Any], recent_events: List[Dict[str, Any]]) -> str:
         """Generate an executive summary report in professional Thai using Gemini AI with Local Fallback Engine."""
@@ -230,6 +253,71 @@ class GeminiDirectService:
         if not result or result.startswith("❌"):
             count = len(room_events)
             result = f"วิเคราะห์ประวัติห้อง {room_id} (รวม {count} รายการ): พบการกดเรียกฉุกเฉินและได้รับการตอบรับแล้ว หากมีการกดเรียกซ้ำใน 90 วินาที แนะนำให้ส่งพยาบาลตรวจสอบหน้าห้องพักทันที"
+        return result
+
+    async def ask_snc_bot(self, message: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+        """SNC-Bot: เอเจนต์ตอบคำถามเฉพาะระบบ Smart Nurse Call (ประหยัดโทเคน — ไม่ใช้ RAG ไม่โหลดเอกสารทั้งหมด)
+
+        วิธีประหยัดโทเคนที่สุด:
+        - ใช้ System Instruction กะทัดรัด + ฐานความรู้ SNC สรุป (~300 tokens) ฝังใน prompt แทนการ embed เอกสารหลัก
+        - จำกัดประวัติสนทนาเฉพาะ 6 ปมสุดท้าย และจำกัดโทเคน output ที่ 1024
+        """
+        # ฐานความรู้ SNC สรุปกระชับ (แทนการโหลด doc/ ทั้งหมด)
+        snc_knowledge = (
+            "ข้อมูลพื้นฐานระบบ SNC (Smart Nurse Call) โดย nithep:\n"
+            "- ฮาร์ดแวร์: ตู้ Phonik PBX (รุ่น DX-32C/80C/144C) + บอร์ด Help Call (Call Station v.107) เชื่อมต่อ Raspberry Pi 4\n"
+            "- ประเภทเหตุการณ์: เรียกพยาบาลจากหัวเตียง (Bedside) / ฉุกเฉินห้องน้ำหรือดึงสาย (Emergency Pull) / ยกหูโทรศัพท์ (Handset)\n"
+            "- สถานะ: กำลังเรียก (Active) -> รับเรื่องแล้ว (Acknowledged) -> เคลียร์เสร็จสิ้น (Cleared)\n"
+            "- Pipeline: PBX พ่น SMDR ผ่าน Telnet (:23) -> snc_pbx_listener แปลงเป็น HL7 FHIR JSON + Event Outbox (idempotency) -> "
+            "snc-backend (FastAPI + SQLite WAL) -> ส่ง WebSocket กระจายไป Nurse Dashboard\n"
+            "- Dashboard: Grid ห้องพัก (เขียว=ปกติ, แดงกะพริบ=ฉุกเฉิน, เหลือง=รับเรื่องแล้ว) + เสียง Alarm + จับเวลา SLA\n"
+            "- เกณฑ์ SLA: รับเรื่อง (Ack) <= 30 วินาที, เคลียร์ (Resolution) <= 180 วินาที, เป้าหมายปฏิบัติตาม >= 98%\n"
+            "- สถาปัตยกรรม: Edge (Pi 4 หน้าโรงพยาบาล) + Cloud (GCP Cloud Run / Firestore) + Cloudflare Tunnel (snc.nithep.com)\n"
+            "- ความทนทาน: API Key, Outbox+Idempotency, systemd Restart=always, SQLite WAL + Backup\n"
+        )
+
+        system_instruction = (
+            "คุณคือ 'SNC-Bot' ผู้ช่วย AI ประจำระบบ Smart Nurse Call (SNC) ของ nithep เท่านั้น\n"
+            "ขอบเขตการตอบ: เฉพาะเรื่อง SNC ได้แก่ การใช้งาน Nurse Call, ปุ่มกด/สายฉุกเฉิน, Dashboard, SLA, "
+            "สถาปัตยกรรม (Phonik PBX + Help Call + Raspberry Pi 4 + Cloud Run + Cloudflare Tunnel) และขั้นตอน Ops\n"
+            "กฎการตอบ:\n"
+            "1. ตอบภาษาไทย สุภาพ กระชับ ใช้เกณฑ์ SLA: รับเรื่อง <= 30 วินาที, เคลียร์ <= 180 วินาที\n"
+            "2. ห้ามเปิดเผยข้อมูลส่วนบุคคลผู้ป่วย (PHI) หากถูกถาม ให้ปฏิเสธอย่างสุภาพ\n"
+            "3. หากคำถามอยู่นอกเหนือระบบ SNC ให้แจ้งว่าสามารถตอบได้เฉพาะเรื่องระบบ SNC เท่านั้น\n"
+            "4. ไม่แต่งตัวเลขหรือข้อเท็จจริงที่ไม่มีในบริบทที่ให้มา\n"
+        )
+
+        # [ข้อ 3] Off-topic guard: หากไม่มีคำสำคัญเรื่อง SNC เลย ปฏิเสธโดยไม่เรียก API (ประหยัดโทเคน)
+        lowered = message.lower()
+        if not any(kw in lowered for kw in _SNC_TOPIC_KEYWORDS):
+            return _SNC_REFUSE_MSG
+
+        # [ข้อ 4] Cache: ตอบคำถามเดิมซ้ำได้ทันทีโดยไม่เสียโทเคน
+        cache_key = lowered.strip()
+        if cache_key in _SNC_BOT_CACHE:
+            return _SNC_BOT_CACHE[cache_key]
+
+        # ประวัติสนทนา: เก็บเฉพาะ 6 ปมสุดท้าย (ประหยัดโทเคน)
+        convo = ""
+        if history:
+            for turn in history[-6:]:
+                role = "ผู้ใช้" if turn.get("role") == "user" else "SNC-Bot"
+                convo += f"{role}: {turn.get('text', '')}\n"
+
+        prompt = (
+            f"{system_instruction}\n"
+            f"--- ฐานความรู้ SNC โดย nithep ---\n{snc_knowledge}\n"
+            f"--- ประวัติการสนทนา ---\n{convo}"
+            f"ผู้ใช้: {message}\nSNC-Bot:"
+        )
+        result = await self.generate_content(prompt, max_output_tokens=1024)
+
+        # [ข้อ 2] จัดการกรณี API Error / เกินโควต้า / ไม่พบคีย์ → ข้อความไทยสุภาพแทน error ดิบ
+        if not result or result.startswith("❌") or "ไม่พบ API Key" in result:
+            return _SNC_FALLBACK_MSG
+
+        if len(_SNC_BOT_CACHE) < _SNC_BOT_MAX_CACHE:
+            _SNC_BOT_CACHE[cache_key] = result
         return result
 
     async def send_google_chat_summary(self, webhook_url: str, summary_text: str, kpi_data: Dict[str, Any]) -> bool:

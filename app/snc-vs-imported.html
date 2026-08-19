@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="เปรียบเทียบ SNC vs ระบบเรียกพยาบาลนำเข้า (Imported Nurse Call) ต้นทุน การติดตั้ง รายงาน SLA/AI การสนับสนุนในประเทศ และเจ้าของข้อมูล HL7 FHIR เพื่อเลือกให้คุ้มที่สุด">
+<meta name="theme-color" content="#060a13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E">
+<title>SNC vs ระบบเรียกพยาบาลนำเข้า — เลือกแบบไหนคุ้มกว่า | SNC</title>
+<link rel="canonical" href="https://snc.nithep.com/snc-vs-imported.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNC — Smart Nurse Call">
+<meta property="og:title" content="SNC vs ระบบเรียกพยาบาลนำเข้า — เลือกแบบไหนคุ้มกว่า">
+<meta property="og:description" content="เปรียบเทียบต้นทุน การติดตั้ง รายงาน SLA/AI และการสนับสนุนในประเทศ ระหว่าง SNC (ดัดแปลง Phonik PBX + Pi 4) กับระบบเรียกพยาบาลนำเข้า">
+<meta property="og:url" content="https://snc.nithep.com/snc-vs-imported.html">
+<meta property="og:locale" content="th_TH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SNC vs ระบบเรียกพยาบาลนำเข้า">
+<meta name="twitter:description" content="เลือกระบบเรียกพยาบาลแบบไหนคุ้มกว่า? เปรียบเทียบ SNC vs นำเข้า ครบทุกมิติ">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "SNC vs ระบบเรียกพยาบาลนำเข้า — เลือกแบบไหนคุ้มกว่า",
+  "author": { "@type": "Person", "name": "นิเทพ เชิญสวัสดิ์ (Nithep Choensawat)" },
+  "publisher": { "@type": "Organization", "name": "nithep.com", "url": "https://snc.nithep.com" },
+  "datePublished": "2026-08-20",
+  "inLanguage": "th",
+  "mainEntityOfPage": "https://snc.nithep.com/snc-vs-imported.html",
+  "description": "เปรียบเทียบ SNC (ดัดแปลง Phonik PBX + Raspberry Pi 4) กับระบบเรียกพยาบาลนำเข้า ในมิติต้นทุน การติดตั้ง รายงาน SLA/AI การสนับสนุนในประเทศ และเจ้าของข้อมูล HL7 FHIR"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#060a13; --bg-1:#0b1222; --bg-2:#0f172a;
+  --card:rgba(255,255,255,0.045); --card-strong:rgba(255,255,255,0.07);
+  --stroke:rgba(148,163,184,0.16); --stroke-strong:rgba(148,163,184,0.28);
+  --text:#f1f5f9; --text-dim:#94a3b8; --text-faint:#64748b;
+  --indigo:#6366f1; --violet:#8b5cf6; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b;
+  --grad-soft:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(56,189,248,0.08));
+  --radius:18px; --font:'Prompt',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:radial-gradient(1200px 600px at 70% -10%,rgba(99,102,241,0.18),transparent),var(--bg-0);color:var(--text);line-height:1.75;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:var(--blue);text-decoration:none}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:700}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
+.brand small{display:block;font-size:11px;color:var(--text-faint);font-weight:500;letter-spacing:1px}
+.btn{display:inline-block;padding:13px 22px;border-radius:12px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid transparent;font-size:15px}
+.btn-primary{background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff}
+.btn-ghost{background:var(--card-strong);border-color:var(--stroke-strong);color:var(--text)}
+header.art{padding:48px 0 22px}
+.kicker{font-family:var(--mono);font-size:13px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;line-height:1.2;margin:0.5rem 0 1rem}
+.meta{color:var(--text-faint);font-size:14px;margin-bottom:8px}
+.lead{color:var(--text-dim);font-weight:300;font-size:1.12rem}
+article{padding:10px 0 40px}
+section.blk{margin:38px 0}
+h2{font-size:clamp(1.4rem,3.5vw,1.9rem);font-weight:700;margin-bottom:0.9rem;padding-top:6px}
+h3{font-size:1.15rem;font-weight:600;margin:1.4rem 0 0.6rem;color:#e2e8f0}
+p{color:var(--text-dim);font-weight:300;margin:0.7rem 0}
+strong{color:var(--text);font-weight:600}
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);padding:22px 24px;margin:18px 0}
+.card.grad{background:var(--grad-soft);border-color:var(--stroke-strong)}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px;overflow:hidden;border-radius:14px}
+th,td{border:1px solid var(--stroke);padding:11px 13px;text-align:left;vertical-align:top}
+th{background:rgba(99,102,241,0.14);color:#e2e8f0;font-weight:600}
+td.sn{background:rgba(16,185,129,0.07);color:#bbf7d0;font-weight:500}
+td.im{background:rgba(248,113,113,0.06);color:#fecaca;font-weight:500}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+ul{margin:0.6rem 0 0.6rem 1.2rem;color:var(--text-dim);font-weight:300}
+li{margin:0.35rem 0}
+.note{font-size:13px;color:var(--text-faint);font-style:italic}
+.cta-box{text-align:center;border-radius:var(--radius);padding:44px 28px;background:var(--grad-soft);border:1px solid var(--stroke-strong);margin:40px 0}
+.cta-box h2{font-size:clamp(1.6rem,4vw,2.2rem)}
+.cta-box p{color:var(--text-dim);margin:0.6rem auto 1.6rem;max-width:520px}
+footer{border-top:1px solid var(--stroke);padding:30px 0;color:var(--text-faint);font-size:14px}
+.faq{margin:14px 0}
+.faq dt{font-weight:600;color:var(--text);margin-top:14px}
+.faq dd{color:var(--text-dim);font-weight:300;margin:4px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/"><span class="logo">+</span><span>SNC<small>SMART NURSE CALL · nithep.com</small></span></a>
+    <a class="btn btn-ghost" href="/">← กลับหน้าหลัก</a>
+  </nav>
+
+  <header class="art">
+    <div class="kicker">Compare · Buyer's Guide</div>
+    <h1>SNC vs ระบบเรียกพยาบาลนำเข้า<br>เลือกแบบไหนคุ้มกว่า?</h1>
+    <div class="meta">เผยแพร่ 20 ส.ค. 2569 · โดย นิเทพ เชิญสวัสดิ์ (Nithep Choensawat) · อ่าน 7 นาที</div>
+    <p class="lead">เมื่อโรงพยาบาลหรือศูนย์ดูแลผู้สูงอายุตัดสินใจติดตั้งระบบเรียกพยาบาล คำถามแรกคือ <strong>"เอาระบบสำเร็จรูปนำเข้าดี หรือ ใช้ SNC ที่ดัดแปลงอุปกรณ์ที่มีอยู่?"</strong> บทความนี้เปรียบเทียบทุกมิติที่ส่งผลต่อต้นทุนและการใช้งานจริง เพื่อให้ตัดสินใจได้แม่นยำ</p>
+  </header>
+
+  <article>
+    <section class="blk">
+      <h2>1. สองทางเลือกในตลาด</h2>
+      <div class="card">
+        <h3 style="margin-top:0">ระบบนำเข้า (Imported Nurse Call)</h3>
+        <p>ระบบสำเร็จรูปจากผู้ผลิตต่างประเทศ (จีน/ยุโรป/สหรัฐ) มักเป็นฮาร์ดแวร์เฉพาะทาง พร้อม headend, ป้ายห้อง, และสถานีพยาบาล โดยขายผ่านตัวแทนในประเทศ</p>
+      </div>
+      <div class="card grad">
+        <h3 style="margin-top:0">SNC (Smart Nurse Call)</h3>
+        <p>ดัดแปลงตู้ <strong>Phonik PBX</strong> + บอร์ด <strong>Help Call</strong> ที่โรงพยาบาลมีแล้ว ให้ <strong>Raspberry Pi 4</strong> แปลสัญญาณเป็นเหตุการณ์ แสดง Dashboard เว็บ + รายงาน SLA/AI มาตรฐาน <strong>HL7 FHIR</strong></p>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>2. ตารางเปรียบเทียบ 8 มิติ</h2>
+      <table>
+        <thead>
+          <tr><th>มิติ</th><th>SNC (ดัดแปลง PBX + Pi 4)</th><th>ระบบนำเข้าสำเร็จรูป</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ต้นทุนฮาร์ดแวร์หลัก</td><td class="sn">฿0 (ใช้ Phonik ที่มี) + Pi 4 ~฿2,500</td><td class="im">฿100,000–500,000+</td></tr>
+          <tr><td>ค่าเดินสาย/ติดตั้ง</td><td class="sn">฿0–5,000 (ต่อยอดเดิม)</td><td class="im">฿30,000–150,000</td></tr>
+          <tr><td>เวลาส่งมอบ</td><td class="sn">วันนี้ (ซอฟต์แวร์ฟรี + Pi 4 หาง่าย)</td><td class="im">1–4 เดือน (นำเข้า/รอของ)</td></tr>
+          <tr><td>รายงาน SLA / AI สรุป</td><td class="sn">มี (เว็บ + พรีเมี่ยมรายเดือน)</td><td class="im">บางรุ่นมี / เสียเพิ่มสูง</td></tr>
+          <tr><td>การสนับสนุนในประเทศ</td><td class="sn">ทีมงานไทย ใกล้ชิด</td><td class="im">ขึ้นอยู่กับตัวแทนท้องถิ่น</td></tr>
+          <tr><td>เจ้าของข้อมูล / มาตรฐาน</td><td class="sn">SQLite + HL7 FHIR (คุณควบคุม)</td><td class="im">มัก Lock-in กับแพลตฟอร์มผู้ผลิต</td></tr>
+          <tr><td>การขยายเตียง/อาคาร</td><td class="sn">เพิ่มได้ไม่เสียฮาร์ดแวร์หลัก</td><td class="im">คิดเพิ่มเป็นก้อนใหญ่</td></tr>
+          <tr><td>การบำรุงรักษา</td><td class="sn">Pi 4 ทดแทนง่าย/ถูก</td><td class="im">ต้องอะไหล่เฉพาะรุ่น/นำเข้า</td></tr>
+        </tbody>
+      </table>
+      <p class="note">* ตัวเลขเป็นช่วงประมาณการเพื่อการประเมินเบื้องต้น ไม่ใช่ใบเสนอราคาผูกพัน</p>
+    </section>
+
+    <section class="blk">
+      <h2>3. ทำไมระบบนำเขาบางรายการถึงแพง</h2>
+      <ul>
+        <li><strong>ค่าขนส่ง + ภาษีนำเข้า:</strong> ฮาร์ดแวร์หนัก/ใหญ่ เสียค่าระวาง + ภาษี</li>
+        <li><strong>ค่าลิขสิทธิ์/Software:</strong> หลายรายคิดรายปีต่อเตียงหรือต่อสถานี</li>
+        <li><strong>ค่าตัวแทน:</strong> ผ่านชั้นกลางหลายทอดในประเทศ</li>
+        <li><strong>ค่าเดินสายเฉพาะทาง:</strong> ช่างต้องผ่านการรับรองจากผู้ผลิต</li>
+      </ul>
+    </section>
+
+    <section class="blk">
+      <h2>4. จุดอ่อนของ SNC (พูดตรงไปตรงมา)</h2>
+      <div class="card">
+        <ul>
+          <li>ต้องมี <strong>Phonik PBX</strong> เดิม หรือต่อบอร์ด Help Call เข้า Pi 4 โดยตรง — หากยังไม่มีโครงสร้างนี้ ต้องเริ่มจากจุดนั้น</li>
+          <li>ไม่มีฮาร์ดแวร์ปุ่มเรียกฉุกเฉิน <strong>ไร้สายสำเร็จรูป</strong> ในชุดมาตรฐาน (ต้องประกอบเพิ่มตามความเหมาะสม)</li>
+          <li>ทีมไอทีต้องเปิดระบบเองหรือใช้แพ็กเกจสนับสนุน — ไม่มี "กดปุ่มแล้วจบ" แบบของสำเร็จรูป</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>5. แล้วเมื่อไหร่ควรเลือกแบบไหน</h2>
+      <h3>เลือก SNC เมื่อ</h3>
+      <ul>
+        <li>มี Phonik PBX / Help Call อยู่แล้ว และอยากประหยัดงบ</li>
+        <li>ต้องการรายงาน SLA + AI สรุปผู้บริหารสำหรับศูนย์ดูแลผู้สูงอายุ</li>
+        <li>ต้องการควบคุมข้อมูลเอง (FHIR) และขยายทีละเฟส</li>
+      </ul>
+      <h3>เลือกระบบนำเขาเมื่อ</h3>
+      <ul>
+        <li>ต้องการฮาร์ดแวร์เรียกฉุกเฉินไร้สายครบชุด พร้อมประกันจากผู้ผลิตระดับสากล</li>
+        <li>มีงบประมาณโครงการใหญ่ และต้องการมาตรฐานผู้ผลิตเดียวจบ</li>
+        <li>สถานที่ใหม่ที่ไม่มีโครงสร้าง PBX เดิมเลย</li>
+      </ul>
+    </section>
+
+    <section class="blk">
+      <h2>6. คำถามที่พบบ่อย (FAQ)</h2>
+      <dl class="faq">
+        <dt>SNC คุณภาพด้อยกว่าระบบนำเขาหรือไม่?</dt>
+        <dd>ไม่เสมอไป ในมุมรายงาน/AI/การควบคุมข้อมูล SNC เทียบเท่าหรือดีกว่าในบางมิติ ส่วนฮาร์ดแวร์ปุ่มเรียกฉุกเฉินสำเร็จรูป ระบบนำเขาจะพร้อมใช้กว่า</dd>
+        <dt>ถ้าไม่มี Phonik PBX ล่วงหน้า ทำได้ไหม?</dt>
+        <dd>ได้ครับ ต่อบอร์ด Help Call เข้า Pi 4 โดยตรง หรือประเมินร่วมกับทีมงานเพื่อออกแบบให้เหมาะสม</dd>
+        <dt>รับประกันและซ่อมเป็นอย่างไร?</dt>
+        <dd>Pi 4 เป็นฮาร์ดแวร์ทั่วไป ทดแทนง่ายและราคาถูก ส่วนซอฟต์แวร์มีแพ็กเกจสนับสนุนรายเดือน/โปรเจกต์</dd>
+        <dt>ข้อมูลปลอดภัยหรือไม่?</dt>
+        <dd>บันทึกลง SQLite ในเครื่องคุณ มาตรฐาน HL7 FHIR รองรับนำส่งผู้กำกับดูแลได้ตามกฎหมาย</dd>
+      </dl>
+    </section>
+
+    <div class="cta-box">
+      <h2>ไม่แน่ใจว่าตรงสถานที่คุณ?</h2>
+      <p>ส่งข้อมูลจำนวนเตียง สภาพระบบเดิม และงบประมาณ ให้ทีมงานประเมินระหว่าง SNC กับตัวเลือกนำเขาแบบไม่มีอคติ</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/?utm_source=vs&utm_medium=cta&utm_campaign=snc_vs">ขอใบเสนอราคา</a>
+        <a class="btn btn-ghost" href="roi.html?utm_source=vs&utm_medium=cta&utm_campaign=snc_roi">อ่านบทความ ROI</a>
+      </div>
+    </div>
+  </article>
+
+  <footer>
+    <div>© 2026 nithep.com — Production-Grade Smart Systems 🏥 · สอบถามระบบได้ที่ <a href="https://snc.nithep.com">snc.nithep.com</a> : snc-bot</div>
+    <div style="margin-top:6px">📍 47 หมู่ 6 ต.ป่าสัก อ.เชียงแสน จ.เชียงราย 57150</div>
+    <div style="margin-top:6px">☎ <a href="https://snc.nithep.com/">ติดต่อผ่าน SNC-Bot / ฟอร์มติดต่อ</a> · 📊 <a href="roi.html">คำนวณ ROI</a></div>
+  </footer>
+</div>
+</body>
+</html>

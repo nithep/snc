@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="คำนวณ ROI ระบบ Smart Nurse Call (SNC) เปรียบเทียบต้นทุนระบบเรียกพยาบาลแบบเดิม vs ดัดแปลง Phonik PBX + Raspberry Pi 4 สำหรับโรงพยาบาลและศูนย์ดูแลผู้สูงอายุ">
+<meta name="theme-color" content="#060a13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E">
+<title>คำนวณ ROI ระบบ Smart Nurse Call — ลงทุนครั้งเดียว จบที่ Pi 4 | SNC</title>
+<link rel="canonical" href="https://snc.nithep.com/roi.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNC — Smart Nurse Call">
+<meta property="og:title" content="คำนวณ ROI ระบบ Smart Nurse Call — ลงทุนครั้งเดียว จบที่ Pi 4">
+<meta property="og:description" content="เปรียบเทียบต้นทุนระบบเรียกพยาบาลแบบเดิม vs ดัดแปลง Phonik PBX + Raspberry Pi 4 พร้อมสูตร ROI และกรณีศึกษาศูนย์ดูแลผู้สูงอายุ">
+<meta property="og:url" content="https://snc.nithep.com/roi.html">
+<meta property="og:locale" content="th_TH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="คำนวณ ROI ระบบ Smart Nurse Call">
+<meta name="twitter:description" content="ระบบเรียกพยาบาลคุ้มไหม? เปรียบเทียบต้นทุน + สูตร ROI สำหรับโรงพยาบาลและศูนย์ดูแลผู้สูงอายุ">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "คำนวณ ROI ระบบ Smart Nurse Call — ลงทุนครั้งเดียว จบที่ Raspberry Pi 4",
+  "author": { "@type": "Person", "name": "นิเทพ เชิญสวัสดิ์ (Nithep Choensawat)" },
+  "publisher": { "@type": "Organization", "name": "nithep.com", "url": "https://snc.nithep.com" },
+  "datePublished": "2026-08-20",
+  "inLanguage": "th",
+  "mainEntityOfPage": "https://snc.nithep.com/roi.html",
+  "description": "เปรียบเทียบต้นทุนระบบเรียกพยาบาลแบบเดิมกับ SNC ที่ดัดแปลง Phonik PBX + Help Call บน Raspberry Pi 4 พร้อมสูตรคำนวณ ROI และกรณีศึกษาศูนย์ดูแลผู้สูงอายุ"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#060a13; --bg-1:#0b1222; --bg-2:#0f172a;
+  --card:rgba(255,255,255,0.045); --card-strong:rgba(255,255,255,0.07);
+  --stroke:rgba(148,163,184,0.16); --stroke-strong:rgba(148,163,184,0.28);
+  --text:#f1f5f9; --text-dim:#94a3b8; --text-faint:#64748b;
+  --indigo:#6366f1; --violet:#8b5cf6; --blue:#38bdf8; --green:#10b981; --amber:#f59e0b;
+  --grad-soft:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(56,189,248,0.08));
+  --radius:18px; --font:'Prompt',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:radial-gradient(1200px 600px at 70% -10%,rgba(99,102,241,0.18),transparent),var(--bg-0);color:var(--text);line-height:1.75;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:var(--blue);text-decoration:none}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:700}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
+.brand small{display:block;font-size:11px;color:var(--text-faint);font-weight:500;letter-spacing:1px}
+.btn{display:inline-block;padding:13px 22px;border-radius:12px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid transparent;font-size:15px}
+.btn-primary{background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff}
+.btn-ghost{background:var(--card-strong);border-color:var(--stroke-strong);color:var(--text)}
+header.art{padding:48px 0 22px}
+.kicker{font-family:var(--mono);font-size:13px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;line-height:1.2;margin:0.5rem 0 1rem}
+.meta{color:var(--text-faint);font-size:14px;margin-bottom:8px}
+.lead{color:var(--text-dim);font-weight:300;font-size:1.12rem}
+article{padding:10px 0 40px}
+section.blk{margin:38px 0}
+h2{font-size:clamp(1.4rem,3.5vw,1.9rem);font-weight:700;margin-bottom:0.9rem;padding-top:6px}
+h3{font-size:1.15rem;font-weight:600;margin:1.4rem 0 0.6rem;color:#e2e8f0}
+p{color:var(--text-dim);font-weight:300;margin:0.7rem 0}
+strong{color:var(--text);font-weight:600}
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);padding:22px 24px;margin:18px 0}
+.card.grad{background:var(--grad-soft);border-color:var(--stroke-strong)}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px;overflow:hidden;border-radius:14px}
+th,td{border:1px solid var(--stroke);padding:12px 14px;text-align:left;vertical-align:top}
+th{background:rgba(99,102,241,0.14);color:#e2e8f0;font-weight:600}
+td.yes{color:var(--green);font-weight:500}
+td.no{color:#f87171;font-weight:500}
+.formula{font-family:var(--mono);background:#0b1222;border:1px solid var(--stroke);border-radius:12px;padding:16px;color:#cbd5e1;font-size:14px;overflow-x:auto}
+ul{margin:0.6rem 0 0.6rem 1.2rem;color:var(--text-dim);font-weight:300}
+li{margin:0.35rem 0}
+.note{font-size:13px;color:var(--text-faint);font-style:italic}
+.cta-box{text-align:center;border-radius:var(--radius);padding:44px 28px;background:var(--grad-soft);border:1px solid var(--stroke-strong);margin:40px 0}
+.cta-box h2{font-size:clamp(1.6rem,4vw,2.2rem)}
+.cta-box p{color:var(--text-dim);margin:0.6rem auto 1.6rem;max-width:520px}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+footer{border-top:1px solid var(--stroke);padding:30px 0;color:var(--text-faint);font-size:14px}
+.faq{margin:14px 0}
+.faq dt{font-weight:600;color:var(--text);margin-top:14px}
+.faq dd{color:var(--text-dim);font-weight:300;margin:4px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/"><span class="logo">+</span><span>SNC<small>SMART NURSE CALL · nithep.com</small></span></a>
+    <a class="btn btn-ghost" href="/">← กลับหน้าหลัก</a>
+  </nav>
+
+  <header class="art">
+    <div class="kicker">ROI · Healthcare IoT</div>
+    <h1>คำนวณ ROI ระบบ Smart Nurse Call<br>ลงทุนครั้งเดียว จบที่ Raspberry Pi 4</h1>
+    <div class="meta">เผยแพร่ 20 ส.ค. 2569 · โดย นิเทพ เชิญสวัสดิ์ (Nithep Choensawat) · อ่าน 8 นาที</div>
+    <p class="lead">โรงพยาบาลและศูนย์ดูแลผู้สูงอายุส่วนใหญ่มีตู้สาขาโทรศัพท์ <strong>Phonik PBX</strong> กับบอร์ด <strong>Help Call</strong> อยู่แล้ว เพียงดัดแปลงให้ทำงานบน <strong>Raspberry Pi 4</strong> ก็ได้ระบบแจ้งเตือนพยาบาลเรียลไทม์พร้อมรายงาน — โดยไม่ต้องเดินสายหรือซื้อระบบใหม่ทั้งหมด บทความนี้วางสูตรคำนวณ ROI ให้ประเมินความคุ้มค่าได้เอง</p>
+  </header>
+
+  <article>
+    <section class="blk">
+      <h2>1. ปัญหาของระบบเรียกพยาบาลแบบเดิม</h2>
+      <p>ระบบเรียกพยาบาล (Nurse Call) แบบดั้งเดิมมักเป็น <strong>ระบบปิดเฉพาะทาง</strong> ที่ต้องเดินสายไฟกันเอง มีห้องควบคุมแยก และไม่มีการบันทึกเหตุการณ์เป็นข้อมูลดิจิทัล เมื่อเกิดเหตุฉุกเฉินพยาบาลมักไม่ทราบ <strong>เวลาตอบสนองจริง (Response Time)</strong> และผู้บริหารไม่มีรายงานนำไปปรับปรุงคุณภาพบริการ</p>
+      <div class="card">
+        <h3 style="margin-top:0">ต้นทุนที่ซ่อนอยู่ในระบบเดิม</h3>
+        <ul>
+          <li>ค่าอุปกรณ์ + เดินสายใหม่: <strong>สูง</strong> (อุปกรณ์เฉพาะทาง + ช่างติดตั้ง)</li>
+          <li>ไม่มีข้อมูล SLA → ประเมินคุณภาพไม่ได้ → เสี่ยงต่อการกำกับดูแล</li>
+          <li>ขยายเตียง/อาคารใหม่ต้องจ่ายเพิ่มเป็นก้อนใหญ่</li>
+          <li>แจ้งเตือนเข้าห้องพยาบาลอย่างเดียว ไม่มี Dashboard เรียลไทม์บนเว็บ</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>2. ทำไม SNC ถึงคุ้มกว่า</h2>
+      <p>SNC ใช้วิธี <strong>รีไซเคิลสิ่งที่มีอยู่แล้ว</strong>: ตู้ Phonik PBX (DX-32C/80C/144C) และบอร์ด Help Call (Call Station v.107) ที่โรงพยาบาลมี แล้วให้ <strong>Raspberry Pi 4</strong> รับสัญญาณ SMDR แปลเป็นเหตุการณ์ แสดงบน Dashboard เว็บ พร้อมส่ง Telegram/WebSocket และบันทึกลง SQLite — มาตรฐาน <strong>HL7 FHIR</strong></p>
+      <div class="card grad">
+        <h3 style="margin-top:0">สิ่งที่ SNC ให้มาพร้อม</h3>
+        <ul>
+          <li>จับเวลาตอบสนองพยาบาลทุกครั้ง → รายงาน SLA รายวัน/รายเดือน</li>
+          <li>Dashboard เรียลไทม์ สีเขียว/แดงกะพริบ/เหลือง รับเรื่องแล้ว</li>
+          <li>AI สรุปผู้บริหาร (Executive Summary) สำหรับศูนย์ดูแลผู้สูงอายุ</li>
+          <li>ขยายเตียงได้โดยไม่เสียค่าฮาร์ดแวร์หลักเพิ่ม</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>3. ตารางเปรียบเทียบต้นทุน (ประมาณการ)</h2>
+      <p class="note">* ตัวเลขเป็นช่วงประมาณการเพื่อการประเมินเบื้องต้น ไม่ใช่ใบเสนอราคาผูกพัน ราคาจริงขึ้นอยู่กับขนาดและสภาพโครงสร้างเดิม</p>
+      <table>
+        <thead>
+          <tr><th>รายการ</th><th>ระบบเดิม (ใหม่ทั้งหมด)</th><th>SNC (ดัดแปลง PBX + Pi 4)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>อุปกรณ์หลัก</td><td>฿40,000–150,000+</td><td class="yes">฿0 (ใช้ Phonik ที่มี)</td></tr>
+          <tr><td>เดินสาย/ติดตั้ง</td><td>฿20,000–80,000</td><td class="yes">฿0–5,000 (ต่อยอดบอร์ดเดิม)</td></tr>
+          <tr><td>Hardware เพิ่ม</td><td>—</td><td>Pi 4 + SD ~฿2,500</td></tr>
+          <tr><td>Software / Dashboard</td><td>มีค่าสิทธิ์รายปี</td><td class="yes">เปิดให้ติดตั้งเองฟรี</td></tr>
+          <tr><td>รายงาน SLA / AI สรุป</td><td class="no">ไม่มี/เสียเพิ่ม</td><td class="yes">มี (พรีเมี่ยมรายเดือน)</td></tr>
+          <tr><td>ลงทุนครั้งแรก (ประมาณ)</td><td>฿60,000–230,000</td><td class="yes">฿2,500–8,000 + สนับสนุน</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="blk">
+      <h2>4. สูตรคำนวณ ROI</h2>
+      <p>ความคุ้มค่าวัดจากระยะเวลาคืนทุน (Payback) และผลตอบแทนการลงทุน (ROI):</p>
+      <div class="formula">ROI (%) = (ประหยัดได้ต่อปี − ลงทุนครั้งแรก) ÷ ลงทุนครั้งแรก × 100<br>
+Payback (เดือน) = ลงทุนครั้งแรก ÷ ประหยัดได้ต่อเดือน</div>
+      <p>ประหยัดต่อเดือนมาจาก 3 ส่วน: (ก) ไม่เสียค่าติดตั้งระบบใหม่, (ข) ลดเวลาเยี่ยมซ้ำซ้อน/โอทีพยาบาล, (ค) ลดความเสี่ยงเหตุการณ์พลาดที่อาจนำไปสู่ค่าชดเชย</p>
+    </section>
+
+    <section class="blk">
+      <h2>5. กรณีศึกษา: ศูนย์ดูแลผู้สูงอายุ 50 เตียง</h2>
+      <div class="card">
+        <h3 style="margin-top:0">สมมติฐาน (ประมาณการ)</h3>
+        <ul>
+          <li>ระบบเดิมใหม่: ~฿120,000 (อุปกรณ์+เดินสาย) → <strong>SNC ประหยัดได้ตรงนี้</strong></li>
+          <li>ประหยัดค่าโอที/ลดเยี่ยมซ้ำ: ประเมิน <strong>฿3,000–5,000/เดือน</strong></li>
+          <li>ลงทุน SNC: Pi 4 + SD + ต่อยอด ~฿5,000 (ครั้งเดียว)</li>
+          <li>สนับสนุนพรีเมี่ยม (ถ้าต้องการรายงาน AI): <strong>รายเดือน</strong> ตามแพ็กเกจ</li>
+        </ul>
+      </div>
+      <p><strong>Payback</strong> = ฿5,000 ÷ ฿4,000 ≈ <strong>1.25 เดือน</strong> (กรณีประหยัดขั้นต่ำ) และหากนับประหยัดค่าติดตั้งระบบใหม่ทั้งก้อน คืนทุนทันทีในเดือนแรก</p>
+      <p><strong>ROI ปีแรก</strong> ≈ (฿48,000 − ฿5,000) ÷ ฿5,000 × 100 ≈ <strong>860%</strong> (ประมาณการเครื่องหมายฐานจากประหยัดรายเดือนเท่านั้น ยังไม่รวมค่าติดตั้งใหม่ที่ข้ามพ้น)</p>
+      <p class="note">ตัวเลขนี้เพื่อแสดงหลักการคำนวณ ไม่ใช่การรับประกันผลทางการเงินจริง</p>
+    </section>
+
+    <section class="blk">
+      <h2>6. มูลค่าซ่อนเร้นที่ตัวเลขไม่เคยบอก</h2>
+      <ul>
+        <li><strong>ผ่านการกำกับดูแล:</strong> รายงาน SLA พร้อมมาตรฐาน FHIR ส่งให้ผู้กำกับดูแล/ญาติได้สบาย</li>
+        <li><strong>ลดความเสี่ยง:</strong> ครบเวลาตอบสนอง → ลดเหตุการณ์พลาดที่อาจนำไปสู่ค่าชดเชย/คดี</li>
+        <li><strong>ขยายwithout กลัวต้นทุน:</strong> เพิ่มเตียง/อาคารใหม่ ไม่เสียฮาร์ดแวร์หลัก</li>
+        <li><strong>สายต่องานพยาบาล:</strong> Dashboard ช่วยลำดับความเร่งด่วน ลดความเครียดทีม</li>
+      </ul>
+    </section>
+
+    <section class="blk">
+      <h2>7. คำถามที่พบบ่อย (FAQ)</h2>
+      <dl class="faq">
+        <dt>SNC ใช้ได้กับศูนย์ดูแลผู้สูงอายุหรือไม่?</dt>
+        <dd>ได้ครับ รองรับทั้งโรงพยาบาลและศูนย์ดูแลผู้สูงอายุ (Long-term Care) พร้อมรีพอร์ตบริการแบบพรีเมี่ยม</dd>
+        <dt>ถ้าไม่มี Phonik PBX ล่วงหน้า ทำได้ไหม?</dt>
+        <dd>ได้ครับ สามารถเริ่มจากบอร์ด Help Call ต่อเข้า Pi 4 โดยตรง หรือประเมินร่วมกับทีมงาน</dd>
+        <dt>รายงานพรีเมี่ยมคิดอย่างไร?</dt>
+        <dd>เป็นแพ็กเกจรายเดือน/โปรเจกต์ ครอบคลุม AI สรุปผู้บริหาร และฝึกอบรม ไม่บังคับสำหรับการติดตั้งเอง</dd>
+        <dt>คืนทุนจริงใช้เวลาเท่าไหร่?</dt>
+        <dd>จากกรณีศึกษา 50 เตียง ประเมินประมาณ 1–3 เดือน ขึ้นอยู่กับค่าโอทีที่ประหยัดได้จริง</dd>
+      </dl>
+    </section>
+
+    <div class="cta-box">
+      <h2>อยากทราบ ROI เฉพาะสถานที่ของคุณ?</h2>
+      <p>ส่งข้อมูลจำนวนเตียงและสภาพระบบเดิมมาให้ทีมงานประเมินใบเสนอราคาและระยะคืนทุนแบบเฉพาะจังหวะ</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/?utm_source=roi&utm_medium=cta&utm_campaign=snc_roi">ขอใบเสนอราคา</a>
+        <a class="btn btn-ghost" href="/index.html?utm_source=roi&utm_medium=cta&utm_campaign=snc_dash">ดู Dashboard ตัวอย่าง</a>
+      </div>
+    </div>
+  </article>
+
+  <footer>
+    <div>© 2026 nithep.com — Production-Grade Smart Systems 🏥 · สอบถามระบบได้ที่ <a href="https://snc.nithep.com">snc.nithep.com</a> : snc-bot</div>
+    <div style="margin-top:6px">📍 47 หมู่ 6 ต.ป่าสัก อ.เชียงแสน จ.เชียงราย 57150</div>
+    <div style="margin-top:6px">☎ <a href="https://snc.nithep.com/">ติดต่อผ่าน SNC-Bot / ฟอร์มติดต่อ</a> · 📊 <a href="snc-vs-imported.html">เปรียบเทียบ SNC vs ระบบนำเข้า</a></div>
+  </footer>
+</div>
+</body>
+</html>

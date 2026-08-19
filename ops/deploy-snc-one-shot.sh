@@ -37,7 +37,12 @@ SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 # ไฟล์ที่จะ deploy: [ชื่อใน repo : path บน Pi]
 FILES=(
   "api/server.py:api/server.py"
+  "api/services/gemini_direct_service.py:api/services/gemini_direct_service.py"
   "app/index.html:app/index.html"
+  "app/landing.html:app/landing.html"
+  "app/roi.html:app/roi.html"
+  "app/snc-vs-imported.html:app/snc-vs-imported.html"
+  "app/how-to-phonik.html:app/how-to-phonik.html"
   "app/dashboard-status.html:app/dashboard-status.html"
   "pbx/snc_pbx_listener.py:pbx/snc_pbx_listener.py"
   "ops/snc-backend.service:ops/snc-backend.service"
@@ -135,7 +140,7 @@ else
   for spec in "${FILES[@]}"; do
     local_path="$REPO_ROOT/${spec%%:*}"
     remote_path="${spec#*:}"
-    remote_md5=$(ssh "${SSH_OPTS[@]}" "$PI_HOST" "md5sum \"$REMOTE_BASE/$remote_path\" 2>/dev/null | awk '{print \$1}'" 2>/dev/null || true)
+    remote_md5=$(ssh "${SSH_OPTS[@]}" "$PI_HOST" "md5sum \"$REMOTE_ROOT/$remote_path\" 2>/dev/null | awk '{print \$1}'" 2>/dev/null || true)
     local_md5=$(md5sum "$local_path" | awk '{print $1}')
 
     if [ -z "$remote_md5" ]; then
@@ -179,11 +184,11 @@ step "4/8 ถ่ายโอนไฟล์ (scp)"
 for spec in "${FILES[@]}"; do
   local_path="$REPO_ROOT/${spec%%:*}"
   remote_path="${spec#*:}"
-  info "→ $local_path → $PI_HOST:$REMOTE_BASE/$remote_path"
+  info "→ $local_path → $PI_HOST:$REMOTE_ROOT/$remote_path"
   if [ "$DRY_RUN" -eq 1 ]; then
     ok "(dry-run) scp $local_path"
   else
-    scp "${SSH_OPTS[@]}" "$local_path" "$PI_HOST:$REMOTE_BASE/$remote_path" \
+    scp "${SSH_OPTS[@]}" "$local_path" "$PI_HOST:$REMOTE_ROOT/$remote_path" \
       || die "scp ล้มเหลว: $remote_path"
     ok "ส่ง $remote_path สำเร็จ"
   fi
@@ -202,7 +207,7 @@ else
     local_path="$REPO_ROOT/${spec%%:*}"
     remote_path="${spec#*:}"
     local_md5=$(md5sum "$local_path" | awk '{print $1}')
-    remote_md5=$(ssh "${SSH_OPTS[@]}" "$PI_HOST" "md5sum \"$REMOTE_BASE/$remote_path\" | awk '{print \$1}'" 2>/dev/null || true)
+    remote_md5=$(ssh "${SSH_OPTS[@]}" "$PI_HOST" "md5sum \"$REMOTE_ROOT/$remote_path\" | awk '{print \$1}'" 2>/dev/null || true)
     if [ "$local_md5" = "$remote_md5" ]; then
       ok "$remote_path md5 ตรงกัน ($local_md5)"
     else
@@ -240,7 +245,7 @@ systemctl is-active snc-backend.service snc-pbx-listener.service || true
 echo "--- health ---"
 curl -s --max-time 5 http://localhost:8000/health; echo
 echo "--- dashboard markers ---"
-echo -n "v2 markers found: "; grep -c "SNC v2.0" $REMOTE_ROOT/app/index.html || true
+echo -n "v2 markers found: "; grep -c "SNC v2.0" "${REMOTE_ROOT}/app/index.html" || true
 curl -s --max-time 5 http://localhost:8000/ | grep -o "<title>[^<]*</title>" || true
 echo "--- recent backend errors ---"
 sudo journalctl -u snc-backend.service --since "5 minutes ago" --no-pager 2>/dev/null | grep -iE "error|traceback|exception" | tail -5 || true
@@ -250,7 +255,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
   info "(dry-run) ssh $PI_HOST ตรวจ services/health/dashboard/log"
   ok "Verify จำลองผ่าน"
 else
-  ssh "${SSH_OPTS[@]}" "$PI_HOST" "bash -s" <<< "$VERIFY_SCRIPT" || warn "verify script บางส่วนไม่สมบูรณ์ (ดู output ด้านบน)"
+  ssh "${SSH_OPTS[@]}" "$PI_HOST" "REMOTE_ROOT='$REMOTE_ROOT' bash -s" <<< "$VERIFY_SCRIPT" || warn "verify script บางส่วนไม่สมบูรณ์ (ดู output ด้านบน)"
   SERVICES_ACTIVE=$(ssh "${SSH_OPTS[@]}" "$PI_HOST" "systemctl is-active $SERVICE $SIBLING_SERVICE 2>/dev/null | paste -sd ',' -")
   case "$SERVICES_ACTIVE" in
     "active,active") ok "Services ทั้งคู่ active" ;;
@@ -286,12 +291,11 @@ echo "${C_GREEN}${C_BOLD}=======================================================
 echo ""
 echo "  ไฟล์ที่ deploy:"
 for spec in "${FILES[@]}"; do
-  echo "    • ${spec%%:*} → $PI_HOST:$REMOTE_BASE/${spec#*:}"
+  echo "    • ${spec%%:*} → $PI_HOST:$REMOTE_ROOT/${spec#*:}"
 done
 echo ""
-echo "  Backup (สำหรับย้อนกลับ): $BACKUP_PREFIX"
-echo "    sudo cp $BACKUP_PREFIX $REMOTE_BASE/server.py"
-echo "    sudo cp $REMOTE_BASE/public/index.html.bak.$TS $REMOTE_BASE/public/index.html"
+echo "  Backup (สำหรับย้อนกลับ): ${REMOTE_ROOT}/api/server.py.bak.$TS"
+echo "    sudo cp ${REMOTE_ROOT}/api/server.py.bak.$TS ${REMOTE_ROOT}/api/server.py"
 echo "    sudo systemctl restart $SERVICE"
 echo ""
 if [ "$DRY_RUN" -eq 1 ]; then

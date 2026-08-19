@@ -54,6 +54,60 @@ brand **nithep** (`https://snc.nithep.com`).
    covering Pi/Server, Cloud Run, and Client whenever a service with a secret is
    added.
 
+## Public website, SEO & content marketing (added 2026-08-20)
+
+The public site lives at **`https://snc.nithep.com`** (Cloudflare Tunnel → `localhost:8000`
+on Pi4 `pi4`, `SNC_ROOT=/home/ecs-agent/snc`). Used for **lead generation + monetization**.
+
+### Routes (in `api/server.py`)
+- `/` → Landing (`app/landing.html`) · `/dashboard` + `/index.html` → Nurse Dashboard
+- `/landing.html`, `/roi.html`, `/snc-vs-imported.html`, `/how-to-phonik.html` → content pages
+- Generic **`/@app.get("/{page}.html")`** serves any `app/*.html` safely (realpath-checked, blocks `..`).
+  Add a new article page by dropping an `.html` in `app/` + linking it; no new route needed.
+- `GET /robots.txt`, `GET /sitemap.xml` (lists `/`, `/landing.html`, `/roi.html`,
+  `/snc-vs-imported.html`, `/how-to-phonik.html`, `/dashboard`).
+- `POST /api/ai/snc-bot` (SNC-Bot, Gemini free tier, **exempt from X-API-Key**, rate-limited 5/min/IP,
+  off-topic guard + fallback + answer cache) · `POST /api/contact` (stores `contacts.jsonl` +
+  Telegram notify, rate-limited, exempt from key).
+
+### SEO implemented (On-page)
+- **JSON-LD**: `SoftwareApplication` (landing) + `FAQPage` + `LocalBusiness`
+  (name `nithep.com`, founder นิเทพ เชิญสวัสดิ์, address `47 ม.6 ต.ป่าสัก อ.เชียงแสน จ.เชียงราย 57150`,
+  tel `+66819508950`, `geo` lat 20.2807338 lng 100.0156355, `hasMap`) +
+  `Article` JSON-LD on every content page.
+- `canonical` + Open Graph + Twitter Card on all pages. `robots.txt` + `sitemap.xml`.
+- **LocalBusiness phone is masked** in visible footer (links to SNC-Bot/contact modal) but
+  kept in `LocalBusiness` JSON-LD for NAP consistency.
+- After any change: register **Google Search Console** + submit `/sitemap.xml`; resubmit on new pages.
+
+### Landing page sections (`app/landing.html`)
+hero → stats → features → workflow → arch → history (3-row event table) → tech →
+**`#care` (เฮลท์แคร์ผู้สูงอายุ + รีพอร์ตพรีเมี่ยม)** → CTA. Footer has NAP + article links.
+
+### Content articles (drive SEO + leads)
+- `roi.html` — คำนวณ ROI (ต้นทุน vs ระบบเดิม, สูตร ROI, กรณีศึกษา 50 เตียง)
+- `snc-vs-imported.html` — เปรียบเทียบ SNC vs ระบบนำเข้า (8 มิติ)
+- `how-to-phonik.html` — วิธีติดตั้งบน Phonik PBX + **ระบบ SOS CALL** (ดูข้อด้านล่าง)
+
+### Monetization model
+Free self-host (Pi 4) + Managed Cloud/SLA + **Premium Service Reporting** (AI Executive
+Summary, SLA reports) for elderly-care / long-term care. Lead capture via SNC-Bot + contact form.
+
+### SOS CALL integration (Emergency Call)
+Phonik **SOS CALL** (DX-SOS station, NCX-LED lamp, NCX-BUZ buzzer, PI-32G Master Console,
+NCX-N-DSP/NCX-B-DSP displays, MDF90/180; capacity 24+2 / 48+2 / 64 for DX-32C/80C/144C,
+DX-SERIES V.6.4rl). SNC captures the SMDR `e.{room}` **EC** event → Dashboard blinks red +
+times **Response Time** until Clear at Master Console → logged as FHIR/SQLite → feeds Premium
+reports. Documented in `doc/wiki/phonik_nurse_call_knowledge.md` §7.1.
+
+### Deploy & caching notes
+- `ops/deploy-snc-one-shot.sh` (5-Core). **Add every new `app/*.html` to the `FILES=(...)`
+  array** or it won't be uploaded. Drift-check backs up before overwrite.
+- Cloudflare may cache HTML → a `no-store, max-age=0` `Cache-Control` middleware was added
+  for `text/html` responses so content edits appear immediately (hard-refresh if stale).
+- Test pattern: write Python to `C:\Users\Nithep\AppData\Local\Temp\opencode\`, `scp` to
+  `pi4:/tmp`, run with `python3`. PowerShell `curl`/`grep` are unreliable — use `bash` or Python.
+
 ## Security notes
 
 - All PBX control commands go through a Verifier (Safety First).
