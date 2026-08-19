@@ -39,6 +39,13 @@ playwright-report/
 *.sqlite
 *.pid
 
+# SNC runtime data (ข้อมูลส่วนบุคคล/สุขภาพ — ห้าม commit ตาม PDPA)
+# ฟอร์มติดต่อบน Landing เขียน PII ลง contacts.jsonl ที่ root repo ขณะรัน
+contacts.jsonl
+# Event outbox / log ของ pbx listener (อาจมีข้อมูลห้อง/เหตุการณ์ผู้ป่วย)
+pbx/*.outbox.jsonl
+pbx/outbox*.jsonl
+
 # Python cache & compiled bytecode
 __pycache__/
 *.py[cod]
