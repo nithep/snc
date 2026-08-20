@@ -1,9 +1,9 @@
 # 🔀 SNC — Migration Runbook (5-Core Restructure)
 
-> ⚠️ **สถานะจริง (15 ส.ค. 2569):** การย้ายไป `nithep/snc` **ไม่เคยเกิดขึ้นจริง** —
-> บน Pi เหลือเพียง `nithep/snc/app/` (ว่างเปล่า) ส่วน **production จริงคือ `/home/ecs-agent/snc-poc`**
-> (systemd, cron, และ DB ทั้งหมดชี้มาที่นี่ และจัดโครงสร้าง 5-Core แล้ว: `api/ app/ pbx/ ops/ doc/`)
-> เอกสารนี้จึงเก็บไว้เป็นประวัติการวางแผน — อย่าทำตามขั้นตอนย้ายไป `nithep/snc` อีก
+> ✅ **สถานะจริง (อัปเดต 20 ส.ค. 2569):** การย้ายโครงสร้าง 5-Core **เสร็จสมบูรณ์แล้ว** —
+> production ปัจจุบันอยู่ที่ `/home/ecs-agent/snc` (systemd, cron, DB ทั้งหมดชี้มาที่นี่ และจัดโครงสร้าง 5-Core แล้ว)
+> ยืนยันจากการปฏิบัติจริงใน session นี้ (ได้ restart `snc-opencode`/`snc-cloudflared` ที่ `/home/ecs-agent/snc` สำเร็จ)
+> เอกสารนี้เก็บเป็น **ประวัติการย้าย (historical)** — อ่านเพื่อทำความเข้าใจการแมป path เดิม→ใหม่ ไม่ใช่คู่มือ deploy ปัจจุบัน
 >
 > เอกสารนี้บันทึกการย้ายโครงสร้าง SNC จาก `snc-poc/` (monorepo `hotel-ecs-checkin`)
 > มาอยู่ในโครงสร้าง 5-Core มาตรฐาน — ใช้เป็นคู่มือสำหรับการ Deploy
@@ -28,7 +28,7 @@
 
 | รายการ | เดิม | ใหม่ |
 |---|---|---|
-| Root โครงการ | `/home/ecs-agent/snc-poc` | `/home/ecs-agent/nithep/snc` |
+| Root โครงการ | `/home/ecs-agent/snc-poc` | `/home/ecs-agent/snc` |
 | Backend (systemd) | `.../snc-poc/backend` | `.../nithep/snc/api` |
 | Dashboard (static) | `.../snc-poc/backend/public` | `.../nithep/snc/app` |
 | Listener (systemd) | `.../snc-poc/pbx-connector` | `.../nithep/snc/pbx` |
@@ -41,7 +41,7 @@
 | ไฟล์ | การแก้ไข |
 |---|---|
 | `api/server.py` | `static_dir` → `../app` (เดิม `public`) |
-| `ops/deploy-snc-one-shot.sh` | `REMOTE_ROOT=/home/ecs-agent/nithep/snc`, FILES → `api/` + `app/` |
+| `ops/deploy-snc-one-shot.sh` | `REMOTE_ROOT=/home/ecs-agent/snc`, FILES → `api/` + `app/` |
 | `ops/burnin-monitor.sh` / `burnin-reminder.sh` / `backup-snc-db.sh` | path → `nithep/snc`, DB → `api/` |
 | `ops/monitor-snc-status.sh` / `verify-installation.sh` / `view-logs.sh` / `start-snc-system.sh` | logs dir + scripts |
 | `ops/quick_start.sh` / `quick_start.ps1` / `setup_pi.sh` | path → `app/`, `api/`, `~/nithep/snc` |
@@ -61,7 +61,7 @@ sudo systemctl stop snc-backend.service snc-pbx-listener.service
 # Backup ระบบเดิมก่อนย้าย (สำคัญมาก)
 sudo cp -r /home/ecs-agent/snc-poc /home/ecs-agent/snc-poc.bak.$(date +%Y%m%d)
 # สร้างโครงสร้างใหม่
-mkdir -p /home/ecs-agent/nithep/snc/{api,app,pbx,ops,doc,logs}
+mkdir -p /home/ecs-agent/snc/{api,app,pbx,ops,doc,logs}
 ```
 
 ### ขั้นตอนที่ 2: ย้าย/คัดลอกไฟล์
@@ -81,9 +81,9 @@ chown -R ecs-agent:ecs-agent nithep/snc
 ### ขั้นตอนที่ 3: อัปเดต systemd units
 ```bash
 sudo nano /etc/systemd/system/snc-backend.service
-# WorkingDirectory=/home/ecs-agent/nithep/snc/api
+# WorkingDirectory=/home/ecs-agent/snc/api
 sudo nano /etc/systemd/system/snc-pbx-listener.service
-# WorkingDirectory=/home/ecs-agent/nithep/snc/pbx
+# WorkingDirectory=/home/ecs-agent/snc/pbx
 sudo systemctl daemon-reload
 sudo systemctl start snc-backend.service snc-pbx-listener.service
 systemctl is-active snc-backend.service snc-pbx-listener.service
@@ -93,9 +93,9 @@ curl -s http://localhost:8000/health
 ### ขั้นตอนที่ 4: cron เดิม (ย้าย path)
 ```bash
 crontab -e
-# 0 3 * * * /home/ecs-agent/nithep/snc/ops/backup-snc-db.sh --pi
-# */5 * * * * /home/ecs-agent/nithep/snc/ops/... (pbx_watchdog)
-# 7 * * * * /home/ecs-agent/nithep/snc/ops/burnin-reminder.sh --check
+# 0 3 * * * /home/ecs-agent/snc/ops/backup-snc-db.sh --pi
+# */5 * * * * /home/ecs-agent/snc/ops/... (pbx_watchdog)
+# 7 * * * * /home/ecs-agent/snc/ops/burnin-reminder.sh --check
 ```
 
 ### ขั้นตอนที่ 5: Verify
@@ -109,7 +109,7 @@ crontab -e
 
 ```bash
 sudo systemctl stop snc-backend.service snc-pbx-listener.service
-sudo rm -rf /home/ecs-agent/nithep/snc   # ระวัง! ลบเฉพาะถ้าต้องการคืนทั้งหมด
+sudo rm -rf /home/ecs-agent/snc   # ระวัง! ลบเฉพาะถ้าต้องการคืนทั้งหมด
 sudo cp -r /home/ecs-agent/snc-poc.bak.$(date +%Y%m%d) /home/ecs-agent/snc-poc
 sudo systemctl start snc-backend.service snc-pbx-listener.service
 ```

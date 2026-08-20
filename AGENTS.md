@@ -1,5 +1,7 @@
 # โปรเจกต์ Smart Nurse Call (SNC) PoC
 
+> 📌 **แนวทาง Agent ฉบับสมบูรณ์อยู่ใน `snc` skill** (`.opencode/skills/snc/SKILL.md`) — ไฟล์นี้คือสรุปกฎระดับ repo สำหรับ agent ทั่วไปที่ไม่อ่าน skill ควบคู่กับ skill เสมอเพื่อป้องกันความคลาดเคลื่อน
+
 ## 🏥 บริบทและเป้าหมาย
 โปรเจกต์นี้คือ **ระบบ Smart Nurse Call (SNC) PoC** สำหรับโรงพยาบาล/ศูนย์ดูแลผู้ป่วย
 ซึ่งดัดแปลงตู้สาขาโทรศัพท์ Phonik PBX (รุ่น DX-32C/80C/144C) และบอร์ด Help Call (Call Station v.107) ให้ทำงานเป็นระบบแจ้งเตือนพยาบาล Real-time ผ่าน Web Application ทันสมัยบน **Raspberry Pi 4**
