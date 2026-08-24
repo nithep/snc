@@ -24,7 +24,7 @@ import logging
 import os
 import sqlite3
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 # override ได้ผ่าน env (ใช้ในการ test บนเครื่องอื่นโดยไม่แตะ production DB)
@@ -106,6 +106,7 @@ class SqliteStore:
         ensure_column("nurse_call_events", "ack_time_seconds", "INTEGER")
         ensure_column("nurse_call_events", "resolution_time_seconds", "INTEGER")
         ensure_column("nurse_call_events", "sla_breached", "BOOLEAN DEFAULT FALSE")
+        ensure_column("nurse_call_events", "source", "TEXT DEFAULT 'real'")
         conn.commit()
         conn.close()
 
@@ -115,18 +116,20 @@ class SqliteStore:
         ext = event_data.get("extension", {})
         room_id = ext["roomId"]
         event_type = ext.get("sourceEventType") or event_data["payload"][0]["contentString"]
+        source = ext.get("source", "real")
         # INSERT OR IGNORE: idempotent ตาม id — ถ้า event id มีอยู่แล้ว (ส่งซ้ำ) ไม่ทับ
         # (เดิมใช้ REPLACE ซึ่งจะทับทำลาย ack/clear — เปลี่ยนเพื่อความถูกต้องของ SLA)
         cursor.execute("""
-            INSERT OR IGNORE INTO nurse_call_events (id, room_id, event_type, status, timestamp, fhir_payload)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO nurse_call_events (id, room_id, event_type, status, timestamp, fhir_payload, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             event_data["id"],
             room_id,
             event_type,
             event_data["status"],
             ext["timestamp"],
-            json.dumps(event_data, ensure_ascii=False)
+            json.dumps(event_data, ensure_ascii=False),
+            source
         ))
         conn.commit()
         conn.close()
@@ -139,14 +142,19 @@ class SqliteStore:
         conn.close()
         return row is not None
 
-    def get_recent_events(self, limit: int = 200) -> List[dict]:
+    def get_recent_events(self, limit: int = 200, source: str = None) -> List[dict]:
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute("""
+        where, params = "", []
+        if source:
+            where = "WHERE source = ?"
+            params.append(source)
+        params.append(limit)
+        cursor.execute(f"""
             SELECT id, room_id, event_type, status, timestamp, acknowledged_at, resolved_at,
-                   ack_time_seconds, resolution_time_seconds, sla_breached
-            FROM nurse_call_events ORDER BY timestamp DESC LIMIT ?
-        """, (limit,))
+                   ack_time_seconds, resolution_time_seconds, sla_breached, source
+            FROM nurse_call_events {where} ORDER BY timestamp DESC LIMIT ?
+        """, params)
         rows = cursor.fetchall()
         conn.close()
         return self._rows_to_events(rows)
@@ -165,7 +173,8 @@ class SqliteStore:
                 "resolved_at": row[6],
                 "ack_time_seconds": row[7],
                 "resolution_time_seconds": row[8],
-                "sla_breached": row[9]
+                "sla_breached": row[9],
+                "source": row[10] if len(row) > 10 else "real"
             })
         return events
 
@@ -214,18 +223,19 @@ class SqliteStore:
         conn.close()
         return created_at, sla_metrics
 
-    def get_kpi_summary(self) -> dict:
+    def get_kpi_summary(self, source: str = None) -> dict:
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute("SELECT AVG(ack_time_seconds) FROM nurse_call_events WHERE ack_time_seconds IS NOT NULL")
+        and_src, src_params = ("AND source = ?", [source]) if source else ("", [])
+        cursor.execute(f"SELECT AVG(ack_time_seconds) FROM nurse_call_events WHERE ack_time_seconds IS NOT NULL {and_src}", src_params)
         avg_ack_time = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT AVG(resolution_time_seconds) FROM nurse_call_events WHERE resolution_time_seconds IS NOT NULL")
+        cursor.execute(f"SELECT AVG(resolution_time_seconds) FROM nurse_call_events WHERE resolution_time_seconds IS NOT NULL {and_src}", src_params)
         avg_resolution_time = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT event_type, COUNT(*) FROM nurse_call_events GROUP BY event_type")
+        cursor.execute(f"SELECT event_type, COUNT(*) FROM nurse_call_events WHERE 1=1 {and_src} GROUP BY event_type", src_params)
         events_by_type = dict(cursor.fetchall())
-        cursor.execute("SELECT COUNT(*) FROM nurse_call_events")
+        cursor.execute(f"SELECT COUNT(*) FROM nurse_call_events WHERE 1=1 {and_src}", src_params)
         total_events = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT COUNT(*) FROM nurse_call_events WHERE sla_breached = 0 OR sla_breached IS NULL")
+        cursor.execute(f"SELECT COUNT(*) FROM nurse_call_events WHERE (sla_breached = 0 OR sla_breached IS NULL) {and_src}", src_params)
         compliant_events = cursor.fetchone()[0]
         conn.close()
         if total_events == 0:
@@ -239,6 +249,44 @@ class SqliteStore:
             "events_by_type": events_by_type,
             "sla_compliance_rate": round(sla_compliance_rate, 2)
         }
+
+    def get_trend(self, source: str = "real", bucket: str = "day") -> List[dict]:
+        """ค่าเฉลี่ย SLA แบ่งตามช่วงเวลา — bucket: day (24 ชม. แบ่งชั่วโมง) | month (30 วัน แบ่งวัน) | year (12 เดือน แบ่งเดือน)"""
+        if bucket == "day":
+            cutoff = (datetime.now() - timedelta(hours=24)).isoformat()
+            group_expr = "substr(timestamp, 1, 13)"
+        elif bucket == "month":
+            cutoff = (datetime.now() - timedelta(days=30)).isoformat()
+            group_expr = "substr(timestamp, 1, 10)"
+        else:
+            cutoff = (datetime.now() - timedelta(days=365)).isoformat()
+            group_expr = "substr(timestamp, 1, 7)"
+        where, params = "WHERE timestamp >= ?", [cutoff]
+        if source:
+            where += " AND source = ?"
+            params.append(source)
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT {group_expr} AS bucket, COUNT(*),
+                   AVG(ack_time_seconds), AVG(resolution_time_seconds),
+                   SUM(CASE WHEN sla_breached THEN 1 ELSE 0 END)
+            FROM nurse_call_events
+            {where}
+            GROUP BY bucket ORDER BY bucket
+        """, params)
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            {
+                "bucket": r[0],
+                "total": r[1],
+                "avg_ack": round(r[2], 1) if r[2] is not None else None,
+                "avg_res": round(r[3], 1) if r[3] is not None else None,
+                "breached": r[4] or 0
+            }
+            for r in rows
+        ]
 
     def get_room_events(self, room_id: str, limit: int = 20) -> List[dict]:
         conn = self._connect()
@@ -292,6 +340,7 @@ class FirestoreStore:
             "ack_time_seconds": None,
             "resolution_time_seconds": None,
             "sla_breached": False,
+            "source": ext.get("source", "real"),
         }
 
     @staticmethod
@@ -308,6 +357,7 @@ class FirestoreStore:
             "ack_time_seconds": d.get("ack_time_seconds"),
             "resolution_time_seconds": d.get("resolution_time_seconds"),
             "sla_breached": d.get("sla_breached", False),
+            "source": d.get("source", "real"),
         }
 
     # ── interface ──────────────────────────────────────────────────────────
@@ -322,7 +372,19 @@ class FirestoreStore:
             "timestamp": doc["timestamp"],
         })
 
-    def get_recent_events(self, limit: int = 200) -> List[dict]:
+    def get_recent_events(self, limit: int = 200, source: str = None) -> List[dict]:
+        # ดึงมากกว่า limit แล้วกรอง source ใน Python — เลี่ยง composite index (source + timestamp)
+        out = []
+        if source:
+            fetch = max(limit * 5, 200)
+            query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(fetch)
+            for snap in query.stream():
+                ev = self._snap_to_event(snap)
+                if ev.get("source") == source:
+                    out.append(ev)
+                    if len(out) >= limit:
+                        break
+            return out
         query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(limit)
         return [self._snap_to_event(snap) for snap in query.stream()]
 
@@ -364,7 +426,7 @@ class FirestoreStore:
         ref.update({"status": "resolved"})
         return created_at, sla_metrics
 
-    def get_kpi_summary(self) -> dict:
+    def get_kpi_summary(self, source: str = None) -> dict:
         total_events = 0
         sum_ack = 0.0
         cnt_ack = 0
@@ -374,6 +436,8 @@ class FirestoreStore:
         by_type = Counter()
         for snap in self._events.stream():
             d = snap.to_dict()
+            if source and d.get("source", "real") != source:
+                continue
             total_events += 1
             by_type[d.get("event_type", "UNKNOWN")] += 1
             a = d.get("ack_time_seconds")
@@ -396,6 +460,45 @@ class FirestoreStore:
             "events_by_type": dict(by_type),
             "sla_compliance_rate": rate,
         }
+
+    def get_trend(self, source: str = "real", bucket: str = "day") -> List[dict]:
+        """ค่าเฉลี่ย SLA แบ่งช่วงเวลา — จัดกลุ่มใน Python จาก prefix ของ timestamp (ไม่ต้องมี index เพิ่ม)"""
+        if bucket == "day":
+            cutoff = (datetime.now() - timedelta(hours=24)).isoformat()
+            prefix_len = 13
+        elif bucket == "month":
+            cutoff = (datetime.now() - timedelta(days=30)).isoformat()
+            prefix_len = 10
+        else:
+            cutoff = (datetime.now() - timedelta(days=365)).isoformat()
+            prefix_len = 7
+        groups: Dict[str, Dict] = {}
+        for snap in self._events.stream():
+            d = snap.to_dict()
+            if source and d.get("source", "real") != source:
+                continue
+            ts = d.get("timestamp") or ""
+            if ts < cutoff:
+                continue
+            key = ts[:prefix_len]
+            g = groups.setdefault(key, {"total": 0, "ack": [], "res": [], "breached": 0})
+            g["total"] += 1
+            if d.get("ack_time_seconds") is not None:
+                g["ack"].append(d["ack_time_seconds"])
+            if d.get("resolution_time_seconds") is not None:
+                g["res"].append(d["resolution_time_seconds"])
+            if d.get("sla_breached"):
+                g["breached"] += 1
+        return [
+            {
+                "bucket": key,
+                "total": g["total"],
+                "avg_ack": round(sum(g["ack"]) / len(g["ack"]), 1) if g["ack"] else None,
+                "avg_res": round(sum(g["res"]) / len(g["res"]), 1) if g["res"] else None,
+                "breached": g["breached"],
+            }
+            for key, g in sorted(groups.items())
+        ]
 
     def get_room_events(self, room_id: str, limit: int = 20) -> List[dict]:
         # ดึง 200 ล่าสุดแล้วกรองห้องใน Python — หลีกเลี่ยง composite index (room_id + timestamp)

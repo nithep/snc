@@ -48,12 +48,15 @@ tags: [knowledge]
 - **15 ส.ค.** — **Burn-in 48 ชม. Complete (0 FAIL)**, เตรียม Go-Live รพ.ราชเวช ชั้น 11, Post-Burnin Field Test Plan → [[SNC_POST_BURNIN_FIELD_TEST_PLAN|Field Test Plan]]
 - **16 ส.ค.** — Cloud Run Deploy + Verify/Monitoring Hardening + **Firestore Persistent DB** (ADR 0003)
 
+### 🔁 Production Hardening & Field Config (24–25 ส.ค. 2569)
+- **24–25 ส.ค.** — Dashboard Overhaul (History redesign + แยก Real/Demo + KPI Views + Status Strip), Deploy Infra Fixes (Dockerfile `core/`, deploy script env-safe), **AI บน Cloud ผ่าน OpenRouter**, เก็บกวาด DB ทดสอบ, ผังพอร์ตตู้ as-built → [[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]] · [[PBX_PORT_ROOM_MAPPING|Port→Room Map]]
+
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
-- **[[SESSION_HANDOVER_2026-08-16|Handover 16 ส.ค.]]** — ล่าสุด: Cloud Run + Firestore + Monitoring
-- **[[SESSION_HANDOVER_2026-08-15|Handover 15 ส.ค.]]** — Burn-in Complete + แผนชั้น 11
-- **[[SESSION_HANDOVER_2026-08-13|Handover 13 ส.ค.]]** — Pre-Release → Go-Live
+- **[[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]]** — ล่าสุด: Dashboard Overhaul + Real/Demo Separation + As-built PBX Mapping
+- **[[SESSION_HANDOVER_2026-08-23|Handover 23 ส.ค.]]** — Pi4 Cleanup + SHC/SNC Separation
+- **[[SESSION_HANDOVER_2026-08-16|Handover 16 ส.ค.]]** — Cloud Run + Firestore + Monitoring
 
 > ⚠️ **อ่านเฉพาะ handover ล่าสุด** สำหรับงาน Ops/Deploy — handover เก่าครอบคลุมหัวข้ออื่น ให้ดูเฉพาะเมื่อต้องการย้อนประวัติ
 

@@ -33,9 +33,11 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# copy โค้ด backend (api/ → /app) + dashboard (app/ → /app/app)
+# copy โค้ด backend (api/ → /app) + dashboard (app/ → /app/app) + core/ (repo root → /app/core)
+# server.py import core.* — บน Pi ผ่าน _REPO_ROOT, ใน container ผ่าน uvicorn app-dir (cwd=/app)
 COPY api/ .
 COPY app/ app/
+COPY core/ core/
 
 # สร้าง user ไม่ใช่ root + ให้สิทธิ์เขียน /app (SQLite + logs)
 RUN useradd --create-home --uid 10001 nonroot \

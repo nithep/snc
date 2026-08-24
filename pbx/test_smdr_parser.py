@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 """Unit tests สำหรับ SMDR parser ใน snc_pbx_listener.py"""
+import os
+import tempfile
+import time
+
+# ควบคุม room map ด้วย fixture — ไม่พึ่ง pbx/room_map.json จริง (ผู้ใช้แก้ได้ตลอดเวลา)
+# ตั้ง env ก่อน import listener เพราะ ROOM_MAP_PATH ถูกคำนวณตอน import
+_TEST_MAP = os.path.join(tempfile.gettempdir(), "snc_test_room_map.json")
+with open(_TEST_MAP, "w", encoding="utf-8") as _f:
+    _f.write('{"501": "9901"}')
+os.environ["SNC_ROOM_MAP"] = _TEST_MAP
+
 import unittest
 from snc_pbx_listener import PhonikSNCListener, PhonikTelnetSession
 
@@ -56,6 +67,24 @@ class TestSMDRParser(unittest.TestCase):
         event = self.listener.parse_smdr_line(line)
         self.assertIsNotNone(event)
         self.assertEqual(event["extension"]["roomId"], "0402")
+
+    def test_room_map_translation(self):
+        """Port→Room mapping: 501 → 9901 ตาม fixture map"""
+        line = "==SMDX2005=03/08/26 18:59 501 e.500 EC 0:00'09 0 #1"
+        event = self.listener.parse_smdr_line(line)
+        self.assertIsNotNone(event)
+        self.assertEqual(event["extension"]["roomId"], "9901")
+
+    def test_room_map_hot_reload(self):
+        """แก้ room_map.json แล้วมีผลทันที ไม่ต้องรีสตาร์ท listener"""
+        with open(_TEST_MAP, "w", encoding="utf-8") as f:
+            f.write('{"501": "9902"}')
+        os.utime(_TEST_MAP, (time.time() + 2, time.time() + 2))  # บังคับ mtime ใหม่
+        line = "==SMDX2005=03/08/26 18:59 501 e.500 EC 0:00'09 0 #1"
+        event = self.listener.parse_smdr_line(line)
+        self.assertEqual(event["extension"]["roomId"], "9902")
+        with open(_TEST_MAP, "w", encoding="utf-8") as f:
+            f.write('{"501": "9901"}')  # เคลียร์กลับสำหรับ test อื่น
 
     def test_banner_line_returns_none(self):
         self.assertIsNone(self.listener.parse_smdr_line("Phonik PABX Telnet system"))

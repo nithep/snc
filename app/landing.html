@@ -363,6 +363,17 @@ section { padding: 84px 0; }
 .care-list { list-style: none; padding: 0; margin: 1.4rem 0 1.8rem; display: grid; gap: 0.7rem; max-width: 720px; }
 .care-list li { padding-left: 0.3rem; color: var(--text); font-weight: 300; line-height: 1.6; }
 
+/* ── Live Demo (ข้อมูลจำลอง — แยกจากระบบจริง) ── */
+.demo-box { border-radius: var(--radius); padding: 40px 34px; background: var(--card); border: 1px dashed var(--stroke-strong); }
+.demo-box > p { color: var(--text-dim); font-weight: 300; max-width: 720px; line-height: 1.7; }
+.demo-btns { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.2rem 0 1.4rem; }
+.demo-feed { display: flex; flex-direction: column; gap: 0.45rem; }
+.demo-row { display: grid; grid-template-columns: 70px 1fr auto auto; gap: 0.8rem; align-items: center; padding: 0.6rem 0.9rem; border: 1px solid var(--stroke); border-radius: 12px; font-size: 0.85rem; background: var(--card-strong); }
+.demo-room { font-weight: 800; color: #93c5fd; font-family: var(--mono); }
+.demo-tm { color: var(--text-faint); font-size: 0.78rem; }
+.demo-empty { color: var(--text-faint); font-size: 0.85rem; padding: 0.8rem 0; }
+.demo-btns .btn:disabled { opacity: .5; cursor: wait; }
+
 /* ── Footer ── */
 footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px; }
 .foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; color: var(--text-faint); font-size: 14px; }
@@ -676,6 +687,24 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
   </div>
 </section>
 
+<!-- ═══ Live Demo (ข้อมูลจำลอง — แยกจากระบบจริง) ═══ -->
+<section id="demo">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Live Demo</div>
+      <h2>ลองกดเรียกจริง — ข้อมูลจำลอง แยกจากระบบจริง</h2>
+    </div>
+    <div class="demo-box reveal">
+      <p>เหตุการณ์จากปุ่มด้านล่างถูกแท็กเป็น <b>source: demo</b> — แสดงเฉพาะที่นี่เท่านั้น <b>ไม่ถูกนับใน KPI และประวัติของ Nurse Dashboard ระบบจริง</b> (เซิร์ฟเวอร์บังคับแท็กให้อัตโนมัติ)</p>
+      <div class="demo-btns">
+        <button class="btn btn-primary" id="demoBedsideBtn">🛎️ จำลองเรียกข้างเตียง (ห้อง 0400)</button>
+        <button class="btn btn-ghost" id="demoBathroomBtn" style="border-color:var(--red);color:var(--red)">🚿 จำลองฉุกเฉินห้องน้ำ (ห้อง 0400)</button>
+      </div>
+      <div id="demoFeed" class="demo-feed" aria-live="polite"><div class="demo-empty">กำลังโหลดข้อมูลทดสอบ...</div></div>
+    </div>
+  </div>
+</section>
+
 <section>
   <div class="container">
     <div class="cta-box reveal">
@@ -921,6 +950,49 @@ async function submitContact(){
   }
 }
 cSubmit.addEventListener('click', submitContact);
+</script>
+
+<script>
+/* ═══ Live Demo widget — ผูกกับข้อมูล source=demo (แยกจากระบบจริง) ═══ */
+const DEMO_ROOM = '0400';
+async function demoFetch(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+async function loadDemoFeed() {
+  const el = document.getElementById('demoFeed');
+  if (!el) return;
+  try {
+    const data = await demoFetch('/api/events?source=demo');
+    const evs = (data.events || []).slice(0, 6);
+    if (!evs.length) { el.innerHTML = '<div class="demo-empty">ยังไม่มีข้อมูลทดสอบ — กดปุ่มด้านบนเพื่อลองเลย</div>'; return; }
+    el.innerHTML = evs.map(ev => {
+      const t = new Date(ev.timestamp);
+      const tm = isNaN(t) ? ev.timestamp : t.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: 'short' });
+      const type = ev.event_type === 'CALL_BATHROOM_EMERGENCY' ? '🚿 ฉุกเฉินห้องน้ำ' : '🛎️ เรียกข้างเตียง';
+      const st = ev.status === 'resolved'
+        ? '<span style="color:var(--green)">เคลียร์แล้ว' + (ev.resolution_time_seconds != null ? ' · ' + ev.resolution_time_seconds + 's' : '') + '</span>'
+        : (ev.status === 'acknowledged' ? '<span style="color:var(--amber)">รับเรื่องแล้ว</span>' : '<span style="color:var(--red)">กำลังเรียก</span>');
+      return '<div class="demo-row"><span class="demo-room">' + ev.room_id + '</span><span>' + type + '</span><span class="demo-tm">' + tm + '</span><span>' + st + '</span></div>';
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="demo-empty">เชื่อมต่อระบบไม่ได้ (โหมดออฟไลน์)</div>';
+  }
+}
+async function sendDemo(type) {
+  const btns = document.querySelectorAll('.demo-btns .btn');
+  btns.forEach(b => b.disabled = true);
+  try {
+    await demoFetch('/api/demo/trigger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_id: DEMO_ROOM, event_type: type }) });
+  } catch (e) { /* offline — feed แสดงข้อมูลเดิม */ }
+  btns.forEach(b => b.disabled = false);
+  setTimeout(loadDemoFeed, 600);
+}
+document.getElementById('demoBedsideBtn').addEventListener('click', () => sendDemo('CALL_BEDSIDE'));
+document.getElementById('demoBathroomBtn').addEventListener('click', () => sendDemo('CALL_BATHROOM_EMERGENCY'));
+setInterval(loadDemoFeed, 10000);
+loadDemoFeed();
 </script>
 </body>
 </html>

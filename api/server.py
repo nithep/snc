@@ -96,8 +96,9 @@ async def guard_write_endpoints(request, call_next):
         )
 
     # กันการเขียน (trigger/ack/clear/AI) จากใครก็ได้ใน LAN — GET (dashboard/poll) ยังเปิด
-    # ยกเว้น endpoint สาธารณะ: /api/ai/snc-bot (แชท SNC-Bot บนหน้า Landing ไม่มีคีย์)
-    _public_no_key = {"/api/ai/snc-bot", "/api/contact"}
+    # ยกเว้น endpoint สาธารณะ: /api/ai/snc-bot (แชท SNC-Bot), /api/contact (ฟอร์มติดต่อ),
+    # /api/demo/trigger (ปุ่มทดสอบบน landing — บังคับ source=demo เท่านั้น ไม่ปนข้อมูลจริง)
+    _public_no_key = {"/api/ai/snc-bot", "/api/contact", "/api/demo/trigger"}
     if request.method in ("POST", "PUT", "DELETE") and SNC_API_KEY and request.url.path not in _public_no_key:
         if request.headers.get("X-API-Key", "") != SNC_API_KEY:
             return JSONResponse({"error": "invalid or missing X-API-Key"}, status_code=401)
@@ -273,9 +274,10 @@ class DemoScenarioRequest(BaseModel):
     include_emergency: bool = False  # ต่อด้วยสถานการณ์ฉุกเฉินห้องน้ำอีก 1 รอบ
 
 @app.get("/api/events")
-def get_recent_events():
-    # Fetch more records internally to allow frontend filtering, but limit is also applied in frontend
-    return {"events": store.get_recent_events(200)}
+def get_recent_events(source: str = "real"):
+    # source: real (default — ระบบจริงบน dashboard) | demo (วิดเจ็ตทดสอบบน landing) | all
+    src = None if source in ("all", "") else source
+    return {"events": store.get_recent_events(200, source=src)}
 
 @app.post("/api/events/trigger")
 async def trigger_event(req: CallEventRequest):
@@ -302,6 +304,10 @@ async def trigger_event(req: CallEventRequest):
     mapped_event_type = event_type_mapping.get(req.event_type, req.event_type)
     logging.info(f"Mapped event type: {req.event_type} -> {mapped_event_type}")
 
+    # แยกข้อมูลจริง/จำลอง: listener (ของจริงจาก PBX) ส่ง event_id เสมอ → real
+    # ปุ่มจำลองบน dashboard/landing ไม่ส่ง event_id → demo (ไม่นับใน KPI ระบบจริง)
+    event_source = "real" if req.event_id else "demo"
+
     # Use microseconds to ensure unique IDs even for events in the same second
     import time
     if req.event_id:
@@ -323,7 +329,8 @@ async def trigger_event(req: CallEventRequest):
         "extension": {
             "roomId": formatted_room,
             "timestamp": now_iso,
-            "sourceEventType": req.event_type  # เก็บชนิดต้นทางไว้แสดงผล/KPI (เช่น CALL_BATHROOM_EMERGENCY)
+            "sourceEventType": req.event_type,  # เก็บชนิดต้นทางไว้แสดงผล/KPI (เช่น CALL_BATHROOM_EMERGENCY)
+            "source": event_source  # real (PBX จริง) | demo (ปุ่มจำลอง) — แยก KPI/ประวัติ
         }
     }
 
@@ -412,10 +419,31 @@ async def run_demo_scenario(req: DemoScenarioRequest):
         "kpi": get_kpi_summary()
     }
 
+class PublicDemoRequest(BaseModel):
+    room_id: str = "0400"
+    event_type: str = "CALL_BEDSIDE"
+
+@app.post("/api/demo/trigger")
+async def public_demo_trigger(req: PublicDemoRequest):
+    """ปุ่มทดสอบสาธารณะ (landing page, ไม่ต้องมี key) — บังคับ source=demo เสมอ
+    เหตุการณ์จะแสดงเฉพาะ /api/events?source=demo และไม่ถูกนับใน KPI ของระบบจริง"""
+    allowed = {"CALL_BEDSIDE", "CALL_BATHROOM_EMERGENCY"}
+    et = req.event_type if req.event_type in allowed else "CALL_BEDSIDE"
+    return await trigger_event(CallEventRequest(room_id=req.room_id, event_type=et, event_id=""))
+
 @app.get("/api/analytics/kpi")
-def get_kpi_summary():
-    """Get KPI analytics for nurse call performance."""
-    return store.get_kpi_summary()
+def get_kpi_summary(source: str = "real"):
+    """Get KPI analytics for nurse call performance (default: real events only)."""
+    return store.get_kpi_summary(source=None if source in ("all", "") else source)
+
+
+@app.get("/api/analytics/trend")
+def get_analytics_trend(bucket: str = "day", source: str = "real"):
+    """ค่าเฉลี่ย SLA แบ่งตามช่วงเวลา — bucket: day (24 ชม./ชั่วโมง) | month (30 วัน/วัน) | year (12 เดือน/เดือน)"""
+    if bucket not in ("day", "month", "year"):
+        bucket = "day"
+    src = None if source in ("all", "") else source
+    return {"bucket": bucket, "source": source, "points": store.get_trend(source=src, bucket=bucket)}
 
 @app.get("/api/ai/daily-summary")
 async def get_daily_ai_summary():

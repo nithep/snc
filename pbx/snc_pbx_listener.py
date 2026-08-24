@@ -6,6 +6,7 @@ Smart Nurse Call — Phonik PBX SMDR Telnet Listener
 Subscribe SMDR event stream แล้วส่งต่อไปยัง SNC Backend API
 """
 import asyncio
+import json
 import os
 import re
 import pathlib
@@ -27,6 +28,35 @@ if _env_file.exists():
             os.environ.setdefault(_k.strip(), _v.strip())
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+# ═══ Port→Room Mapping (room_map.json) ═══
+# แปลงเบอร์สถานี/พอร์ตของตู้ PBX เป็นเลขห้องจริงก่อนบันทึก — กันข้อมูลเพี้ยนเมื่อย้ายสาย/ปรับพอร์ตที่ตู้
+# ไฟล์: pbx/room_map.json เช่น {"401": "1101", "402": "1102"} — hot-reload เมื่อ mtime เปลี่ยน
+ROOM_MAP_PATH = os.getenv("SNC_ROOM_MAP", str(pathlib.Path(__file__).resolve().parent / "room_map.json"))
+_room_map_cache = {"mtime": None, "map": {}}
+
+
+def load_room_map() -> dict:
+    try:
+        mtime = os.path.getmtime(ROOM_MAP_PATH)
+    except OSError:
+        _room_map_cache["map"] = {}
+        _room_map_cache["mtime"] = None
+        return _room_map_cache["map"]
+    if mtime != _room_map_cache["mtime"]:
+        try:
+            with open(ROOM_MAP_PATH, encoding="utf-8") as f:
+                raw = json.load(f)
+            _room_map_cache["map"] = {
+                str(k): str(v) for k, v in raw.items()
+                if str(k).strip() and str(v).strip() and not str(k).startswith("_")
+            }
+            _room_map_cache["mtime"] = mtime
+            logging.info("Room map loaded: %d entries from %s", len(_room_map_cache["map"]), ROOM_MAP_PATH)
+        except Exception as e:
+            logging.warning("Room map load failed (ใช้แผนที่เดิม/ว่าง): %s", e)
+    return _room_map_cache["map"]
+
 
 # Phonik PBX Telnet Configuration (override ได้ผ่าน environment variables)
 PBX_IP = os.getenv("PBX_IP", "192.168.1.91")
@@ -200,6 +230,9 @@ class PhonikSNCListener:
         return self._create_event_payload(room_id, event_type, line)
 
     def _create_event_payload(self, room_id: str, event_type: str, raw_line: str):
+        # Port→Room mapping: แปลงเบอร์สถานี (พอร์ตตู้ PBX) เป็นเลขห้องจริงตาม room_map.json
+        # (hot-reload: แก้ไฟล์แล้วมีผลทันทีไม่ต้องรีสตาร์ท) — เบอร์ที่ไม่มีในแผนที่ใช้เลขพอร์ตเดิม
+        room_id = load_room_map().get(room_id, room_id)
         formatted_room = room_id.zfill(4)
         now_iso = datetime.now().isoformat()
         is_active_call = event_type in ["CALL_BEDSIDE", "CALL_BATHROOM_EMERGENCY", "CALL_TRIGGERED"]

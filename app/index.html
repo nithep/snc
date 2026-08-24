@@ -162,6 +162,14 @@ section.glass {
 .type-chip { font-size: 0.72rem; font-weight: 600; padding: 0.28rem 0.65rem; border-radius: 999px; border: 1px solid var(--stroke); background: var(--card-strong); color: var(--text-dim); }
 .type-chip b { color: var(--text); }
 
+/* ═══════════════ Status Strip (สถานะห้องปัจจุบัน) ═══════════════ */
+.status-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
+.stat-chip { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--stroke); background: var(--card-strong); }
+.stat-chip b { font-size: 0.98rem; font-variant-numeric: tabular-nums; }
+.stat-chip.st-ok { color: var(--green); border-color: rgba(16,185,129,.4); background: var(--green-soft); }
+.stat-chip.st-em { color: #fca5a5; border-color: rgba(239,68,68,.5); background: var(--red-soft); }
+.stat-chip.st-ack { color: #fde68a; border-color: rgba(245,158,11,.5); background: var(--amber-soft); }
+
 /* ═══════════════ Room Cards ═══════════════ */
 .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1rem; }
 .room-card {
@@ -250,7 +258,7 @@ select option { background: #0f172a; }
 }
 .btn-ghost:hover { color: var(--text); border-color: var(--stroke-strong); background: var(--card-strong); }
 .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--stroke); }
-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 860px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 680px; }
 thead th {
   text-align: left; padding: 0.8rem 1rem; font-size: 0.7rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-faint);
@@ -269,6 +277,16 @@ tbody tr.row-breach { background: rgba(239,68,68,0.05); }
 .badge-sla { display: inline-flex; align-items: center; gap: .25rem; padding: 0.22rem 0.5rem; border-radius: 7px; font-size: 0.7rem; font-weight: 700; }
 .badge-sla.ok { background: var(--green-soft); color: #a7f3d0; }
 .badge-sla.breach { background: var(--red-soft); color: #fca5a5; }
+.badge-room {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 54px; padding: 0.34rem 0.6rem; border-radius: 9px;
+  font-family: var(--mono); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px;
+}
+.badge-room.st-active { background: var(--red-soft); color: #fca5a5; border: 1px solid rgba(239,68,68,.45); }
+.badge-room.st-ack { background: var(--amber-soft); color: #fde68a; border: 1px solid rgba(245,158,11,.45); }
+.badge-room.st-resolved { background: var(--green-soft); color: #a7f3d0; border: 1px solid rgba(16,185,129,.45); }
+.ev-title { font-weight: 700; font-size: 0.9rem; }
+.ev-sub { font-size: 0.73rem; color: var(--text-faint); margin-top: 0.18rem; }
 .history-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.8rem; font-size: 0.76rem; color: var(--text-faint); }
 
 /* ═══════════════ AI Summary ═══════════════ */
@@ -279,21 +297,6 @@ details.ai-panel summary::-webkit-details-marker { display: none; }
 details.ai-panel summary .chev { margin-left: auto; transition: transform .2s ease; color: var(--text-faint); }
 details.ai-panel[open] summary .chev { transform: rotate(180deg); }
 details.ai-panel summary:hover { opacity: .9; }
-
-/* ═══════════════ Demo Bar ═══════════════ */
-.demo-bar {
-  display: none; flex-wrap: wrap; gap: 0.55rem; align-items: center;
-  padding: 1rem 1.4rem; border-radius: var(--radius);
-  border: 1px dashed rgba(139,92,246,0.45); background: rgba(139,92,246,0.07);
-}
-.demo-bar.show { display: flex; }
-.demo-bar .demo-label { font-size: 0.8rem; font-weight: 600; color: #c4b5fd; margin-right: 0.3rem; }
-.demo-bar .btn { flex: none; padding: 0.5rem 0.85rem; font-size: 0.78rem; }
-.btn-demo-em { background: linear-gradient(135deg, #ef4444, #dc2626); }
-.btn-demo-em2 { background: linear-gradient(135deg, #f97316, #ea580c); }
-.btn-demo-ack { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.btn-demo-clr { background: linear-gradient(135deg, #10b981, #059669); }
-.btn-demo-auto { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 
 /* ═══════════════ Footer ═══════════════ */
 footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-size: 0.72rem; border-top: 1px solid var(--stroke); background: rgba(6,10,19,.5); }
@@ -390,14 +393,25 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
   <section class="glass" aria-labelledby="kpiTitle">
     <div class="section-head">
       <div class="section-title" id="kpiTitle">📊 <span data-i18n-key="kpiTitle">ตัวชี้วัดประสิทธิภาพ (KPI)</span></div>
-      <div class="pill" id="lastUpdatedPill"><span class="dot"></span><span id="lastUpdatedText">—</span></div>
+      <div class="toolbar">
+        <select id="kpiView" aria-label="KPI view">
+          <option value="overall" data-i18n-key="kpiViewOverall">รวมทั้งระบบ</option>
+          <option value="room" data-i18n-key="kpiViewRoom">รายห้อง</option>
+          <option value="type" data-i18n-key="kpiViewType">รายประเภทเหตุการณ์</option>
+        </select>
+        <div class="pill" id="lastUpdatedPill"><span class="dot"></span><span id="lastUpdatedText">—</span></div>
+      </div>
     </div>
     <div class="kpi-grid" id="kpiGrid">
       <div class="kpi-card"><div class="kpi-label"><span>…</span></div><div class="kpi-value">—</div><div class="progress"><i style="width:0%"></i></div><div class="kpi-foot">…</div></div>
     </div>
+    <div id="kpiAlt" style="display:none"></div>
     <div class="hr"></div>
+    <div class="status-strip" id="statusStrip" role="status" aria-live="polite"></div>
     <div class="type-chips" id="typeChips"></div>
   </section>
+
+  <!-- Trend chart: ถอดออกตาม feedback — แทนที่ด้วยตัวเลือกมุมมอง KPI ใน section เดิม -->
 
   <!-- Room status -->
   <section class="glass" aria-labelledby="roomsTitle">
@@ -423,16 +437,20 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
   <!-- History -->
   <section class="glass" aria-labelledby="historyTitle">
     <div class="section-head">
-      <div class="section-title" id="historyTitle">📋 <span data-i18n-key="historyTitle">ประวัติเหตุการณ์ล่าสุด</span> <span class="chip-note" data-i18n-key="historyNote">แสดง 10 รายการล่าสุด</span></div>
+      <div class="section-title" id="historyTitle">📋 <span data-i18n-key="historyTitle">ประวัติเหตุการณ์ล่าสุด</span> <span class="chip-note" data-i18n-key="historyNote">แสดง 3 เหตุการณ์ล่าสุด</span></div>
       <div class="toolbar">
         <div class="search-box">
           <span class="mag" aria-hidden="true">🔍</span>
           <input type="search" id="searchInput" data-i18n-ph="searchPlaceholder" placeholder="ค้นหาเลขห้อง เช่น 1101...">
         </div>
         <select id="statusFilter" aria-label="Status filter"></select>
-        <button class="btn-ghost" id="exportBtn" title="Export CSV">⬇ <span data-i18n-key="exportCsv">Export CSV</span></button>
       </div>
     </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n-key="colRoom">ห้อง</th>
             <th data-i18n-key="colType">ประเภทเหตุการณ์</th>
             <th data-i18n-key="colStatus">สถานะ</th>
             <th data-i18n-key="colAck">เวลารับเรื่อง</th>
@@ -441,26 +459,18 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
           </tr>
         </thead>
         <tbody id="historyBody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:2rem" data-i18n-key="loading">กำลังโหลดข้อมูล...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:2rem" data-i18n-key="loading">กำลังโหลดข้อมูล...</td></tr>
         </tbody>
       </table>
     </div>
     <div class="history-foot">
       <span id="historyCount">—</span>
       <span data-i18n-key="autoRefreshNote">รีเฟรชอัตโนมัติทุก 10 วินาที + เรียลไทม์ผ่าน WebSocket</span>
+      <button class="btn-ghost" id="exportBtn" title="Export CSV">⬇ <span data-i18n-key="exportCsv">Export CSV</span></button>
     </div>
   </section>
 
-  <!-- Demo bar -->
-  <div class="demo-bar" id="demoBar">
-    <span class="demo-label" data-i18n-key="demoTitle">🧪 โหมดจำลองทดสอบ SLA (ห้อง 400)</span>
-    <button class="btn btn-demo-em" id="demoBedside"></button>
-    <button class="btn btn-demo-em2" id="demoBathroom"></button>
-    <button class="btn btn-demo-ack" id="demoAck"></button>
-    <button class="btn btn-demo-clr" id="demoClear"></button>
-    <button class="btn btn-demo-auto" id="demoAuto"></button>
-    <button class="btn btn-demo-auto" id="demoServer"></button>
-  </div>
+  <!-- Demo bar: ย้ายไปที่ landing page (แยกข้อมูลจำลองออกจากระบบจริง) -->
 </main>
 
 <footer>
@@ -483,7 +493,6 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
       <div class="hint" data-i18n-key="hostHint">เว้นว่าง = ใช้เซิร์ฟเวอร์เดียวกับที่เปิดหน้านี้ (รองรับ HTTPS tunnel อัตโนมัติ)</div>
     </div>
     <label class="check-row"><input type="checkbox" id="soundInput"><span data-i18n-key="soundLabel">เสียงเตือนเรียกฉุกเฉิน</span></label>
-    <label class="check-row"><input type="checkbox" id="demoInput"><span data-i18n-key="demoLabel">แสดงปุ่มจำลองทดสอบ (SLA Simulation)</span></label>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelSettingsBtn" data-i18n-key="cancelBtn">ยกเลิก</button>
       <button class="btn-primary" id="saveSettingsBtn" data-i18n-key="saveBtn">บันทึก</button>
@@ -504,7 +513,7 @@ const I18N = {
     connLive: 'เชื่อมต่อสด', connConnecting: 'กำลังเชื่อมต่อ...', connReconnect: 'กำลังเชื่อมต่อใหม่ (ครั้งที่ {n})...', connOffline: 'ออฟไลน์ — กำลังพยายามเชื่อมต่อ',
     backendOk: 'Backend ปกติ', backendSlow: 'Backend ช้า', backendDown: 'Backend ไม่ตอบสนอง',
     kpiTitle: 'ตัวชี้วัดประสิทธิภาพ (KPI)', roomsTitle: 'สถานะห้องพักตามเวลาจริง',
-    historyTitle: 'ประวัติเหตุการณ์ล่าสุด', historyNote: 'แสดง 50 รายการล่าสุด',
+    historyTitle: 'ประวัติเหตุการณ์ล่าสุด', historyNote: 'แสดง 3 เหตุการณ์ล่าสุด',
     searchPlaceholder: 'ค้นหาเลขห้อง เช่น 0401...',
     filterAll: 'ทั้งหมด', filterActive: 'กำลังเรียก', filterAck: 'รับเรื่องแล้ว', filterResolved: 'เสร็จสิ้น',
     exportCsv: 'Export CSV',
@@ -520,20 +529,21 @@ const I18N = {
     evCleared: 'เคลียร์สาย', evInfo: 'อัปเดตข้อมูล', evTriggered: 'เรียก (ทดสอบ)', evAck: 'รับเรื่อง',
     btnAck: 'รับเรื่อง', btnClear: 'เคลียร์สาย', btnIdle: 'พร้อมรับสาย',
     sinceLabel: 'เริ่มเมื่อ', ackBreach: 'เกินเกณฑ์รับเรื่อง', resBreach: 'เกินเกณฑ์เวลา',
-    slaOk: 'ผ่าน', slaBreach: 'เกิน SLA',
+    slaOk: 'ผ่าน', slaBreach: 'เกิน SLA', slaWithin: 'ภายใน SLA', slaPass: 'ผ่าน',
+    statusPending: 'รอรับเรื่อง', statusResolved: 'เสร็จสิ้น', roomWord: 'ห้อง',
+    evTitleBedside: 'เรียกพยาบาล — กดปุ่ม', evTitleBathroom: 'ฉุกเฉิน — ดึงสาย Call Cord', evTitleHandset: 'เรียกพยาบาล — ยกหูโทรศัพท์',
+    devCord: 'NCX-CORD', devPull: 'NCX-PULL', devHandset: 'Handset',
     aiTitle: 'สรุปประจำวัน (AI)', aiHint: 'กดเพื่อโหลดบทสรุปจาก Gemini (ต้องตั้งค่า GEMINI_API_KEY บนเซิร์ฟเวอร์)', aiUnavailable: 'ไม่สามารถสร้างสรุป AI ได้ (ตรวจสอบ GEMINI_API_KEY บนเซิร์ฟเวอร์)',
-    demoTitle: '🧪 โหมดจำลองทดสอบ SLA (ห้อง 400)',
-    demoBedside: '🚨 กด STA ข้างเตียง', demoBathroom: '🚿 ดึงสายห้องน้ำ', demoAck: '📞 รับเรื่อง (Ack)', demoClear: '✅ เคลียร์สาย', demoAuto: '⚡ ทดสอบลูปอัตโนมัติ',
-    demoServer: '▶ รัน Demo ฝั่งเซิร์ฟเวอร์ (API)', demoServerStart: 'เริ่ม Demo ฝั่งเซิร์ฟเวอร์... รอดูผลสดบนจอ', demoServerDone: 'Demo เสร็จสิ้น ({n} สเต็ป)',
+    kpiViewOverall: 'รวมทั้งระบบ', kpiViewRoom: 'รายห้อง', kpiViewType: 'รายประเภทเหตุการณ์',
+    statusStripTitle: 'สถานะห้องปัจจุบัน',
     settingsTitle: 'การตั้งค่า', settingsSub: 'ตั้งค่าเพื่อใช้งานบนระบบจริง — ค่าจะถูกบันทึกไว้ในเบราว์เซอร์นี้',
     apiKeyLabel: 'API Key (X-API-Key)', apiKeyHint: 'จำเป็นสำหรับปุ่มรับเรื่อง/เคลียร์/ทดสอบ ถ้าเซิร์ฟเวอร์ตั้ง SNC_API_KEY ไว้ (ถ้าไม่ตั้ง = ไม่ต้องกรอก)',
     hostLabel: 'Backend Host (ไม่บังคับ)', hostHint: 'เว้นว่าง = ใช้เซิร์ฟเวอร์เดียวกับที่เปิดหน้านี้ (รองรับ HTTPS tunnel อัตโนมัติ)',
-    soundLabel: 'เสียงเตือนเรียกฉุกเฉิน', demoLabel: 'แสดงปุ่มจำลองทดสอบ (SLA Simulation)',
+    soundLabel: 'เสียงเตือนเรียกฉุกเฉิน',
     saveBtn: 'บันทึก', cancelBtn: 'ยกเลิก', settingsSaved: 'บันทึกการตั้งค่าแล้ว',
     authError: 'เซิร์ฟเวอร์ปฏิเสธการเขียน (401) — เปิดการตั้งค่า ⚙️ แล้วกรอก API Key ให้ถูกต้อง',
     opFailed: 'ดำเนินการไม่สำเร็จ', opOk: 'ดำเนินการสำเร็จ',
     ackDone: 'รับเรื่องห้อง {room} แล้ว', clearDone: 'เคลียร์สายห้อง {room} แล้ว', triggerDone: 'ส่งสัญญาณจำลองห้อง {room} แล้ว',
-    autoDemoStart: 'เริ่มทดสอบ SLA ลูปอัตโนมัติ (เรียก → 5 วิ → รับเรื่อง → 12 วิ → เคลียร์)',
     footerNote: 'เซิร์ฟเวอร์หลัก Raspberry Pi 4', liveFeed: 'ฟีดสด WebSocket',
     eventsByType: 'จำนวนเหตุการณ์แยกตามประเภท'
   },
@@ -542,7 +552,7 @@ const I18N = {
     connLive: 'Live', connConnecting: 'Connecting...', connReconnect: 'Reconnecting (attempt {n})...', connOffline: 'Offline — retrying',
     backendOk: 'Backend OK', backendSlow: 'Backend Slow', backendDown: 'Backend Down',
     kpiTitle: 'Key Performance Indicators (KPI)', roomsTitle: 'Real-time Room Status',
-    historyTitle: 'Recent Events', historyNote: 'Showing latest 50 records',
+    historyTitle: 'Recent Events', historyNote: 'Showing latest 3 events',
     searchPlaceholder: 'Search room e.g. 0401...',
     filterAll: 'All', filterActive: 'Active', filterAck: 'Acknowledged', filterResolved: 'Resolved',
     exportCsv: 'Export CSV',
@@ -558,20 +568,21 @@ const I18N = {
     evCleared: 'Call Cleared', evInfo: 'Info Update', evTriggered: 'Call (test)', evAck: 'Acknowledged',
     btnAck: 'Acknowledge', btnClear: 'Clear Call', btnIdle: 'Ready',
     sinceLabel: 'Since', ackBreach: 'Ack SLA exceeded', resBreach: 'Resolution SLA exceeded',
-    slaOk: 'OK', slaBreach: 'BREACHED',
+    slaOk: 'OK', slaBreach: 'BREACHED', slaWithin: 'Within SLA', slaPass: 'Pass',
+    statusPending: 'Pending', statusResolved: 'Completed', roomWord: 'Room',
+    evTitleBedside: 'Nurse Call — Button Press', evTitleBathroom: 'Emergency — Call Cord Pull', evTitleHandset: 'Nurse Call — Handset',
+    devCord: 'NCX-CORD', devPull: 'NCX-PULL', devHandset: 'Handset',
     aiTitle: 'Daily AI Summary', aiHint: 'Click to load Gemini summary (requires GEMINI_API_KEY on server)', aiUnavailable: 'AI summary unavailable (check GEMINI_API_KEY on server)',
-    demoTitle: '🧪 SLA Simulation (Room 400)',
-    demoBedside: '🚨 Press STA', demoBathroom: '🚿 Pull Bathroom', demoAck: '📞 Acknowledge', demoClear: '✅ Clear', demoAuto: '⚡ Auto SLA Loop',
-    demoServer: '▶ Server-side Demo (API)', demoServerStart: 'Server demo started... watch the screen live', demoServerDone: 'Server demo complete ({n} steps)',
+    kpiViewOverall: 'Overall', kpiViewRoom: 'By Room', kpiViewType: 'By Event Type',
+    statusStripTitle: 'Current room status',
     settingsTitle: 'Settings', settingsSub: 'Configure for production use — values are saved in this browser',
     apiKeyLabel: 'API Key (X-API-Key)', apiKeyHint: 'Required for Ack/Clear/Test buttons if server has SNC_API_KEY set (leave blank if not configured)',
     hostLabel: 'Backend Host (optional)', hostHint: 'Leave empty = use the same server that serves this page (HTTPS tunnel auto-supported)',
-    soundLabel: 'Emergency alarm sound', demoLabel: 'Show SLA simulation buttons',
+    soundLabel: 'Emergency alarm sound',
     saveBtn: 'Save', cancelBtn: 'Cancel', settingsSaved: 'Settings saved',
     authError: 'Server rejected write (401) — open Settings ⚙️ and enter a valid API Key',
     opFailed: 'Operation failed', opOk: 'Operation succeeded',
     ackDone: 'Room {room} acknowledged', clearDone: 'Room {room} cleared', triggerDone: 'Simulated call sent for room {room}',
-    autoDemoStart: 'Auto SLA loop started (call → 5s → ack → 12s → clear)',
     footerNote: 'Primary server: Raspberry Pi 4', liveFeed: 'WebSocket Live Feed',
     eventsByType: 'Events by type'
   }
@@ -586,12 +597,10 @@ const t = (k, vars) => {
 /* ═══════════════════════════ Config ═══════════════════════════ */
 const isFile = location.protocol === 'file:';
 const q = new URLSearchParams(location.search);
-const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', ''];
 let cfg = {
   apiKey: q.get('api_key') || q.get('key') || localStorage.getItem('snc_api_key') || '',
   host: localStorage.getItem('snc_backend_host') || '',
-  sound: localStorage.getItem('snc_sound') !== '0',
-  demo: q.get('demo') === '1' || LOCAL_HOSTS.includes(location.hostname)
+  sound: localStorage.getItem('snc_sound') !== '0'
 };
 
 function apiUrl(path) {
@@ -668,11 +677,37 @@ function eventTypeMeta(evType, status) {
   if (e === 'INFO_UPDATE') return { icon: 'ℹ️', label: t('evInfo') };
   return { icon: '🔔', label: evType || '—' };
 }
-function statusMeta(status) {
-  const s = (status || '').toLowerCase();
-  if (s === 'acknowledged' || s === 'ack') return { cls: 'acknowledged', label: t('statusAck') };
-  if (s === 'resolved' || s === 'cleared' || s === 'completed') return { cls: 'resolved', label: t('statusNormal') + ' ✓' };
-  return { cls: 'active', label: t('statusEmergency') };
+function shortRoom(id) {
+  const m = String(id || '').match(/\d+/);
+  return m ? m[0] : String(id || '—');
+}
+function formatClockISO(iso) { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : fmtTime.format(d); }
+function eventCardMeta(evType) {
+  const e = String(evType || '').toUpperCase();
+  if (e === 'CALL_BATHROOM_EMERGENCY') return { title: t('evTitleBathroom'), dev: t('devPull') };
+  if (e === 'CALL_BEDSIDE') return { title: t('evTitleBedside'), dev: t('devCord') };
+  if (e === 'NURSE_TALKING' || e === 'CALL_HANDSET' || e === 'OFFHOOK') return { title: t('evTitleHandset'), dev: t('devHandset') };
+  if (e === 'ACKNOWLEDGED') return { title: t('evAck'), dev: '' };
+  if (e === 'CALL_CLEARED') return { title: t('evCleared'), dev: '' };
+  if (e === 'CALL_TRIGGERED') return { title: t('evTriggered'), dev: '' };
+  if (e === 'INFO_UPDATE') return { title: t('evInfo'), dev: '' };
+  return { title: evType || '—', dev: '' };
+}
+function slaBadgeFor(ev) {
+  const s = String(ev.status || '').toLowerCase();
+  const resolved = s === 'resolved' || s === 'cleared' || s === 'completed';
+  const acked = s === 'acknowledged' || s === 'ack';
+  if (resolved) {
+    return ev.sla_breached
+      ? '<span class="badge-sla breach">⛔ ' + t('slaBreach') + '</span>'
+      : '<span class="badge-sla ok">✓ ' + t('slaPass') + ' ' + formatTimer(ev.resolution_time_seconds || 0) + '</span>';
+  }
+  const over = acked
+    ? ((ev.ack_time_seconds != null && ev.ack_time_seconds > 30) || !!ev.sla_breached)
+    : ((Date.now() - Date.parse(ev.timestamp)) / 1000 > 30);
+  return over
+    ? '<span class="badge-sla breach">⛔ ' + t('slaBreach') + '</span>'
+    : '<span class="badge-sla ok">✓ ' + t('slaWithin') + '</span>';
 }
 function roomDisplayName(id) {
   const num = parseInt(id, 10);
@@ -709,6 +744,7 @@ async function loadEvents() {
     
     renderRooms();
     renderHistory();
+    renderKpi();
     renderLastUpdated();
   } catch (err) {
     console.warn('loadEvents failed:', err);
@@ -720,6 +756,53 @@ async function loadKpi() {
     kpiData = await apiGet('/api/analytics/kpi');
     renderKpi();
   } catch (err) { console.warn('loadKpi failed:', err); }
+}
+
+/* ═══════════════════════════ KPI View (รวม / รายห้อง / รายประเภท) ═══════════════════════════ */
+let kpiViewSel = localStorage.getItem('snc_kpi_view') || 'overall';
+function kpiGroupsBy(keyFn) {
+  const g = {};
+  for (const ev of allEvents) {
+    const k = String(keyFn(ev) || '—');
+    if (!g[k]) g[k] = { total: 0, acks: [], ress: [], breach: 0 };
+    const o = g[k];
+    o.total++;
+    if (ev.ack_time_seconds != null) o.acks.push(ev.ack_time_seconds);
+    if (ev.resolution_time_seconds != null) o.ress.push(ev.resolution_time_seconds);
+    if (ev.sla_breached) o.breach++;
+  }
+  return Object.entries(g).map(([key, v]) => ({
+    key, total: v.total,
+    avg_ack: v.acks.length ? v.acks.reduce((a, b) => a + b, 0) / v.acks.length : null,
+    avg_res: v.ress.length ? v.ress.reduce((a, b) => a + b, 0) / v.ress.length : null,
+    breach: v.breach,
+    compliance: v.total ? ((v.total - v.breach) / v.total) * 100 : 100
+  }));
+}
+function renderKpiAlt(view) {
+  const wrap = document.getElementById('kpiAlt');
+  if (!wrap) return;
+  const rows = view === 'room'
+    ? kpiGroupsBy(ev => ev.room_id).sort((a, b) => b.total - a.total || a.key.localeCompare(b.key))
+    : kpiGroupsBy(ev => ev.event_type).sort((a, b) => b.total - a.total);
+  const nameFn = view === 'room' ? (k => roomDisplayName(k)) : (k => eventTypeMeta(k, '').label);
+  let html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>' + (view === 'room' ? t('colRoom') : t('colType')) + '</th>' +
+    '<th>' + t('total') + '</th><th>' + t('avgAck') + '</th><th>' + t('avgRes') + '</th>' +
+    '<th>' + t('breachCount') + '</th><th>' + t('compliance') + '</th></tr></thead><tbody>';
+  if (!rows.length) {
+    html += '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:2rem">' + t('noEvents') + '</td></tr>';
+  }
+  for (const r of rows) {
+    html += '<tr><td class="room-cell">' + escapeHtml(nameFn(r.key)) + '</td>' +
+      '<td class="mono">' + r.total + '</td>' +
+      '<td class="mono">' + (r.avg_ack != null ? r.avg_ack.toFixed(1) + 's' : '—') + '</td>' +
+      '<td class="mono">' + (r.avg_res != null ? r.avg_res.toFixed(1) + 's' : '—') + '</td>' +
+      '<td class="mono" style="color:' + (r.breach ? 'var(--red)' : 'var(--green)') + '">' + r.breach + '</td>' +
+      '<td class="mono" style="color:' + (r.compliance >= 98 ? 'var(--green)' : 'var(--amber)') + '">' + r.compliance.toFixed(1) + '%</td></tr>';
+  }
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
 }
 async function loadHealth() {
   const pill = document.getElementById('healthPill');
@@ -772,9 +855,24 @@ function syncRoomStates() {
   }
 }
 
+/* ═══════════════════════════ Status Strip (สถานะห้องปัจจุบัน) ═══════════════════════════ */
+function renderStatusStrip() {
+  const el = document.getElementById('statusStrip');
+  if (!el) return;
+  const vals = Object.values(roomStates);
+  const em = vals.filter(s => s.status === 'emergency').length;
+  const ack = vals.filter(s => s.status === 'ack').length;
+  const norm = vals.filter(s => s.status === 'normal').length;
+  el.innerHTML =
+    '<span class="stat-chip st-ok">✅ ' + t('statusNormal') + ' <b>' + norm + '</b></span>' +
+    '<span class="stat-chip st-em">🚨 ' + t('statusEmergency') + ' <b>' + em + '</b></span>' +
+    '<span class="stat-chip st-ack">⏳ ' + t('statusAck') + ' <b>' + ack + '</b></span>';
+}
+
 /* ═══════════════════════════ Render: rooms ═══════════════════════════ */
 function renderRooms() {
   const grid = document.getElementById('roomGrid');
+  renderStatusStrip();
   
   // Pre-populate Floor 11 rooms if roomStates is empty (Initial Load)
   if (Object.keys(roomStates).length === 0) {
@@ -850,8 +948,7 @@ function tickTimers() {
   });
 }
 function updateBanner() {
-  const banner = document.getElementById('emergencyBanner');
-  const ems = Object.entries(roomStates).filter(([, s]) => s.status === 'emergency')
+  const banner = document.getElementById('emergencyBanner');  const ems = Object.entries(roomStates).filter(([, s]) => s.status === 'emergency')
     .sort((a, b) => elapsedOf(b[1], Date.now()) - elapsedOf(a[1], Date.now()));
   if (ems.length === 0) {
     banner.classList.remove('show');
@@ -872,6 +969,15 @@ function updateBanner() {
 function renderKpi() {
   if (!kpiData) return;
   const grid = document.getElementById('kpiGrid');
+  const alt = document.getElementById('kpiAlt');
+  if (kpiViewSel !== 'overall') {
+    grid.style.display = 'none';
+    alt.style.display = '';
+    renderKpiAlt(kpiViewSel);
+    return;
+  }
+  alt.style.display = 'none';
+  grid.style.display = '';
   const now = Date.now();
   const todayCount = allEvents.filter(ev => { const d = new Date(ev.timestamp); return !isNaN(d) && (now - d.getTime()) < 86400000; }).length;
   const compRate = kpiData.sla_compliance_rate != null ? kpiData.sla_compliance_rate : 100;
@@ -928,32 +1034,35 @@ function renderHistory() {
   const events = filteredEvents();
   document.getElementById('historyCount').textContent = t('total') + ': ' + allEvents.length + (events.length !== allEvents.length ? ' · ' + t('filterAll') + ': ' + events.length : '');
   if (events.length === 0) {
-    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:2rem">' + t(allEvents.length ? 'noMatch' : 'noEvents') + '</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:2rem">' + t(allEvents.length ? 'noMatch' : 'noEvents') + '</td></tr>';
     return;
   }
-  // Limit history to 10 latest records for cleaner UI
-  const displayLimit = 10;
+  // แสดง 3 เหตุการณ์ล่าสุด (ดีไซน์ Nurse Station: badge สีตามสถานะ + เวลาแบบนาฬิกา + SLA)
+  const displayLimit = 3;
   body.innerHTML = events.slice(0, displayLimit).map(ev => {
-    const sm = statusMeta(ev.status);
-    const em = eventTypeMeta(ev.event_type, ev.status);
-    const slaBadge = ev.sla_breached
-      ? '<span class="badge-sla breach">⛔ ' + t('slaBreach') + '</span>'
-      : (ev.ack_time_seconds != null || ev.resolution_time_seconds != null ? '<span class="badge-sla ok">✓ ' + t('slaOk') + '</span>' : '');
-    const ackT = ev.ack_time_seconds != null ? formatTimer(ev.ack_time_seconds) : '—';
-    const resT = ev.resolution_time_seconds != null ? formatTimer(ev.resolution_time_seconds) : '—';
+    const s = String(ev.status || '').toLowerCase();
+    const resolved = s === 'resolved' || s === 'cleared' || s === 'completed';
+    const acked = s === 'acknowledged' || s === 'ack';
+    const stCls = resolved ? 'st-resolved' : (acked ? 'st-ack' : 'st-active');
+    const badgeCls = resolved ? 'resolved' : (acked ? 'acknowledged' : 'active');
+    const statusLabel = resolved ? t('statusResolved') : (acked ? t('statusAck') : t('statusPending'));
+    const em = eventCardMeta(ev.event_type);
+    const roomNo = shortRoom(ev.room_id);
+    const subLine = (em.dev ? em.dev + ' · ' : '') + t('roomWord') + ' ' + roomNo;
+    const ackT = formatClockISO(ev.acknowledged_at);
+    const resT = formatClockISO(ev.resolved_at);
     return '<tr class="' + (ev.sla_breached ? 'row-breach' : '') + '">' +
-      '<td class="mono" style="color:var(--text-dim)">' + formatDT(ev.timestamp) + '</td>' +
-      '<td class="room-cell">' + roomDisplayName(ev.room_id) + '</td>' +
-      '<td>' + em.icon + ' ' + em.label + '</td>' +
-      '<td><span class="badge-status ' + sm.cls + '">' + sm.label + '</span></td>' +
-      '<td class="mono">' + ackT + '</td>' +
-      '<td class="mono">' + resT + '</td>' +
-      '<td>' + slaBadge + '</td></tr>';
+      '<td><span class="badge-room ' + stCls + '">' + escapeHtml(roomNo) + '</span></td>' +
+      '<td><div class="ev-title">' + escapeHtml(em.title) + '</div><div class="ev-sub">' + escapeHtml(subLine) + '</div></td>' +
+      '<td><span class="badge-status ' + badgeCls + '">' + statusLabel + '</span></td>' +
+      '<td class="mono" style="color:var(--text-dim)">' + ackT + '</td>' +
+      '<td class="mono" style="color:var(--text-dim)">' + resT + '</td>' +
+      '<td>' + slaBadgeFor(ev) + '</td></tr>';
   }).join('');
 }
 function renderHistoryError() {
   document.getElementById('historyBody').innerHTML =
-    '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:2rem">⚠️ ' + t('opFailed') + '</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:2rem">⚠️ ' + t('opFailed') + '</td></tr>';
 }
 
 /* ═══════════════════════════ Actions ═══════════════════════════ */
@@ -982,33 +1091,6 @@ function setLocalEmergency(roomId, sourceType) {
   renderRooms();
 }
 function refreshAfterAction() { loadKpi(); loadEvents(); }
-
-/* ═══════════════════════════ Demo ═══════════════════════════ */
-async function triggerDemo(roomId, eventType) {
-  try {
-    await apiWrite('/api/events/trigger', { room_id: roomId, event_type: eventType });
-    setLocalEmergency(roomId, eventType);
-    toast(t('triggerDone', { room: roomDisplayName(roomId) }), 'ok');
-    refreshAfterAction();
-  } catch (e) { if (e.message !== '401') toast(t('opFailed'), 'err'); }
-}
-let autoDemoTimer = [];
-function runFullSLADemo() {
-  const roomId = '0400';
-  toast(t('autoDemoStart'));
-  autoDemoTimer.forEach(clearTimeout); autoDemoTimer = [];
-  triggerDemo(roomId, 'CALL_BEDSIDE');
-  autoDemoTimer.push(setTimeout(() => ackRoom(roomId), 5000));
-  autoDemoTimer.push(setTimeout(() => clearRoom(roomId), 12000));
-}
-async function runServerDemo() {
-  toast(t('demoServerStart'));
-  try {
-    const r = await apiWrite('/api/demo/scenario', { include_emergency: true });
-    toast(t('demoServerDone', { n: (r.steps || []).length }), 'ok');
-    refreshAfterAction();
-  } catch (e) { if (e.message !== '401') toast(t('opFailed'), 'err'); }
-}
 
 /* ═══════════════════════════ Alarm (Web Audio loop) ═══════════════════════════ */
 let audioCtx = null;
@@ -1170,7 +1252,6 @@ function openSettings() {
   document.getElementById('apiKeyInput').value = cfg.apiKey;
   document.getElementById('hostInput').value = cfg.host;
   document.getElementById('soundInput').checked = cfg.sound;
-  document.getElementById('demoInput').checked = cfg.demo;
   document.getElementById('settingsModal').classList.add('show');
 }
 function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
@@ -1178,14 +1259,12 @@ function saveSettings() {
   cfg.apiKey = document.getElementById('apiKeyInput').value.trim();
   cfg.host = document.getElementById('hostInput').value.trim().replace(/^https?:\/\//, '');
   cfg.sound = document.getElementById('soundInput').checked;
-  cfg.demo = document.getElementById('demoInput').checked;
   localStorage.setItem('snc_api_key', cfg.apiKey);
   localStorage.setItem('snc_backend_host', cfg.host);
   localStorage.setItem('snc_sound', cfg.sound ? '1' : '0');
   closeSettings();
   toast(t('settingsSaved'), 'ok');
   updateAlarm();
-  renderDemoBar();
   initWebSocket(); // เปลี่ยน host แล้วให้ WS เชื่อมไปยัง endpoint ใหม่ทันที
   loadEvents(); loadKpi(); loadHealth();
 }
@@ -1201,18 +1280,7 @@ function applyI18n() {
     '<option value="ack">' + t('filterAck') + '</option>' +
     '<option value="resolved">' + t('filterResolved') + '</option>';
   document.getElementById('langBtn').textContent = LANG === 'th' ? 'EN' : 'ไทย';
-  // demo buttons
-  document.getElementById('demoBedside').textContent = t('demoBedside');
-  document.getElementById('demoBathroom').textContent = t('demoBathroom');
-  document.getElementById('demoAck').textContent = t('demoAck');
-  document.getElementById('demoClear').textContent = t('demoClear');
-  document.getElementById('demoAuto').textContent = t('demoAuto');
-  document.getElementById('demoServer').textContent = t('demoServer');
-  renderDemoBar();
   renderRooms(); renderKpi(); renderHistory();
-}
-function renderDemoBar() {
-  document.getElementById('demoBar').classList.toggle('show', !!cfg.demo);
 }
 function setLang(l) {
   LANG = l;
@@ -1240,12 +1308,11 @@ document.getElementById('langBtn').addEventListener('click', () => setLang(LANG 
 document.getElementById('exportBtn').addEventListener('click', exportCsv);
 document.getElementById('searchInput').addEventListener('input', renderHistory);
 document.getElementById('statusFilter').addEventListener('change', renderHistory);
-document.getElementById('demoBedside').addEventListener('click', () => triggerDemo('0400', 'CALL_BEDSIDE'));
-document.getElementById('demoBathroom').addEventListener('click', () => triggerDemo('0400', 'CALL_BATHROOM_EMERGENCY'));
-document.getElementById('demoAck').addEventListener('click', () => ackRoom('0400'));
-document.getElementById('demoClear').addEventListener('click', () => clearRoom('0400'));
-document.getElementById('demoAuto').addEventListener('click', runFullSLADemo);
-document.getElementById('demoServer').addEventListener('click', runServerDemo);
+document.getElementById('kpiView').addEventListener('change', () => {
+  kpiViewSel = document.getElementById('kpiView').value;
+  localStorage.setItem('snc_kpi_view', kpiViewSel);
+  renderKpi();
+});
 document.getElementById('aiPanel').addEventListener('toggle', () => { if (document.getElementById('aiPanel').open) loadAiSummary(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
 document.addEventListener('pointerdown', ensureAudio, { once: true });
@@ -1253,6 +1320,7 @@ document.addEventListener('pointerdown', ensureAudio, { once: true });
 /* ═══════════════════════════ Boot ═══════════════════════════ */
 applyI18n();
 document.getElementById('soundBtn').textContent = cfg.sound ? '🔊' : '🔇';
+document.getElementById('kpiView').value = kpiViewSel;
 initWebSocket();
 loadEvents();
 loadKpi();

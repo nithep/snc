@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # deploy_gcp_cloudrun.ps1 — SNC Cloud Run One-Shot Deploy (build + deploy + env)
 # ----------------------------------------------------------------------------
 # ใช้รันใน PowerShell ที่มี gcloud CLI (หรือ Cloud Shell: https://shell.cloud.google.com)
@@ -130,7 +130,9 @@ $deployArgs = @(
     "--project", $PROJECT_ID
 )
 if ($EXTRA_ENV) {
-    $deployArgs += "--set-env-vars", $EXTRA_ENV
+    # ใช้ --update-env-vars (merge) ไม่ใช่ --set-env-vars (replace ทั้งชุด)
+    # กัน key ที่มีอยู่บน service (SNC_API_KEY/GEMINI_API_KEY) ถูกลบเมื่อค่าในเครื่องว่าง
+    $deployArgs += "--update-env-vars", $EXTRA_ENV
 }
 & gcloud @deployArgs
 if ($LASTEXITCODE -ne 0) {
