@@ -33,8 +33,8 @@ graph TD
 การรันบริการทั้งสองจำต้องปฏิบัติตามมาตรฐานความปลอดภัยของบอร์ดหลัก โดยจะไม่ใช้สิทธิ์ระดับราก (`root`) หรือสิทธิ์ผู้ใช้ทั่วไประบบเก่า (`pi`) แต่จะรันด้วยผู้ดูแลระบบความปลอดภัยโดยเฉพาะ:
 
 * **ผู้ใช้ที่ใช้รัน (User Role):** `ecs-agent`
-* **ไดเรกทอรีของโครงการ (WorkingDirectory):** `/home/ecs-agent/snc-poc/`
-* **ไดเรกทอรีบันทึกผลงาน (Logs Location):** `/home/ecs-agent/snc-poc/` (หรือกำหนดเก็บลง Systemd Journal เพื่อทำ Log Rotation อัตโนมัติ)
+* **ไดเรกทอรีของโครงการ (WorkingDirectory):** `/home/ecs-agent/snc/`
+* **ไดเรกทอรีบันทึกผลงาน (Logs Location):** `/home/ecs-agent/snc/` (หรือกำหนดเก็บลง Systemd Journal เพื่อทำ Log Rotation อัตโนมัติ)
 
 ---
 
@@ -53,15 +53,15 @@ Documentation=https://github.com/nithep/snc
 Type=simple
 User=ecs-agent
 Group=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc/api
+WorkingDirectory=/home/ecs-agent/snc/api
 # ตรวจสอบการรัน Python ด้วย Virtual Environment เสมอเพื่อเลี่ยงปัญหาไลบรารีชนกัน
-ExecStart=/home/ecs-agent/snc-poc/venv/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
+ExecStart=/home/ecs-agent/snc/venv/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
 # นโยบายกู้คืนตัวเองอัตโนมัติ (Self-Healing)
 Restart=always
 RestartSec=5s
 # การรวบรวมไฟล์บันทึกผลการทำงาน
-StandardOutput=append:/home/ecs-agent/snc-poc/backend.log
-StandardError=append:/home/ecs-agent/snc-poc/backend.log
+StandardOutput=append:/home/ecs-agent/snc/backend.log
+StandardError=append:/home/ecs-agent/snc/backend.log
 
 [Install]
 WantedBy=multi-user.target
@@ -81,13 +81,13 @@ Documentation=https://github.com/nithep/snc
 Type=simple
 User=ecs-agent
 Group=ecs-agent
-WorkingDirectory=/home/ecs-agent/snc-poc/pbx
-ExecStart=/home/ecs-agent/snc-poc/venv/bin/python3 snc_pbx_listener.py
+WorkingDirectory=/home/ecs-agent/snc/pbx
+ExecStart=/home/ecs-agent/snc/venv/bin/python3 snc_pbx_listener.py
 # นโยบายกู้คืนตัวเองหากการรับข้อมูลหลุด/พัง
 Restart=always
 RestartSec=5s
-StandardOutput=append:/home/ecs-agent/snc-poc/pbx_listener.log
-StandardError=append:/home/ecs-agent/snc-poc/pbx_listener.log
+StandardOutput=append:/home/ecs-agent/snc/pbx_listener.log
+StandardError=append:/home/ecs-agent/snc/pbx_listener.log
 
 [Install]
 WantedBy=multi-user.target
@@ -102,8 +102,8 @@ WantedBy=multi-user.target
 ### ขั้นตอนที่ 1: เตรียมสภาพแวดล้อมและสิทธิ์ของไฟล์คู่มือ
 ตรวจสอบไดเรกทอรีเก็บประวัติล็อกและสร้างขึ้นมาหากยังไม่ปรากฏ:
 ```bash
-mkdir -p /home/ecs-agent/snc-poc/logs
-sudo chown -R ecs-agent:ecs-agent /home/ecs-agent/snc-poc/
+mkdir -p /home/ecs-agent/snc/logs
+sudo chown -R ecs-agent:ecs-agent /home/ecs-agent/snc/
 ```
 
 ### ขั้นตอนที่ 2: นำไฟล์ Service เข้าสู่ไดเรกทอรีของระบบปฏิบัติการ

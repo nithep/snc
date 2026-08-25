@@ -84,12 +84,12 @@ tags: [knowledge]
 
 ```bash
 # ตรวจสอบ burn-in ครบ 48 ชม. (หลัง 15 ส.ค. 03:03)
-ssh pi4 '/home/ecs-agent/snc-poc/burnin-monitor.sh --report'
+ssh pi4 '/home/ecs-agent/snc/burnin-monitor.sh --report'
 
 # ดูสายค้าง / เคส breach จากฐานข้อมูลโดยตรง
-ssh pi4 "sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db \"SELECT room_id, status, timestamp FROM nurse_call_events WHERE status IN ('active','acknowledged');\""
-ssh pi4 "sqlite3 /home/ecs-agent/snc-poc/api/nurse_call_events.db \"SELECT room_id, COUNT(*) FROM nurse_call_events WHERE sla_breached = 1 GROUP BY room_id;\""
+ssh pi4 "sqlite3 /home/ecs-agent/snc/api/nurse_call_events.db \"SELECT room_id, status, timestamp FROM nurse_call_events WHERE status IN ('active','acknowledged');\""
+ssh pi4 "sqlite3 /home/ecs-agent/snc/api/nurse_call_events.db \"SELECT room_id, COUNT(*) FROM nurse_call_events WHERE sla_breached = 1 GROUP BY room_id;\""
 
 # เริ่มเก็บข้อมูลชุดใหม่ (หลังจบ burn-in + สำรอง DB ก่อน)
-ssh pi4 '/home/ecs-agent/snc-poc/backup-snc-db.sh --pi'
+ssh pi4 '/home/ecs-agent/snc/backup-snc-db.sh --pi'
 ```

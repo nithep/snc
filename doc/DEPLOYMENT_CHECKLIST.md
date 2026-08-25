@@ -1,4 +1,4 @@
-﻿---
+---
 title: "SNC System - Pi 4 Deployment Checklist"
 type: guide
 tags: [deploy, ops]
@@ -60,7 +60,7 @@ Or manually copy via SCP:
 ### Set Permissions
 ```bash
 ssh pi@192.168.1.94
-cd /home/ecs-agent/snc-poc
+cd /home/ecs-agent/snc
 chmod +x *.sh
 ```
 - [ ] All .sh files are executable

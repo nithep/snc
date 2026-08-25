@@ -74,7 +74,7 @@ if (-not $runSa) {
     $projNum = gcloud projects describe $PROJECT_ID --format="value(projectNumber)"
     $runSa = "$projNum-compute@developer.gserviceaccount.com"
 }
-gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$runSa" --role="roles/datastore.user" -q *> $null
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$runSa" --role="roles/datastore.user" -q | Out-Null
 Write-Host "  ✅ ให้สิทธิ์ roles/datastore.user แก่ $runSa" -ForegroundColor Green
 
 # --- build image ---

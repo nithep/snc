@@ -1,4 +1,4 @@
-﻿---
+---
 title: "🔄 คู่มือหมุนเวียน Cloudflare Tunnel Credentials (Rotation Guide)"
 type: guide
 tags: [security]
@@ -36,9 +36,9 @@ tags: [security]
 
 | Component | ตำแหน่ง | วิธีอ่าน |
 |---|---|---|
-| Tunnel credentials (Pi4) | `/home/ecs-agent/snc-poc/.cloudflared/*.json` (หรือ `cert.pem`) | `ls -la .cloudflared/` |
+| Tunnel credentials (Pi4) | `/home/ecs-agent/snc/.cloudflared/*.json` (หรือ `cert.pem`) | `ls -la .cloudflared/` |
 | cloudflared token (ถ้าใช้ Remote Tunnel) | ตั้งค่าใน Zero Trust Dashboard + env | `cloudflared tunnel list` |
-| Config file | `/home/ecs-agent/snc-poc/.cloudflared/config.yml` | `cat config.yml` |
+| Config file | `/home/ecs-agent/snc/.cloudflared/config.yml` | `cat config.yml` |
 
 ---
 
@@ -47,7 +47,7 @@ tags: [security]
 ### Step 1: Backup credentials เดิมบน Pi4
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
+ssh pi4 "cd /home/ecs-agent/snc && ts=\$(date +%Y%m%d%H%M%S) && \
   cp -r .cloudflared backups/cloudflared.\$ts && \
   echo \"Backup: backups/cloudflared.\$ts\""
 ```
@@ -64,7 +64,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && ts=\$(date +%Y%m%d%H%M%S) && \
 NEW_TOKEN="<token ใหม่จาก Step 2>"
 
 ssh pi4 "sudo systemctl stop cloudflared && \
-  cloudflared tunnel token '$NEW_TOKEN' --cred-file /home/ecs-agent/snc-poc/.cloudflared/cred.json"
+  cloudflared tunnel token '$NEW_TOKEN' --cred-file /home/ecs-agent/snc/.cloudflared/cred.json"
 ```
 
 > ℹ️ วิธีที่แน่นอนขึ้นกับวิธี deploy (ดูหมายเหตุท้าย) — ตรวจว่าค่าใน `cred.json` ตรงกับ tunnel ID
@@ -72,7 +72,7 @@ ssh pi4 "sudo systemctl stop cloudflared && \
 ### Step 4: ตรวจ config ว่า Service URL ยังเป็น `localhost` (ไม่ใช่ IP วงแลน)
 
 ```bash
-ssh pi4 "cat /home/ecs-agent/snc-poc/.cloudflared/config.yml | grep -A2 'service:'"
+ssh pi4 "cat /home/ecs-agent/snc/.cloudflared/config.yml | grep -A2 'service:'"
 ```
 
 ต้องเห็น `http://localhost:8000` หรือ `http://127.0.0.1:8000` — **ห้ามเป็น `192.168.1.x`**
@@ -103,7 +103,7 @@ curl -H "X-API-Key: [SNC_API_KEY]" https://snc.nithep.com/api/events
 ถ้าใช้ local tunnel (run `cloudflared tunnel run` จาก config):
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   cloudflared tunnel login   # ใหม่ — ได้ cert.pem ใหม่ \
   cloudflared tunnel create snc-tunnel 2>/dev/null || true"
 ```
@@ -127,7 +127,7 @@ ssh pi4 "cd /home/ecs-agent/snc-poc && \
 ## ↩️ Rollback (ถ้าจำเป็น)
 
 ```bash
-ssh pi4 "cd /home/ecs-agent/snc-poc && \
+ssh pi4 "cd /home/ecs-agent/snc && \
   rm -rf .cloudflared && cp -r backups/cloudflared.<ts> .cloudflared && \
   sudo systemctl restart cloudflared"
 ```

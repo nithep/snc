@@ -20,10 +20,10 @@ tags: [testing]
   ```text
   <SNC_API_KEY — ค่าจริงอยู่ใน .env ของ Pi / Cloud Run เท่านั้น ไม่บันทึกลงเอกสาร>
   ```
-  *(ใช้กรอกในช่องตั้งค่าแดชบอร์ด ⚙️ และกำหนดไว้ในไฟล์ `.env` ของ API / Listener เพื่อตรวจสอบสิทธิ์การเขียนข้อมูล — ดูค่าได้ที่ `/home/ecs-agent/snc-poc/backend/.env` บน Pi หรือ `gcloud run services describe` ที่ Cloud Run)*
+  *(ใช้กรอกในช่องตั้งค่าแดชบอร์ด ⚙️ และกำหนดไว้ในไฟล์ `.env` ของ API / Listener เพื่อตรวจสอบสิทธิ์การเขียนข้อมูล — ดูค่าได้ที่ `/home/ecs-agent/snc/backend/.env` บน Pi หรือ `gcloud run services describe` ที่ Cloud Run)*
 * **พิกัดไฟล์ระบบบน Pi 4 (`pi4`)**:
-  * ไฟล์คอนฟิกหลัก: `/home/ecs-agent/snc-poc/backend/.env`
-  * ฐานข้อมูล SQLite (WAL Mode): `/home/ecs-agent/snc-poc/backend/nurse_call_events.db`
+  * ไฟล์คอนฟิกหลัก: `/home/ecs-agent/snc/backend/.env`
+  * ฐานข้อมูล SQLite (WAL Mode): `/home/ecs-agent/snc/backend/nurse_call_events.db`
 
 ### 1.2 เครือข่ายและการให้บริการสด (Live Endpoints)
 * **ตู้สาขาหลัก (Phonik PBX)**: `192.168.1.91:23` (สถานะปัจจุบัน: **Open/Ready ✅**)
@@ -49,7 +49,7 @@ graph TD
 * **เป้าหมาย**: ยืนยันความน่าเชื่อถือของระบบด้วยอัตราการล่ม **0 FAIL** ตลอด 48 ชั่วโมง
 * **สิ่งที่ต้องทำ**: ทันทีหลังเวลา **03:03 น. ของวันที่ 15 ส.ค.** ให้เชื่อมเข้าไปยังเครื่อง Pi และรันคำสั่งดึงสรุปผล:
   ```bash
-  ssh pi4 '/home/ecs-agent/snc-poc/burnin-monitor.sh --report'
+  ssh pi4 '/home/ecs-agent/snc/burnin-monitor.sh --report'
   ```
   *(นำรายงาน Log มาสรุปให้ผู้บริหารโรงพยาบาลเห็นถึงความเสถียรของระบบในการส่งข้อมูลร่วมกับ AI สรุปผล)*
 

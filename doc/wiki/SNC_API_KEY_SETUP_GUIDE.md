@@ -36,8 +36,8 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 ### 2.2 ใส่ใน `.env` ของ Backend (อยู่ข้าง `server.py`)
 
 ```bash
-find /home/ecs-agent/snc-poc -maxdepth 2 -name .env 2>/dev/null   # หาตำแหน่ง .env ก่อน
-nano /home/ecs-agent/snc-poc/api/.env                              # แก้ไฟล์ backend
+find /home/ecs-agent/snc -maxdepth 2 -name .env 2>/dev/null   # หาตำแหน่ง .env ก่อน
+nano /home/ecs-agent/snc/api/.env                              # แก้ไฟล์ backend
 # เพิ่ม/แก้บรรทัด:  SNC_API_KEY=<key ที่สร้างใน 2.1>
 ```
 
@@ -46,14 +46,14 @@ nano /home/ecs-agent/snc-poc/api/.env                              # แก้�
 Listener ส่ง key ผ่าน header ตอน trigger — **ถ้า backend ตั้ง key แต่ listener ไม่ตั้ง → เหตุการณ์จาก PBX จะโดน 401 ทิ้งทั้งหมด**
 
 ```bash
-nano /home/ecs-agent/snc-poc/pbx/.env
+nano /home/ecs-agent/snc/pbx/.env
 # เพิ่ม/แก้:  SNC_API_KEY=<key เดียวกันเป๊ะกับ 2.2>   (ตรวจ PBX_PASS ว่ายังอยู่ครบ)
 ```
 
 ### 2.4 ตั้งสิทธิ์ + restart
 
 ```bash
-chmod 600 /home/ecs-agent/snc-poc/api/.env /home/ecs-agent/snc-poc/pbx/.env
+chmod 600 /home/ecs-agent/snc/api/.env /home/ecs-agent/snc/pbx/.env
 sudo systemctl restart snc-backend.service
 sudo systemctl restart snc-pbx-listener.service
 systemctl is-active snc-backend.service snc-pbx-listener.service    # ต้อง active ทั้งคู่
@@ -100,7 +100,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8000/api/event
 | กดรับเรื่อง/เคลียร์ไม่ได้ + toast 401 | ไม่กรอก key หรือกรอกผิด | เปิด ⚙️ กรอก key ใหม่ (เทียบกับค่าใน `.env` บน Pi) |
 | เหตุการณ์จาก PBX ไม่เข้าหลังตั้ง key | key ใน backend `.env` กับ listener `.env` ไม่ตรงกัน | แก้ให้เป็นค่าเดียวกัน (ข้อ 2.3) แล้ว restart ทั้งคู่ |
 | Dashboard อ่านได้ปกติแต่เขียนไม่ได้ | เป็นพฤติกรรมตั้งใจ — GET เปิด, POST ปิด | กรอก key |
-| ไม่รู้ว่า Pi ตั้ง key หรือไม่ | — | `grep SNC_API_KEY /home/ecs-agent/snc-poc/api/.env` — ไม่มีบรรทัด = ไม่ต้องกรอก |
+| ไม่รู้ว่า Pi ตั้ง key หรือไม่ | — | `grep SNC_API_KEY /home/ecs-agent/snc/api/.env` — ไม่มีบรรทัด = ไม่ต้องกรอก |
 
 ---
 

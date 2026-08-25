@@ -150,7 +150,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now snc-tg-agent
 |---|---|
 | cron (บน Pi) | `0 19 * * *` (19:00 ทุกวัน) |
 | เนื้อหา | KPI + สายค้าง + ทิปประจำวัน (หมุนเวียน 7 ข้อจากคู่มือ troubleshooting) |
-| log | `/home/ecs-agent/snc-poc/evening_digest.log` |
-| วิธีรันเอง | `ssh pi4 '/home/ecs-agent/snc-poc/snc-evening-digest.sh'` |
+| log | `/home/ecs-agent/snc/evening_digest.log` |
+| วิธีรันเอง | `ssh pi4 '/home/ecs-agent/snc/snc-evening-digest.sh'` |
 
 สถานะปัจจุบัน: ✅ ติดตั้ง cron แล้ว (14 ส.ค. 2569) — รันจริงครั้งแรก 19:00 ของวันที่ครบ burn-in

@@ -42,7 +42,7 @@ tags: [knowledge]
 ## วิธี verify
 
 ```bash
-tail -f /home/ecs-agent/snc-poc/pbx_listener.log   # ควรเห็น "Connected successfully to Phonik PBX!"
+tail -f /home/ecs-agent/snc/pbx_listener.log   # ควรเห็น "Connected successfully to Phonik PBX!"
 telnet 192.168.1.91 23                              # ทดสอบตรง (แล้วกด Ctrl+] แล้ว q เพื่อออก)
 ```
 
