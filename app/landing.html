@@ -469,7 +469,6 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <button class="theme-switch" id="themeSwitch" title="สลับธีม (มืด / สว่าง / ระบบ)" aria-label="สลับธีม">
         <span class="ic" id="themeIcon">🌙</span><span id="themeLabel">มืด</span>
       </button>
-      <a class="nav-cta" href="index.html">เข้าสู่ Dashboard →</a>
     </div>
   </div>
 </header>
@@ -502,6 +501,7 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <div class="room ok">303</div><div class="room ok">304</div><div class="room ok">305</div>
         <div class="room ok">306</div><div class="room ok">307</div><div class="room ok">308</div>
       </div>
+      <div style="text-align:center;opacity:.6;font-size:.85rem;margin-top:.9rem">ภาพจำลองหน้าตา Dashboard (mockup) — เปิดระบบจริงได้จากปุ่มด้านบน</div>
     </div>
   </div>
 </section>
@@ -588,9 +588,9 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
 <section id="history">
   <div class="container">
     <div class="section-head reveal">
-      <div class="kicker">Live Feed</div>
-      <h2>ประวัติเหตุการณ์ล่าสุด</h2>
-      <p>ตัวอย่างเหตุการณ์เรียกพยาบาลที่กระจายผ่าน WebSocket แบบเรียลไทม์ — ครบถ้วนตามมาตรฐาน FHIR</p>
+      <div class="kicker">Live Feed · <span style="color:var(--green)">● REAL</span></div>
+      <h2>ประวัติเหตุการณ์ล่าสุด — ข้อมูลจริงจากระบบ</h2>
+      <p>ฟีดสดจากเซิร์ฟเวอร์ SNC (source: real) รีเฟรชอัตโนมัติทุก 10 วินาที — แยกจากโหมดทดสอบในหัวข้อถัดไป</p>
     </div>
     <div class="history-wrap reveal">
       <table class="history-table">
@@ -604,40 +604,35 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
             <th>SLA</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td><span class="room-no em">207</span></td>
-            <td><div class="rtype">ฉุกเฉิน — ดึงสาย Call Cord</div><div class="rd">NCX-PULL · ห้อง 207</div></td>
-            <td><span class="st em">รอรับเรื่อง</span></td>
-            <td><span class="mono">—</span></td>
-            <td><span class="mono">—</span></td>
-            <td><span class="sla breach">เกิน SLA</span></td>
-          </tr>
-          <tr>
-            <td><span class="room-no ack">203</span></td>
-            <td><div class="rtype">เรียกพยาบาล — กดปุ่ม</div><div class="rd">NCX-CORD · ห้อง 203</div></td>
-            <td><span class="st ack">รับเรื่องแล้ว</span></td>
-            <td><span class="mono">14:29:10</span></td>
-            <td><span class="mono">—</span></td>
-            <td><span class="sla ok">ภายใน SLA</span></td>
-          </tr>
-          <tr>
-            <td><span class="room-no ok">105</span></td>
-            <td><div class="rtype">เรียกพยาบาล — ยกหูโทรศัพท์</div><div class="rd">Handset · ห้อง 105</div></td>
-            <td><span class="st ok">จบเหตุการณ์</span></td>
-            <td><span class="mono">14:21:40</span></td>
-            <td><span class="mono">14:23:02</span></td>
-            <td><span class="sla ok">ผ่าน 1:22</span></td>
-          </tr>
+        <tbody id="histBody">
+          <tr><td colspan="6" style="text-align:center;opacity:.6;padding:2rem">กำลังโหลดข้อมูลจริง...</td></tr>
         </tbody>
       </table>
       <div class="history-foot">
-        <span>ทั้งหมด: 3</span>
+        <span id="histCount">—</span>
         <div class="right">
-          <span>รีเฟรชอัตโนมัติทุก 10 วินาที + เรียลไทม์ผ่าน WebSocket</span>
-          <button class="btn-csv" type="button">⬇ Export CSV</button>
+          <span>รีเฟรชอัตโนมัติทุก 10 วินาที (source: real)</span>
+          <button class="btn-csv" type="button" id="histCsvBtn">⬇ Export CSV</button>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Live Demo (ข้อมูลจำลอง — แยกจากระบบจริง) ═══ -->
+<section id="demo">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Live Demo · <span style="color:var(--amber)">● DEMO</span></div>
+      <h2>ลองกดเรียกจริง — ข้อมูลจำลอง แยกจากระบบจริง</h2>
+    </div>
+    <div class="demo-box reveal">
+      <p>เหตุการณ์จากปุ่มด้านล่างถูกแท็กเป็น <b>source: demo</b> — แสดงเฉพาะที่นี่เท่านั้น <b>ไม่ถูกนับใน KPI และประวัติของ Nurse Dashboard ระบบจริง</b> (เซิร์ฟเวอร์บังคับแท็กให้อัตโนมัติ)</p>
+      <div class="demo-btns">
+        <button class="btn btn-primary" id="demoBedsideBtn">🛎️ จำลองเรียกข้างเตียง (ห้อง 0400)</button>
+        <button class="btn btn-ghost" id="demoBathroomBtn" style="border-color:var(--red);color:var(--red)">🚿 จำลองฉุกเฉินห้องน้ำ (ห้อง 0400)</button>
+      </div>
+      <div id="demoFeed" class="demo-feed" aria-live="polite"><div class="demo-empty">กำลังโหลดข้อมูลทดสอบ...</div></div>
     </div>
   </div>
 </section>
@@ -683,24 +678,6 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <a class="btn btn-ghost" href="index.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_care">ดู Dashboard ตัวอย่าง</a>
         <a class="btn btn-ghost" href="roi.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_roi" style="border-color:var(--green);color:var(--green)">📊 อ่านบทความ ROI</a>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ Live Demo (ข้อมูลจำลอง — แยกจากระบบจริง) ═══ -->
-<section id="demo">
-  <div class="container">
-    <div class="section-head reveal">
-      <div class="kicker">Live Demo</div>
-      <h2>ลองกดเรียกจริง — ข้อมูลจำลอง แยกจากระบบจริง</h2>
-    </div>
-    <div class="demo-box reveal">
-      <p>เหตุการณ์จากปุ่มด้านล่างถูกแท็กเป็น <b>source: demo</b> — แสดงเฉพาะที่นี่เท่านั้น <b>ไม่ถูกนับใน KPI และประวัติของ Nurse Dashboard ระบบจริง</b> (เซิร์ฟเวอร์บังคับแท็กให้อัตโนมัติ)</p>
-      <div class="demo-btns">
-        <button class="btn btn-primary" id="demoBedsideBtn">🛎️ จำลองเรียกข้างเตียง (ห้อง 0400)</button>
-        <button class="btn btn-ghost" id="demoBathroomBtn" style="border-color:var(--red);color:var(--red)">🚿 จำลองฉุกเฉินห้องน้ำ (ห้อง 0400)</button>
-      </div>
-      <div id="demoFeed" class="demo-feed" aria-live="polite"><div class="demo-empty">กำลังโหลดข้อมูลทดสอบ...</div></div>
     </div>
   </div>
 </section>
@@ -953,6 +930,87 @@ cSubmit.addEventListener('click', submitContact);
 </script>
 
 <script>
+/* ═══ Live Feed จริง (source: real) — 3 เหตุการณ์ล่าสุด + Export CSV ═══ */
+let histEvents = [];
+function histFmtClock(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function histFmtDur(secs) {
+  if (secs == null) return '';
+  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+  return m > 0 ? m + ':' + String(s).padStart(2, '0') : s + 's';
+}
+function histTypeMeta(t) {
+  const e = String(t || '').toUpperCase();
+  if (e === 'CALL_BATHROOM_EMERGENCY') return { title: 'ฉุกเฉิน — ดึงสาย Call Cord', dev: 'NCX-PULL' };
+  if (e === 'CALL_BEDSIDE' || e === 'CALL_TRIGGERED') return { title: 'เรียกพยาบาล — กดปุ่ม', dev: 'NCX-CORD' };
+  if (e === 'NURSE_TALKING' || e === 'OFFHOOK' || e === 'CALL_HANDSET') return { title: 'เรียกพยาบาล — ยกหูโทรศัพท์', dev: 'Handset' };
+  if (e === 'CALL_CLEARED') return { title: 'เคลียร์สาย', dev: '' };
+  return { title: t || '—', dev: '' };
+}
+async function loadHistory() {
+  const body = document.getElementById('histBody');
+  if (!body) return;
+  try {
+    const data = await demoFetch('/api/events?source=real');
+    histEvents = (data.events || []).slice(0, 3);
+    document.getElementById('histCount').textContent = 'เหตุการณ์ล่าสุด: ' + histEvents.length + ' · ข้อมูลจริง (source: real)';
+    if (!histEvents.length) {
+      body.innerHTML = '<tr><td colspan="6" style="text-align:center;opacity:.6;padding:2rem">ยังไม่มีเหตุการณ์จริง — รอสัญญาณจากตู้ PBX</td></tr>';
+      return;
+    }
+    const now = Date.now();
+    body.innerHTML = histEvents.map(ev => {
+      const s = String(ev.status || '').toLowerCase();
+      const resolved = s === 'resolved' || s === 'cleared' || s === 'completed';
+      const acked = s === 'acknowledged' || s === 'ack';
+      const roomCls = resolved ? 'ok' : (acked ? 'ack' : 'em');
+      const stCls = resolved ? 'ok' : (acked ? 'ack' : 'em');
+      const stTxt = resolved ? 'จบเหตุการณ์' : (acked ? 'รับเรื่องแล้ว' : 'รอรับเรื่อง');
+      const m = histTypeMeta(ev.event_type);
+      const sub = (m.dev ? m.dev + ' · ' : '') + 'ห้อง ' + ev.room_id;
+      let sla;
+      if (resolved) {
+        sla = ev.sla_breached
+          ? '<span class="sla breach">เกิน SLA</span>'
+          : '<span class="sla ok">ผ่าน ' + histFmtDur(ev.resolution_time_seconds) + '</span>';
+      } else {
+        const elapsed = (now - Date.parse(ev.timestamp)) / 1000;
+        const over = acked
+          ? ((ev.ack_time_seconds != null && ev.ack_time_seconds > 30) || !!ev.sla_breached)
+          : (elapsed > 30);
+        sla = over ? '<span class="sla breach">เกิน SLA</span>' : '<span class="sla ok">ภายใน SLA</span>';
+      }
+      return '<tr>' +
+        '<td><span class="room-no ' + roomCls + '">' + ev.room_id + '</span></td>' +
+        '<td><div class="rtype">' + m.title + '</div><div class="rd">' + sub + '</div></td>' +
+        '<td><span class="st ' + stCls + '">' + stTxt + '</span></td>' +
+        '<td><span class="mono">' + histFmtClock(ev.acknowledged_at) + '</span></td>' +
+        '<td><span class="mono">' + histFmtClock(ev.resolved_at) + '</span></td>' +
+        '<td>' + sla + '</td></tr>';
+    }).join('');
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;opacity:.6;padding:2rem">เชื่อมต่อระบบไม่ได้ (โหมดออฟไลน์)</td></tr>';
+    document.getElementById('histCount').textContent = 'ออฟไลน์';
+  }
+}
+document.getElementById('histCsvBtn').addEventListener('click', () => {
+  const rows = [['timestamp', 'room_id', 'event_type', 'status', 'ack_time_seconds', 'resolution_time_seconds', 'sla_breached']];
+  histEvents.forEach(ev => rows.push([ev.timestamp, ev.room_id, ev.event_type, ev.status,
+    ev.ack_time_seconds != null ? ev.ack_time_seconds : '', ev.resolution_time_seconds != null ? ev.resolution_time_seconds : '', ev.sla_breached ? 1 : 0]));
+  const csv = '\uFEFF' + rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'snc_real_events_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+setInterval(loadHistory, 10000);
+loadHistory();
+
 /* ═══ Live Demo widget — ผูกกับข้อมูล source=demo (แยกจากระบบจริง) ═══ */
 const DEMO_ROOM = '0400';
 async function demoFetch(path, opts) {
