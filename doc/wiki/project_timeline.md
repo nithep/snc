@@ -820,4 +820,18 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **สถานะ:** แพลตฟอร์มแกนหลัก (FastAPI, Dashboard v2.0, TCP Proxy 2323, SQLite WAL) ได้รับการรับรองและเสถียรสูงสุด พร้อมสนับสนุนทีมทดสอบสายและเดินระบบติดตั้งจริงที่หน้างานรพ.ราชเวช ชั้น 11 ทันที
 
 
+## [2026-08-25] Cloud Run Data Loss Incident — ตรวจจับ, แก้รากปัญหา และป้องกันซ้ำ (rev 00025)
+
+**ผู้ดำเนินการ:** Senior Software Engineer (opencode — ox-alpha)
+
+**รายละเอียด:**
+- **ตรวจพบข้อมูลสูญหาย:** Cloud Run (`snc-cloud-backend`) รายงาน `total_events=0` ทั้งที่ outbox ฝั่ง Pi mark `sent` 15/15 และ log ยืนยัน `✅ Event sent to cloud` — สืบรอยด้วย Firestore REST API + revision env audit พบว่า rev `00018–00019` (deploy 19 ส.ค.) **ไม่มี env `SNC_DB_BACKEND`** → service fallback เป็น SQLite บน container → event วันที่ 21+24 ส.ค. (ห้อง 1100/1105) หายถาวรเมื่อ scale-to-zero
+- **แก้รากปัญหา deploy script:** พบบั๊ก PS 5.1 ใน `ops/deploy_gcp_cloudrun.ps1` — `*> $null` ร่วมกับ `$ErrorActionPreference="Stop"` ทำให้ script ตายเงียบๆ ก่อน step build เสมอ (แรงจูงใจให้ไป deploy มือจน env หาย) → แก้เป็น `| Out-Null`
+- **Code guard ป้องกันซ้ำ (api/storage.py):** `get_store()` force `firestore` + log critical เมื่อรันบน Cloud Run (ตรวจ env `K_SERVICE`) แม้ deploy จะลืม env อีก — deploy rev `00025-jvz` แล้ว verify ครบ: health=`firestore`, auth 401, smoke test trigger→dedup→KPI→ack/clear ผ่าน (18s ack / 19s resolution)
+- **IAM:** มอบสิทธิ์ `roles/run.developer` แก่ `admin@nithep.com` บน service; ทบทวน project IAM (พบ SA `github-deployer` มี `run.admin` — ต้อง audit workflow ก่อนเปิด CI/CD)
+- **เอกสาร:** จัดทำ [[SNC_CLOUDRUN_DATALOSS_INCIDENT_2026-08-25]] + แก้ path drift `/home/ecs-agent/snc-poc` → `/home/ecs-agent/snc` ในเอกสารปฏิบัติการ 13 ไฟล์ (คง legacy path ไว้ใน MIGRATION_RUNBOOK/SESSION_HANDOVER/NOMENCLATURE ตามหลัก vault)
+- **สถานะ:** ✅ แก้เสร็จสิ้น — pipeline Pi → Cloud Run ใช้งานได้จริง end-to-end ข้อมูลช่วง 19–24 ส.ค. recover ไม่ได้ (container ephemeral) แต่ระบบปัจจุบัน durable แล้ว
+
+
+
 

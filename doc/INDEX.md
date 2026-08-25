@@ -31,6 +31,7 @@ tags: [index, snc, toc]
 - **Systemd Services**: [[SNC_SYSTEMD_SERVICES_SUMMARY]]
 - **Cloudflare Tunnel**: [[SNC_CLOUDFLARE_TUNNEL_SUMMARY]] · [[SNC_CLOUDFLARE_SETUP_SUMMARY]]
 - **API Key / Secrets**: [[SNC_API_KEY_SETUP_GUIDE]] · [[SNC_API_KEY_ROTATION_GUIDE]]
+- **Cloud Run Incident (data loss)**: [[SNC_CLOUDRUN_DATALOSS_INCIDENT_2026-08-25]]
 - **Telegram Alerts**: [[SNC_TELEGRAM_ALERTS]]
 
 ### 📡 PBX / Listener
