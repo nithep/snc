@@ -535,6 +535,14 @@ def get_store():
     global _store
     if _store is None:
         backend = os.getenv("SNC_DB_BACKEND", "sqlite").strip().lower()
+        k_service = os.getenv("K_SERVICE", "")
+        if k_service and backend != "firestore":
+            logging.critical(
+                "SNC_DB_BACKEND=%s on Cloud Run service '%s' — forcing 'firestore' "
+                "(container filesystem is ephemeral; SQLite would lose events on scale-to-zero)",
+                backend or "(unset)", k_service,
+            )
+            backend = "firestore"
         if backend == "firestore":
             _store = FirestoreStore()
             logging.info("Event store: Firestore (persistent — Cloud Run)")
