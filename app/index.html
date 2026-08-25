@@ -102,6 +102,14 @@ header {
   transition: all 0.18s ease;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--stroke-strong); background: var(--card-strong); transform: translateY(-1px); }
+.demo-test-btn {
+  cursor: pointer; border: 1px dashed rgba(245,158,11,.6); color: #fbbf24;
+  background: rgba(245,158,11,.08); border-radius: 999px; padding: 0.34rem 0.7rem;
+  font-size: 0.74rem; font-weight: 700; letter-spacing: .3px; font-family: var(--font);
+  transition: background .15s ease, transform .15s ease;
+}
+.demo-test-btn:hover { background: rgba(245,158,11,.18); transform: translateY(-1px); }
+.demo-test-btn:disabled { opacity: .55; cursor: wait; }
 .icon-btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .header-clock { font-family: var(--mono); font-size: 0.85rem; color: var(--text-dim); padding: 0.42rem 0.7rem; border: 1px dashed var(--stroke); border-radius: 10px; }
 
@@ -377,6 +385,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <div class="header-clock" id="clock" aria-label="Clock">--:--:--</div>
     <button class="icon-btn" id="soundBtn" title="เสียงเตือน" aria-label="Toggle alarm sound">🔊</button>
     <button class="icon-btn" id="langBtn" title="ภาษา / Language" aria-label="Switch language">EN</button>
+    <button class="demo-test-btn" id="demoTestBtn" title="ทดสอบ DEMO — จำลองเรียกห้อง 0400 (ไม่นับ KPI)" aria-label="Trigger demo call">🧪 <span data-i18n-key="demoTest">DEMO</span></button>
     <button class="icon-btn" id="settingsBtn" title="การตั้งค่า" aria-label="Open settings" style="font-size:1.1rem">⚙️</button>
   </div>
 </header>
@@ -544,6 +553,7 @@ const I18N = {
     authError: 'เซิร์ฟเวอร์ปฏิเสธการเขียน (401) — เปิดการตั้งค่า ⚙️ แล้วกรอก API Key ให้ถูกต้อง',
     opFailed: 'ดำเนินการไม่สำเร็จ', opOk: 'ดำเนินการสำเร็จ',
     ackDone: 'รับเรื่องห้อง {room} แล้ว', clearDone: 'เคลียร์สายห้อง {room} แล้ว', triggerDone: 'ส่งสัญญาณจำลองห้อง {room} แล้ว',
+    demoTest: 'DEMO', demoTestSending: 'กำลังส่งสัญญาณจำลอง…', demoTestDone: 'ส่งสัญญาณจำลองแล้ว (DEMO — ไม่นับ KPI)', demoTestFail: 'ส่งสัญญาณจำลองไม่สำเร็จ', demoTestReset: 'DEMO เคลียร์แล้ว — ระบบพร้อมใช้งาน',
     footerNote: 'เซิร์ฟเวอร์หลัก Raspberry Pi 4', liveFeed: 'ฟีดสด WebSocket',
     eventsByType: 'จำนวนเหตุการณ์แยกตามประเภท'
   },
@@ -583,6 +593,7 @@ const I18N = {
     authError: 'Server rejected write (401) — open Settings ⚙️ and enter a valid API Key',
     opFailed: 'Operation failed', opOk: 'Operation succeeded',
     ackDone: 'Room {room} acknowledged', clearDone: 'Room {room} cleared', triggerDone: 'Simulated call sent for room {room}',
+    demoTest: 'DEMO', demoTestSending: 'Sending demo call…', demoTestDone: 'Demo call sent (DEMO — not counted in KPI)', demoTestFail: 'Failed to send demo call', demoTestReset: 'DEMO cleared — system ready',
     footerNote: 'Primary server: Raspberry Pi 4', liveFeed: 'WebSocket Live Feed',
     eventsByType: 'Events by type'
   }
@@ -1309,6 +1320,31 @@ document.getElementById('soundBtn').addEventListener('click', () => {
 });
 document.getElementById('langBtn').addEventListener('click', () => setLang(LANG === 'th' ? 'en' : 'th'));
 document.getElementById('exportBtn').addEventListener('click', exportCsv);
+document.getElementById('demoTestBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('demoTestBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  toast(t('demoTestSending'));
+  try {
+    // ปุ่มทดสอบสาธารณะ (ไม่ต้อง key) — server บังคับ source=demo → ไม่นับ KPI ของจริง
+    const res = await fetch(apiUrl('/api/demo/trigger'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room_id: '0400', event_type: 'CALL_BEDSIDE' })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    toast(t('demoTestDone'), 'ok');
+    // เคลียร์การ์ด demo อัตโนมัติหลัง ~15 วิ (กันการ์ดค้างแดง) — KPI/History ไม่นับอยู่แล้ว
+    setTimeout(() => {
+      if (roomStates['0400']) { delete roomStates['0400']; renderRooms(); }
+      toast(t('demoTestReset'));
+    }, 15000);
+  } catch (e) {
+    toast(t('demoTestFail'), 'err');
+  } finally {
+    btn.disabled = false;
+  }
+});
 document.getElementById('searchInput').addEventListener('input', renderHistory);
 document.getElementById('statusFilter').addEventListener('change', renderHistory);
 document.getElementById('kpiView').addEventListener('change', () => {
