@@ -47,6 +47,7 @@ tags: [index, snc, toc]
 - **คู่มือสาธิต & Go-Live**: [[SNC_GO_LIVE_MANUAL]]
 
 ### 🏛️ สถาปัตยกรรม & ยุทธศาสตร์
+- **มุมมองเชิงวิชาการ (ISO/IEC 30141)**: [[SNC_ARCHITECTURE_ACADEMIC_VIEW]]
 - **Sovereign AI Blueprint**: [[SNC_SOVEREIGN_AI_BLUEPRINT]]
 
 ### 📅 Timeline & Handover
