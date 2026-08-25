@@ -39,7 +39,7 @@ tags: [security]
 |---|---|---|
 | Backend (Pi4) | `/home/ecs-agent/snc/api/.env` | `grep SNC_API_KEY api/.env` |
 | Listener (Pi4) | `/home/ecs-agent/snc/pbx/.env` | `grep SNC_API_KEY pbx/.env` |
-| Cloud Run | env var `SNC_API_KEY` | `gcloud run services describe snc-cloud-backend --region asia-southeast1` |
+| Cloud Run | GCP **Secret Manager** — secret `snc-api-key` (mount เป็น env เมื่อ deploy) ⚠️ **ใช้งานบังคับแล้วตั้งแต่ 26 ส.ค. 2569** | `gcloud secrets versions access latest --secret=snc-api-key` |
 | Dashboard (เบราว์เซอร์) | `localStorage` ของแต่ละเครื่อง | ⚙️ ตั้งค่า → API Key |
 
 ---

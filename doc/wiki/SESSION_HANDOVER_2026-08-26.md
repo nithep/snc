@@ -42,23 +42,40 @@ tags: [status, firestore, secret-manager, cloud-run, ai, cleanup]
 
 ## การตัดสินใจ/ข้อสังเกต
 
-1. **SNC_API_KEY ยังเป็น plaintext env บน Cloud Run** — secret `snc-api-key` **ยังไม่ถูกสร้าง** (มีแค่ชื่อใน doc/terraform แต่ไม่มีการ implement จริง) — นอกขอบงานนี้แต่ควรทำตามลำดับถัดไป (ดู "สิ่งค้าง")
-2. `TELEGRAM_BOT_TOKEN` ยังเป็น plaintext env + **เป็น token ที่เคยถูก flag ว่า leak (handover 19 ส.ค.)** — ควร rotate + ย้ายขึ้น secret `snc-telegram-bot-token` (secret มีอยู่แล้ว เหลือ mount + rotate)
+1. ~~SNC_API_KEY/TELEGRAM_BOT_TOKEN ยังเป็น plaintext env~~ — **แก้แล้ว**: ขึ้น Secret Manager + mount ทั้งคู่ (rev `00027-whf`); เหลือ **การ rotate จริง** (ค่า token ยังเป็นตัวเดิมที่อาจเคย leak) — ดู "สิ่งค้างถัดไป"
 3. data จริง (1100/1101/1105) ที่เคยเข้า Firestore หายไปก่อนหน้าแล้วจาก incident — การเก็บกวาดครั้งนี้จึงไม่สูญข้อมูลของผู้ป่วยจริงเพิ่ม (มี backup ครบ)
 4. key ถูกดึงจาก revision env เข้า temp file แล้วลบ — ไม่มี plaintext key หลุดเข้ากระแส git
 
 ## ไฟล์ที่แก้ (Doc only)
 
 - `doc/wiki/GEMINI_API_KEY_ROTATION_GUIDE.md` — ระบุว่า Secret Manager บน Cloud Run **บังคับใช้แล้ว (26 ส.ค.)** พร้อมวิธี deploy ที่ใช้จริง
+- `doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md` — ตารางตำแหน่ง Cloud Run → Secret Manager mount (secret `snc-api-key` สร้างจริงแล้ว)
 
 ## ไฟล์ชั่วคราว/backup (gitignored ใน `.freebuff/`)
 
 - `firestore_backup_20260826_025540.json` — backup Firestore ก่อนลบ (เก็บ 30 วันแล้วลบได้)
-- `test_ai_secret.py` / `check_rev_env.py` — ชั่วคราวสำหรับ verify
+- `test_ai_secret.py` / `verify_secrets.py` / `check_rev_env.py` / `extract_env.py` — ชั่วคราวสำหรับ verify
+
+## Deploy History 26 ส.ค. 2569 (Cloud Run `snc-cloud-backend`)
+
+| Revision | การเปลี่ยนแปลง |
+|---|---|
+| `00026-sbm` | ย้าย `GEMINI_API_KEY` ขึ้น Secret Manager (mount) + ลบ plaintext |
+| `00027-whf` | ย้าย `SNC_API_KEY` + `TELEGRAM_BOT_TOKEN` ขึ้น Secret Manager (mount) + ลบ plaintext |
+
+**Env ที่เหลือเป็น plaintext (ไม่ใช่ secret):** `SNC_DB_BACKEND=firestore`, `TELEGRAM_CHAT_ID`
+
+## เทียบเพิ่มเติม (เติมใน session จากคำขอต่อเนื่อง) — ย้าย SNC_API_KEY + TELEGRAM_BOT_TOKEN ขึ้น Secret Manager
+
+- **ทำ:** สร้าง secret `snc-api-key` (value = ค่าปัจจุบันที่รันอยู่, กัน break parity กับ Pi) version 1 + grant accessor; mount `TELEGRAM_BOT_TOKEN=snc-telegram-bot-token:latest` (ค่าตรงกัน secret version 8, ไม่เพิ่ม version ซ้ำ) + grant/ยืนยัน accessor
+- **redeploy:** rev `00027-whf` — `--set-secrets "GEMINI_API_KEY,SNC_API_KEY,TELEGRAM_BOT_TOKEN"` + `--remove-env-vars SNC_API_KEY,TELEGRAM_BOT_TOKEN` + `--update-env-vars SNC_DB_BACKEND,TELEGRAM_CHAT_ID`
+- **ผล:** ทุก secret ผ่าน Secret Manager แล้ว — เหลือ **plaintext env เฉพาะที่ไม่ใช่ secret**: `SNC_DB_BACKEND`, `TELEGRAM_CHAT_ID`
+- **verify ครบ (rev `00027-whf`):** `/health` healthy db=firestore · POST ไม่มี key → 401 · KPI ด้วย SNC_API_KEY (จาก secret) → 200 · SNC-Bot (ไทย) → 200 live_key=True
+- **update doc:** `SNC_API_KEY_ROTATION_GUIDE.md` ตารางตำแหน่ง → Secret Manager mount
 
 ## สิ่งค้าง / ข้อควรรู้ถัดไป
 
-1. **สร้าง + mount secret `snc-api-key`** (ตอนนี้ secret ไม่มีอยู่จริง ถึง doc จะอ้าง) แล้ว `--remove-env-vars SNC_API_KEY` — พร้อม update `SNC_API_KEY_ROTATION_GUIDE.md`
-2. **rotate + ย้าย `TELEGRAM_BOT_TOKEN` ขึ้น secret** (token เคย leak ตาม handover 19 ส.ค.) + ลบ plaintext env
+1. **rotate `TELEGRAM_BOT_TOKEN` แท้ (สร้าง token ใหม่ที่ @BotFather)** — token ปัจจุบัน (secret version 8 และรันบน Cloud) ยังเป็นตัวที่เคย flag ว่า leak; การย้ายขึ้น Secret Manager แค่เอาออกจาก plaintext env ยังไม่ได้แก้อการถูกเผยแพร่ — หลังได้ token ใหม่: `gcloud secrets versions add snc-telegram-bot-token --data-file=-` (เพิ่ม version ใหม่ แล้ว mount `:latest` เอง) + revoke เก่าที่ @BotFather
+2. **rotate `SNC_API_KEY` แท้** — ต้องอัปเดต Pi หลายจุดพร้อมกัน (`api/.env` + `pbx/.env` + Cloud Secret) เพื่อคง parity; ผมเข้าถึง Pi ไม่ได้ → ข้ามได้ แต่ควรทำเมื่อ access Pi + ใช้ `SNC_API_KEY_ROTATION_GUIDE.md` Step 1–7
 3. หลัง deploy ทุกครั้ง: ตรวจ `/health` → `db:firestore` + POST ไม่มี key → 401 + `/api/ai/snc-bot` ยังตอบ (กัน regression หลัง mount secret)
-4. `snc-gemini-api-key` ตอนนี้ชี้ `:latest` → rotate แค่ `gcloud secrets versions add` + ไม่ต้อง redeploy ใหม่ (version ใหม่จะถูก mount) — อัปเดต rotation guide ตามจริงแล้ว
+4. secret ที่ mount แล้วชี้ `:latest` → rotate แค่ `gcloud secrets versions add` + เปลี่ยน `:latest` ไม่ต้อง redeploy ใหม่ (deploy เฉพาะตอนเปลี่ยน mount/ชื่อ secret) — `SNC_API_KEY`/`GEMINI_API_KEY`/`TELEGRAM_BOT_TOKEN` ตามนี้
