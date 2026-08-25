@@ -62,6 +62,7 @@ tags: [status, firestore, secret-manager, cloud-run, ai, cleanup]
 |---|---|
 | `00026-sbm` | ย้าย `GEMINI_API_KEY` ขึ้น Secret Manager (mount) + ลบ plaintext |
 | `00027-whf` | ย้าย `SNC_API_KEY` + `TELEGRAM_BOT_TOKEN` ขึ้น Secret Manager (mount) + ลบ plaintext |
+| `00028-8f4` | ปุ่ม 🧪 DEMO บน dashboard (room 0400, `source=demo` ไม่นับ KPI) + rebuild image ใหม่ |
 
 **Env ที่เหลือเป็น plaintext (ไม่ใช่ secret):** `SNC_DB_BACKEND=firestore`, `TELEGRAM_CHAT_ID`
 
