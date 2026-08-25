@@ -54,24 +54,14 @@ Audit log พบ SA นี้ `ReplaceService` เมื่อ 22 ส.ค. (23:0
 
 | Key ID | สร้าง | สถานะ |
 |---|---|---|
-| `cc69a06e...dc854` | 22 ส.ค. | ⛔ รอ revoke (ต้นเหตุ suspect) |
-| `8c798c04...ef634` | 25 ก.ค. | ⛔ รอ revoke (เกินจำเป็น) |
-| `5702c598...45e4` | 26 ส.ค. | ✅ key ใหม่ — เก็บที่ `%USERPROFILE%\.config\snc\github-deployer-newkey-20260826.json` |
+| `cc69a06e...dc854` | 22 ส.ค. | 🗑️ **REVOKED 26 ส.ค.** (ต้นเหตุ suspect) |
+| `8c798c04...ef634` | 25 ก.ค. | 🗑️ **REVOKED 26 ส.ค.** (เกินจำเป็น) |
+| `5702c598...45e4` | 26 ส.ค. | ✅ key ใหม่ — เก็บที่ `%USERPROFILE%\.config\snc\github-deployer-newkey-20260826.json` (ยังไม่มี consumer) |
 
-**ขั้นตอนค้าง (ผู้ดูแล GitHub):**
-1. นำเนื้อหา JSON ไฟล์ใหม่ไปแทน secret ใน GitHub Actions workflow (repo ภายนอก)
-2. รัน workflow 1 ครั้งยืนยัน deploy ผ่าน
-3. Revoke key เก่า:
-   ```bash
-   gcloud iam service-accounts keys delete cc69a06e022efbe84b84ffd606638841840dc854 \
-     --iam-account=github-deployer@hotel-ecs-nithep.iam.gserviceaccount.com --project hotel-ecs-nithep -q
-   gcloud iam service-accounts keys delete 8c798c04538d7de04a1a10bbf30aaed9606ef634 \
-     --iam-account=github-deployer@hotel-ecs-nithep.iam.gserviceaccount.com --project hotel-ecs-nithep -q
-   ```
-4. ลบไฟล์ JSON ในเครื่องหลังย้ายเข้า secret แล้ว
-
-> Workflow ต้องตั้ง env `SNC_DB_BACKEND: firestore` ทุกครั้ง (หรือพึ่ง code guard ใน `api/storage.py`
-> ซึ่ง force firestore ให้เองบน Cloud Run — guard เป็นตาข่ายด้านล่าง ไม่ใช่ข้อแก้ตัวของ pipeline)
+**ผลการตรวจ (26 ส.ค.):** `nithep/snc` **ไม่มี** GitHub Actions deploy workflow / secrets / variables
+(มีเพียง `release-installers.yml` ที่ไม่แตะ GCP) → ผู้ใช้ key เก่าคือ **script ภายนอกที่ถือ key JSON โดยตรง**
+ซึ่งเป็นช่องทาง deploy นอกระบบที่ก่อ incident เอง — revoke ทันทีตามหลัก rotation (key เก่าไร้ค่าทันที)
+หากอนาคตต้องการ CI/CD จริง ใช้ key `5702c598...` ตั้งเป็น secret พร้อม env `SNC_DB_BACKEND: firestore`
 
 ## 📎 ข้อมูลอ้างอิง
 
