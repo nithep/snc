@@ -43,7 +43,6 @@ FILES=(
   "app/roi.html:app/roi.html"
   "app/snc-vs-imported.html:app/snc-vs-imported.html"
   "app/how-to-phonik.html:app/how-to-phonik.html"
-  "app/dashboard-status.html:app/dashboard-status.html"
   "pbx/snc_pbx_listener.py:pbx/snc_pbx_listener.py"
   "ops/snc-backend.service:ops/snc-backend.service"
   "ops/snc-pbx-listener.service:ops/snc-pbx-listener.service"

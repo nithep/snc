@@ -33,7 +33,7 @@ tips = [
     "ห้องขึ้นผิด (0400 แทน 0401) → ต้องใช้ station_ext สำหรับ e. events (ไม่ใช่ event_code)",
     "เช็ก SLA ผ่าน /kpi — เป้า Ack ≤30s · Resolution ≤180s · compliance ≥98%",
     "KPI ปนข้อมูล legacy → lean-snc-data.sh --confirm --purge-legacy แล้ว /kpi ใหม่",
-    "หน้า / โชว์ 404/blank → ต้อง deploy app/index.html ขึ้นเป็นหน้าแรก (ไม่ใช่ dashboard-status.html)",
+    "หน้า /dashboard โชว์ 404/blank → ต้อง deploy app/index.html (หน้าแรก / คือ landing.html)",
 ]
 tip = tips[int(datetime.date.today().strftime("%j")) % len(tips)]
 

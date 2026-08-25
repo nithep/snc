@@ -37,7 +37,7 @@ echo "[Backend Tests]"
 test_check "Backend process running" "pgrep -f 'uvicorn.*server:app'"
 test_check "Backend health endpoint" "curl -s -f http://localhost:$BACKEND_PORT/health"
 test_check "Events API accessible" "curl -s -f http://localhost:$BACKEND_PORT/api/events"
-test_check "Dashboard HTML served" "curl -s -f http://localhost:$BACKEND_PORT/dashboard-status.html"
+test_check "Dashboard HTML served" "curl -s -f http://localhost:$BACKEND_PORT/dashboard"
 echo ""
 
 echo "[PBX Listener Tests]"
@@ -68,7 +68,7 @@ if [ $FAIL -eq 0 ]; then
     echo "✅ All tests passed! System is operational."
     echo ""
     echo "Access dashboard at:"
-    echo "  http://$(hostname -I | awk '{print $1}'):$BACKEND_PORT/dashboard-status.html"
+    echo "  http://$(hostname -I | awk '{print $1}'):$BACKEND_PORT/dashboard"
     exit 0
 else
     echo "❌ Some tests failed. Check the output above."

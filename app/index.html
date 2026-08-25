@@ -474,7 +474,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 </main>
 
 <footer>
-  SNC v2.0 — Phonik PBX Smart Nurse Call · <span data-i18n-key="footerNote">เซิร์ฟเวอร์หลัก Raspberry Pi 4</span>
+  SNC v2.1 — Phonik PBX Smart Nurse Call · <span data-i18n-key="footerNote">เซิร์ฟเวอร์หลัก Raspberry Pi 4</span>
 </footer>
 
 <!-- ═══════════ Settings Modal ═══════════ -->
@@ -870,6 +870,8 @@ function renderStatusStrip() {
 }
 
 /* ═══════════════════════════ Render: rooms ═══════════════════════════ */
+// ห้องที่ไม่มีตัวตนบนตู้จริง (as-built: PBX_PORT_ROOM_MAPPING) — ซ่อนออกจาก grid
+const HIDDEN_ROOMS = ['1116'];
 function renderRooms() {
   const grid = document.getElementById('roomGrid');
   renderStatusStrip();
@@ -878,6 +880,7 @@ function renderRooms() {
   if (Object.keys(roomStates).length === 0) {
     // Patient Rooms 1101-1127
     for (let i = 1101; i <= 1127; i++) {
+      if (HIDDEN_ROOMS.includes(String(i))) continue;
       roomStates[String(i)] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
     }
     // Nurse Station & Display
@@ -885,7 +888,7 @@ function renderRooms() {
     roomStates['DISPLAY-1100'] = { status: 'normal', eventType: null, startedAt: null, source: 'init' };
   }
 
-  const rooms = Object.entries(roomStates);
+  const rooms = Object.entries(roomStates).filter(([id]) => !HIDDEN_ROOMS.includes(id));
   if (rooms.length === 0) {
     grid.innerHTML = '<div class="empty-state"><span class="big">📡</span><span>' + t('noEvents') + '</span></div>';
     updateBanner(); updateAlarm(); return;

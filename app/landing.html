@@ -221,11 +221,6 @@ header {
     linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
 }
 [data-theme="light"] header { background: rgba(246,248,252,.78); }
-[data-theme="light"] .preview { background: rgba(255,255,255,.7); }
-[data-theme="light"] .preview-bar { background: rgba(15,23,42,.03); }
-[data-theme="light"] .room.ok { background: rgba(16,185,129,.16); }
-[data-theme="light"] .room.ack { background: rgba(245,158,11,.18); }
-[data-theme="light"] .room.em { background: rgba(239,68,68,.22); }
 [data-theme="light"] .hero .glow { background: radial-gradient(600px 300px at 50% 0%, rgba(99,102,241,.16), transparent 70%); }
 
 /* ── Hero ── */
@@ -254,24 +249,6 @@ header {
 .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 22px 50px -16px rgba(99,102,241,1); }
 .btn-ghost { background: var(--card-strong); border-color: var(--stroke-strong); color: var(--text); }
 .btn-ghost:hover { transform: translateY(-3px); border-color: var(--stroke-strong); background: rgba(255,255,255,.1); }
-
-/* ── Live preview mockup ── */
-.preview {
-  margin: 56px auto 0; width: min(960px, 94%); border-radius: var(--radius);
-  border: 1px solid var(--stroke-strong); background: var(--card);
-  box-shadow: var(--shadow); overflow: hidden; backdrop-filter: blur(8px);
-}
-.preview-bar { display: flex; align-items: center; gap: .5rem; padding: .8rem 1rem; border-bottom: 1px solid var(--stroke); background: rgba(255,255,255,.03); }
-.preview-bar .d { width: 11px; height: 11px; border-radius: 50%; }
-.preview-bar .d.r{background:var(--red)} .preview-bar .d.y{background:var(--amber)} .preview-bar .d.g{background:var(--green)}
-.preview-bar .url { margin-left: .6rem; font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
-.grid-rooms { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; padding: 22px; }
-.room { aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1px solid var(--stroke); position: relative; }
-.room.ok { background: var(--green-soft, rgba(16,185,129,.14)); color: var(--green); border-color: rgba(16,185,129,.3); }
-.room.ack { background: rgba(245,158,11,.14); color: var(--amber); border-color: rgba(245,158,11,.3); }
-.room.em { background: rgba(239,68,68,.18); color: #fff; border-color: rgba(239,68,68,.5); animation: blink 1.1s infinite; }
-@keyframes blink { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
-@media (max-width:640px){ .grid-rooms{grid-template-columns:repeat(5,1fr)} }
 
 /* ── Section base ── */
 section { padding: 84px 0; }
@@ -462,8 +439,8 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <a href="#features">คุณสมบัติ</a>
       <a href="#workflow">การทำงาน</a>
       <a href="#arch">สถาปัตยกรรม</a>
-      <a href="#history">เหตุการณ์</a>
-      <a href="#tech">เทคโนโลยี</a>
+      <a href="#history">เหตุการณ์จริง</a>
+      <a href="#demo">ทดลองเรียก</a>
     </nav>
     <div style="display:flex;align-items:center;gap:.7rem">
       <button class="theme-switch" id="themeSwitch" title="สลับธีม (มืด / สว่าง / ระบบ)" aria-label="สลับธีม">
@@ -485,34 +462,16 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <a class="btn btn-primary" href="index.html?utm_source=landing&utm_medium=cta&utm_campaign=snc_home">เปิด Nurse Station Dashboard</a>
       <a class="btn btn-ghost" href="#features">ดูคุณสมบัติระบบ</a>
     </div>
-
-    <div class="preview reveal">
-      <div class="preview-bar">
-        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
-        <span class="url">snc.nithep.com/dashboard</span>
-      </div>
-      <div class="grid-rooms">
-        <div class="room ok">101</div><div class="room ok">102</div><div class="room em">103</div>
-        <div class="room ok">104</div><div class="room ack">105</div><div class="room ok">106</div>
-        <div class="room ok">107</div><div class="room ok">108</div><div class="room ok">201</div>
-        <div class="room ok">202</div><div class="room ack">203</div><div class="room ok">204</div>
-        <div class="room ok">205</div><div class="room ok">206</div><div class="room em">207</div>
-        <div class="room ok">208</div><div class="room ok">301</div><div class="room ok">302</div>
-        <div class="room ok">303</div><div class="room ok">304</div><div class="room ok">305</div>
-        <div class="room ok">306</div><div class="room ok">307</div><div class="room ok">308</div>
-      </div>
-      <div style="text-align:center;opacity:.6;font-size:.85rem;margin-top:.9rem">ภาพจำลองหน้าตา Dashboard (mockup) — เปิดระบบจริงได้จากปุ่มด้านบน</div>
-    </div>
   </div>
 </section>
 
 <section id="stats">
   <div class="container">
     <div class="stats reveal">
-      <div class="stat"><div class="num gradient-text" data-target="0" data-suffix=" ms">0</div><div class="lbl">Event Latency (edge → dashboard)</div></div>
       <div class="stat"><div class="num gradient-text">24/7</div><div class="lbl">เฝ้าระวังต่อเนื่อง</div></div>
       <div class="stat"><div class="num gradient-text">3</div><div class="lbl">Layer ป้องกัน Event หาย</div></div>
       <div class="stat"><div class="num gradient-text">100%</div><div class="lbl">FHIR JSON Payload</div></div>
+      <div class="stat"><div class="num gradient-text">≤ 30s</div><div class="lbl">เป้าหมาย Ack Response (SLA)</div></div>
     </div>
   </div>
 </section>
@@ -572,7 +531,6 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <li>snc-alert-bridge (Telegram)</li>
         <li>Secret Manager (3 secrets)</li>
         <li>Cloud Monitoring + Uptime</li>
-        <li>Terraform IaC</li>
       </ul></div>
       <div class="node reveal"><h4>🌐 Delivery <span class="tag">Cloudflare</span></h4><ul>
         <li>cloudflared tunnel (outbound)</li>
@@ -581,6 +539,19 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <li>WebSocket realtime channel</li>
         <li>Self-healing systemd units</li>
       </ul></div>
+    </div>
+    <div class="tech reveal" style="margin-top:36px">
+      <span class="chip"><b>Raspberry Pi 4</b></span>
+      <span class="chip"><b>Python 3.12</b></span>
+      <span class="chip"><b>FastAPI</b></span>
+      <span class="chip"><b>SQLite WAL</b></span>
+      <span class="chip"><b>WebSocket</b></span>
+      <span class="chip"><b>HL7 FHIR</b></span>
+      <span class="chip"><b>Google Cloud Run</b></span>
+      <span class="chip"><b>Firestore</b></span>
+      <span class="chip"><b>Cloudflare Tunnel</b></span>
+      <span class="chip"><b>Telegram Bot</b></span>
+      <span class="chip"><b>Docker</b></span>
     </div>
   </div>
 </section>
@@ -637,29 +608,6 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
   </div>
 </section>
 
-<section id="tech">
-  <div class="container">
-    <div class="section-head reveal">
-      <div class="kicker">Stack</div>
-      <h2>เทคโนโลยีที่ใช้งานจริง</h2>
-    </div>
-    <div class="tech reveal">
-      <span class="chip"><b>Raspberry Pi 4</b></span>
-      <span class="chip"><b>Python 3.12</b></span>
-      <span class="chip"><b>FastAPI</b></span>
-      <span class="chip"><b>SQLite WAL</b></span>
-      <span class="chip"><b>WebSocket</b></span>
-      <span class="chip"><b>HL7 FHIR</b></span>
-      <span class="chip"><b>Google Cloud Run</b></span>
-      <span class="chip"><b>Firestore</b></span>
-      <span class="chip"><b>Terraform</b></span>
-      <span class="chip"><b>Cloudflare Tunnel</b></span>
-      <span class="chip"><b>Telegram Bot</b></span>
-      <span class="chip"><b>Docker</b></span>
-    </div>
-  </div>
-</section>
-
 <!-- ═══ เซกเมนต์เฮลท์แคร์ผู้สูงอายุ + รีพอร์ตพรีเมี่ยม ═══ -->
 <section id="care">
   <div class="container">
@@ -702,7 +650,7 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <span>SNC<small>SMART NURSE CALL · nithep.com</small></span>
     </a>
     <div class="foot-nap">
-      © 2026 nithep.com — Production-Grade Smart Systems 🏥<br>
+      © 2026 nithep.com — Production-Grade Smart Systems 🏥 · web v3.0<br>
       สอบถามระบบได้ที่ <a href="https://snc.nithep.com" style="color:var(--blue)">snc.nithep.com</a> : snc-bot<br>
       📊 <a href="roi.html" style="color:var(--blue)">บทความ: คำนวณ ROI ระบบเรียกพยาบาล</a><br>
       📊 <a href="snc-vs-imported.html" style="color:var(--blue)">เปรียบเทียบ: SNC vs ระบบนำเข้า</a><br>
@@ -779,12 +727,6 @@ const io = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
 }, { threshold: .15 });
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
-
-// Animated counter for the latency stat
-const lat = document.querySelector('[data-target]');
-let v = 0;
-const tick = ()=>{ v += Math.ceil((42 - v)/6); lat.textContent = v + ' ms'; if(v<42) setTimeout(tick, 40); };
-setTimeout(tick, 600);
 
 // ── Theme switch: Dark / Light / System ──
 const root = document.documentElement;

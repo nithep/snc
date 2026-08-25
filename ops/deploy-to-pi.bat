@@ -55,10 +55,6 @@ echo [OK] API deployed
 echo [3/6] Deploying dashboard...
 scp %SSH_OPTS% app\index.html %PI_USER%@%PI_HOST%:%PI_ROOT%/app/index.html
 if %ERRORLEVEL% NEQ 0 goto error
-scp %SSH_OPTS% app\dashboard-status.html %PI_USER%@%PI_HOST%:%PI_ROOT%/app/dashboard-status.html
-if %ERRORLEVEL% NEQ 0 (
-    echo [!] dashboard-status.html not found, skipping
-)
 echo [OK] Dashboard deployed
 
 echo [4/6] Deploying PBX listener...

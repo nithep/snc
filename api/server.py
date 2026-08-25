@@ -158,7 +158,7 @@ async def serve_root():
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return RedirectResponse(url="/dashboard-status.html")
+    return RedirectResponse(url="/dashboard")
 
 @app.get("/landing")
 @app.get("/landing.html")
@@ -177,17 +177,7 @@ async def serve_dashboard():
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    else:
-        return RedirectResponse(url="/dashboard-status.html")
-
-@app.get("/dashboard-status.html")
-async def serve_dashboard_status():
-    """Serve the status dashboard HTML file."""
-    dashboard_path = os.path.join(static_dir, "dashboard-status.html")
-    if os.path.exists(dashboard_path):
-        return FileResponse(dashboard_path)
-    else:
-        return {"error": "Dashboard not found. Please deploy dashboard-status.html to app/"}
+    return RedirectResponse(url="/")
 
 @app.get("/{page}.html")
 async def serve_html_page(page: str):
