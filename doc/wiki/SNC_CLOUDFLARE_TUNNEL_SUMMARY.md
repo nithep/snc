@@ -1,4 +1,4 @@
----
+﻿---
 title: "🌐 คู่มือการกำหนดค่าและรักษาเสถียรภาพ Cloudflare Tunnel (SNC Cloudflare Tunnel Summary)"
 type: wiki
 tags: [knowledge]
@@ -77,11 +77,11 @@ tags: [knowledge]
 ### 1. ทดสอบตรวจดูส่วนหัวของการส่งตอบกลับ (Header Verification)
 ```powershell
 # รันบนเครื่องของวิศวกรผู้พัฒนา (Windows PowerShell)
-Invoke-WebRequest -Uri "https://hotel.nithep.com/dashboard-status.html" -Method Head -UseBasicParsing
+Invoke-WebRequest -Uri "https://snc.nithep.com/dashboard" -Method Head -UseBasicParsing
 ```
 หรือบนบอร์ด Pi:
 ```bash
-curl -I https://hotel.nithep.com/dashboard-status.html
+curl -I https://snc.nithep.com/dashboard
 ```
 > **เกณฑ์ผ่าน:** จะต้องได้รับค่าตอบกลับการเชื่อมต่อเป็นแบบ **`HTTP/2 200`** หรือ **`HTTP/1.1 200 OK`** เท่านั้น (ไม่ใช่ 502 หรือ 504)
 

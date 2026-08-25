@@ -1,4 +1,4 @@
----
+﻿---
 title: "Smart Nurse Call (SNC) System - Pi 4 Deployment Guide"
 type: guide
 tags: [deploy, ops]
@@ -46,7 +46,7 @@ Copy these files to your Pi 4:
 scp ops/start-snc-system.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
 scp ops/monitor-snc-status.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
 scp ops/test-pbx-connectivity.sh pi@192.168.1.94:/home/ecs-agent/snc-poc/ops/
-scp app/dashboard-status.html pi@192.168.1.94:/home/ecs-agent/snc-poc/app/
+scp app/index.html pi@192.168.1.94:/home/ecs-agent/snc/app/
 ```
 
 ### 2. Make Scripts Executable
@@ -102,14 +102,14 @@ Updates every 10 seconds with timeout/ACK logic.
 #### Option B: Web Dashboard
 Open browser on any device:
 ```
-http://192.168.1.94:8000/dashboard-status.html
+http://192.168.1.94:8000/dashboard
 ```
 
 Or from Pi itself:
 ```bash
 # Install a text-based browser
 sudo apt-get install -y w3m
-w3m http://localhost:8000/dashboard-status.html
+w3m http://localhost:8000/dashboard
 ```
 
 The dashboard shows:
@@ -216,12 +216,12 @@ tail -50 /home/ecs-agent/snc-poc/backend.log | grep "Event sent"
 ls -la /home/ecs-agent/snc-poc/app/
 
 # Copy dashboard to backend public folder
-cp dashboard-status.html /home/ecs-agent/snc-poc/app/
+cp index.html /home/ecs-agent/snc/app/
 
 # Or serve directly with Python
 cd /home/ecs-agent/snc-poc
 python3 -m http.server 8080
-# Then access: http://192.168.1.94:8080/dashboard-status.html
+# Then access: http://192.168.1.94:8080/dashboard
 ```
 
 ## Service Management

@@ -91,6 +91,23 @@ tags: [status, dashboard, deploy, cloud-run, pbx, kpi, ai]
 ### การเก็บกวาดหลัง audit
 ลบ event ทดสอบ 5 รายการที่ audit สร้างขึ้น (demo 9999/8888/7777 + 0400×2 จาก trigger ไม่ใส่ event_id) ออกจาก DB dev — รวม 19 → เหลือ **real 14 เหตุการณ์** เท่าก่อน audit
 
+## Initial Rebuild Web/Dashboard (25 ส.ค. 2569 — รอบเย็น)
+
+> ตัดสินใจ: **rebuild ฉบับ lean** — แยกบทบาท web (marketing) / dashboard (nurse station) ชัดเจน ตัดทุกส่วนที่ไม่จำเป็น/ไม่จริง
+
+| การเปลี่ยนแปลง | ไฟล์ |
+|---|---|
+| ตัด hero mockup (การ์ดห้องปลอม 24 ใบ) + CSS preview | `app/landing.html` |
+| ตัดตัวนับ latency ปลอม (hardcoded 42ms) → แทด้วย stat จริง "≤30s เป้า SLA" | `app/landing.html` |
+| ยุบ section #tech → chip row ใน #arch + **ตัด claim "Terraform"** (ADR 0005 ยัง Proposed) | `app/landing.html` |
+| nav links ปรับ (features/workflow/arch/เหตุการณ์จริง/ทดลองเรียก) · footer **web v3.0** | `app/landing.html` |
+| ซ่อนการ์ดห้อง 1116 (`HIDDEN_ROOMS`, as-built mapping) · bump **v2.1** | `app/index.html` |
+| ลบ route `/dashboard-status.html` + fallback ชี้ `/dashboard` | `api/server.py` |
+| ลบไฟล์ legacy `app/dashboard-status.html` + stray `api/dump3.html` | (ลบ) |
+| sync ops scripts + docs ที่อ้าง dashboard-status (deploy one-shot/bat/verify/digest, QUICK_REFERENCE, DEPLOYMENT_PI4/CHECKLIST, tunnel wiki, MIGRATION_RUNBOOK) | `ops/` `doc/` |
+
+**Verify (local :8010):** `/`=landing 200, `/dashboard` 200, `dashboard-status.html`→404, parser tests 28/28, Edge headless DOM — ไม่เหลือ mockup/data-target/Terraform, sections 9/9 สมดุล, dashboard ไม่มีการ์ด 1116 ✓
+
 ## สิ่งค้าง / ข้อควรรู้
 
 1. **Firestore มี test events เก่า** (ไม่มี field `source` → ถูกนับเป็น real) — เก็บกวาดก่อนถ้าจะ demo ผ่าน Cloud Run

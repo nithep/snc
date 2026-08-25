@@ -1,4 +1,4 @@
----
+﻿---
 title: "SNC System Architecture - Visual Guide"
 type: doc
 tags: [architecture]
@@ -128,7 +128,7 @@ tags: [architecture]
 │  ├── POST /api/events/clear        ✓    │
 │  ├── GET  /api/analytics/kpi       ✓    │
 │  ├── WS   /ws/nurse-station        ✓    │
-│  └── GET  /dashboard-status.html   ✓    │
+│  └── GET  /dashboard   ✓    │
 │                                         │
 │  Services:                              │
 │  ├── SQLite Database Manager            │

@@ -1,4 +1,4 @@
----
+﻿---
 title: "SNC System - Pi 4 Deployment Checklist"
 type: guide
 tags: [deploy, ops]
@@ -47,7 +47,7 @@ Or manually copy via SCP:
 - [ ] `test-pbx-connectivity.sh` → `/home/ecs-agent/snc/`
 - [ ] `verify-installation.sh` → `/home/ecs-agent/snc/`
 - [ ] `view-logs.sh` → `/home/ecs-agent/snc/`
-- [ ] `dashboard-status.html` → `/home/ecs-agent/snc/`
+- [ ] `index.html` (dashboard) → `/home/ecs-agent/snc/app/`
 - [ ] `DEPLOYMENT_PI4.md` → `/home/ecs-agent/snc/`
 - [ ] `IMPLEMENTATION_SUMMARY.md` → `/home/ecs-agent/snc/`
 - [ ] `QUICK_REFERENCE.md` → `/home/ecs-agent/snc/`
@@ -55,7 +55,7 @@ Or manually copy via SCP:
 ### Backend Modifications
 - [ ] `api/server.py` updated with static file serving
 - [ ] `app/` directory created
-- [ ] `dashboard-status.html` copied to `app/`
+- [ ] `index.html` (dashboard) copied to `app/`
 
 ### Set Permissions
 ```bash
@@ -168,7 +168,7 @@ curl http://localhost:8000/api/analytics/kpi
 ## 🌐 Dashboard Access Checklist
 
 ### Web Dashboard
-Open browser to: `http://192.168.1.94:8000/dashboard-status.html`
+Open browser to: `http://192.168.1.94:8000/dashboard`
 
 Verify:
 - [ ] Page loads without errors
@@ -324,7 +324,7 @@ System is fully operational when ALL of the following are true:
 
 - ✅ Backend responds to `curl http://localhost:8000/health` with HTTP 200
 - ✅ PBX listener shows "Connected successfully to Phonik PBX!" in logs
-- ✅ Dashboard accessible at `http://192.168.1.94:8000/dashboard-status.html`
+- ✅ Dashboard accessible at `http://192.168.1.94:8000/dashboard`
 - ✅ Three separate status indicators visible and updating
 - ✅ Events flow: PBX → Listener → Backend → Dashboard
 - ✅ Status uses timeout/ACK logic (not static "Connected")

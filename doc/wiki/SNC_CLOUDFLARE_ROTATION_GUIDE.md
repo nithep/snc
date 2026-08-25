@@ -1,4 +1,4 @@
----
+﻿---
 title: "🔄 คู่มือหมุนเวียน Cloudflare Tunnel Credentials (Rotation Guide)"
 type: guide
 tags: [security]
@@ -87,7 +87,7 @@ ssh pi4 "sudo systemctl restart cloudflared && \
 ### Step 6: ทดสอบผ่านโดเมนสาธารณะ
 
 ```bash
-curl -I https://snc.nithep.com/dashboard-status.html
+curl -I https://snc.nithep.com/dashboard
 ```
 
 > **เกณฑ์ผ่าน:** `HTTP/2 200` (ไม่ใช่ 502/504)

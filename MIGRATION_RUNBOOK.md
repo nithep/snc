@@ -17,7 +17,7 @@
 |---|---|---|
 | `snc-poc/backend/` | `api/` | FastAPI Server, services/, Dockerfile, health_check |
 | `snc-poc/backend/public/index.html` | `app/index.html` | Nurse Dashboard v2.0 (เสิร์ฟจาก app/) |
-| `snc-poc/dashboard-status.html` | `app/dashboard-status.html` | Status Dashboard |
+| `snc-poc/dashboard-status.html` | — (ยกเลิก 25 ส.ค. 2569) | Status Dashboard เดิม ถูกลบ — ใช้ `/dashboard` (app/index.html) |
 | `snc-poc/pbx-connector/` | `pbx/` | SMDR Edge Listener + Parser Tests |
 | `snc-poc/deploy-snc-one-shot.sh` + ฯลฯ | `ops/` | Deploy / Burn-in / Backup / Cron tooling |
 | `snc-poc/docs/` + STAFF_GUIDE + SOP | `doc/` (+ `doc/wiki/`) | เอกสาร OKF ฉบับ SNC |

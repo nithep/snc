@@ -1,4 +1,4 @@
----
+﻿---
 title: "SNC System - Quick Reference Card"
 type: wiki
 tags: [knowledge]
@@ -25,7 +25,7 @@ cd /home/ecs-agent/snc-poc
 | Service | URL |
 |---------|-----|
 | Dashboard (main, served at `/`) | http://192.168.1.94:8000/ |
-| Dashboard (legacy status page) | http://192.168.1.94:8000/dashboard-status.html |
+| Dashboard | http://192.168.1.94:8000/dashboard |
 | Health Check | http://192.168.1.94:8000/health |
 | Events API | http://192.168.1.94:8000/api/events |
 | API Docs | http://192.168.1.94:8000/docs |
@@ -121,7 +121,7 @@ sudo systemctl restart snc-backend
 | Backend | `api/server.py` | `/home/ecs-agent/snc-poc/api/server.py` |
 | PBX Listener | `pbx/snc_pbx_listener.py` | `/home/ecs-agent/snc-poc/pbx/snc_pbx_listener.py` |
 | Dashboard (main) | `app/index.html` | `/home/ecs-agent/snc-poc/app/index.html` |
-| Dashboard (legacy) | `app/dashboard-status.html` | `/home/ecs-agent/snc-poc/app/dashboard-status.html` |
+| Dashboard | `app/index.html` | `/home/ecs-agent/snc/app/index.html` |
 | Scripts | `ops/*.sh` | `/home/ecs-agent/snc-poc/ops/` |
 | Database | `api/nurse_call_events.db` (runtime) | `/home/ecs-agent/snc-poc/api/nurse_call_events.db` |
 | Logs | — (runtime) | `/home/ecs-agent/snc-poc/` |
