@@ -57,9 +57,39 @@ tags: [status, dashboard, deploy, cloud-run, pbx, kpi, ai]
 | E2E separation | demo trigger → `source=demo` ไม่เข้า KPI; **event จริงจากตู้** (0400, ack 9s, res 14s) → `source=real` ถูกนับ |
 | AI Summary | ใช้งานได้ทั้ง Pi + Cloud (OpenRouter/Llama-3.3-70B) |
 
-## ไฟล์ที่แก้ (⚠️ ยังไม่ commit)
+## ไฟล์ที่แก้ (✅ commit แล้ว — `1691657`)
+
+> ⚠️ ~~หัวข้อเดิมเขียนว่า "ยังไม่ commit"~~ — **ล้าสมัยแล้ว**: รายการทั้งหมดรวมอยู่ใน commit `1691657` ("feat: milestone 25/8/2569 — แยก Real/Demo events + KPI Views + Port→Room Mapping + deploy fixes", 25 ส.ค. 2569 01:20 +07) และ working tree สะอาด ตรวจยืนยัน 25 ส.ค.
 
 `app/index.html` · `app/landing.html` · `api/server.py` · `api/storage.py` · `api/Dockerfile` · `pbx/snc_pbx_listener.py` · `pbx/room_map.json` (ใหม่) · `pbx/test_smdr_parser.py` · `ops/deploy_gcp_cloudrun.ps1` · `doc/wiki/PBX_PORT_ROOM_MAPPING.md` (ใหม่)
+
+## ผลตรวจสอบ Runtime (Audit 25 ส.ค. 2569 — เครื่อง dev Windows)
+
+> ตามมาจากผู้ใช้รายงาน "ยังใช้งานไม่ได้ ยังไม่สมบูรณ์ หลายจุด" — boot backend จริง (`uvicorn server:app` :8000) + ทดสอบ endpoints + Edge headless เปิด dashboard → **ทุกรายการผ่าน**:
+
+| การทดสอบ | ผล |
+|---|---|
+| `/health` | 200 healthy (SQLite) |
+| Parser tests | **28/28 PASSED** |
+| `/api/events?source=real\|demo` | แยกถูกต้อง (real 14 / demo แยกชุด) |
+| `/api/analytics/kpi` (default) | นับเฉพาะ real — demo ไม่หลุดเข้า KPI ✓ |
+| `/api/analytics/trend?bucket=month/year` | points ถูกต้อง (ดูหมายเหตุ `day` ด้านล่าง) |
+| `POST /api/demo/trigger` | public ไม่ต้องมี key + บังคับ `source=demo` เสมอ ✓ |
+| `POST /api/events/trigger` ไม่ใส่ `event_id` | ถูกแท็ก `demo` อัตโนมัติ (กันปนเปื้อนข้อมูลจริง) ✓ |
+| WebSocket `/ws/nurse-station` | broadcast ทันที — roomId/sourceEventType/source/status ครบ ✓ |
+| Dashboard `/index.html` (Edge headless) | render ครบ: 31 room cards + KPI cards + History 14 events + WS live pill — **console ไม่มี error** |
+| i18n TH/EN | 96 keys ตรงกันทั้ง 2 ภาษา, `t()` calls + `data-i18n-key` resolve ครบ |
+| Ack endpoint | 200 + status เปลี่ยนเป็น acknowledged |
+
+### จุดที่พบว่า "เข้าใจผิดได้ว่าใช้ไม่ได้" (ไม่ใช่บั๊ก)
+
+1. **`/` คือ Landing Page (marketing) ไม่ใช่ dashboard** — dashboard จริงอยู่ที่ [`/index.html`](http://localhost:8000/index.html) หรือ `/dashboard` (`server.py:151`) หน้า landing มี demo widget เด่นทั้งหน้า ทำให้ดูเหมือน "dashboard ยังมีของจำลอง/ไม่สมบูรณ์" ถ้าเข้าผิดหน้า
+2. **เครื่อง dev ไม่มี `SNC_API_KEY`** (ไม่มี `api/.env`) → POST ทุกตัวผ่านโดยไม่บังคับ key — by design: auth เปิดเฉพาะเมื่อตั้ง key (บน Pi/Cloud Run มี key จึงคืน 401)
+3. **`trend?bucket=day` คืน `points: []`** เพราะ query เฉพาะ **24 ชม.ล่าสุด** (`storage.py:255-263`) — events จาก 14 ส.ค. ต้องดู `bucket=month`
+4. **History table แสดง 3 เหตุการณ์ล่าสุดเท่านั้น** (ดีไซน์ Nurse Station ตามหัวข้องานด้านบน) — ไม่ใช่ตารางหาย
+
+### การเก็บกวาดหลัง audit
+ลบ event ทดสอบ 5 รายการที่ audit สร้างขึ้น (demo 9999/8888/7777 + 0400×2 จาก trigger ไม่ใส่ event_id) ออกจาก DB dev — รวม 19 → เหลือ **real 14 เหตุการณ์** เท่าก่อน audit
 
 ## สิ่งค้าง / ข้อควรรู้
 
