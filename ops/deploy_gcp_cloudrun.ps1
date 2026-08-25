@@ -146,6 +146,11 @@ Start-Sleep -Seconds 10
 try {
     $health = Invoke-RestMethod -Uri "$SERVICE_URL/health" -TimeoutSec 15
     Write-Host "  ✅ /health: $($health.status)" -ForegroundColor Green
+    if ($health.db -ne "firestore") {
+        Write-Host "  ❌ db=$($health.db) — SNC_DB_BACKEND ไม่ใช่ firestore (เสี่ยง data loss ตอน scale-to-zero, ดู incident 19-24 ส.ค.)" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  ✅ db=firestore (persistent)" -ForegroundColor Green
 } catch {
     Write-Host "  ⚠️ /health ยังไม่พร้อม: $($_.Exception.Message)" -ForegroundColor Yellow
 }

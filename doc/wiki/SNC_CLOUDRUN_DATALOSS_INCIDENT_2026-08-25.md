@@ -41,11 +41,37 @@ status: resolved
 
 ## ✅ Checklist ป้องกันซ้ำ
 
-- [ ] Deploy Cloud Run **เฉพาะ** `ops/deploy_gcp_cloudrun.ps1` (merge env ด้วย `--update-env-vars` เท่านั้น)
+- [x] Deploy Cloud Run **เฉพาะ** `ops/deploy_gcp_cloudrun.ps1` / `deploy_cloudrun_cloudshell.sh` (merge env ด้วย `--update-env-vars`)
+- [x] Script verify ทั้งสองตัว fail-closed ถ้า `/health` ไม่ขึ้น `db=firestore` (เพิ่ม 26 ส.ค.)
 - [ ] ห้าม `gcloud run deploy` มือโดยไม่ใส่ `--update-env-vars` ครบชุด
-- [ ] ตรวจ workflow ของ SA `github-deployer@hotel-ecs-nithep` (มี `roles/run.admin`) ว่า set env ครบก่อนเปิดใช้ CI/CD
 - [ ] หลัง deploy ทุกครั้ง: `GET /health` ต้องขึ้น `"db":"firestore"`
 - [ ] Outbox ฝั่ง Pi ปกติ best-effort สำหรับ cloud (local เท่านั้นที่ gate `sent`) — ทบทวนตาม [[0004-outbox-idempotency]] หากต้องการ at-least-once ระดับ cloud
+
+## 🔑 การหมุนเวียน SA key — `github-deployer@hotel-ecs-nithep` (staged rotation, 26 ส.ค.)
+
+Audit log พบ SA นี้ `ReplaceService` เมื่อ 22 ส.ค. (23:06 +07) — 34 นาทีหลังสร้าง user-managed key
+→ deploy channel นอกระบบ script ที่ env หาย น่าจะมาจาก key นี้ (GitHub Actions ภายนอก repo)
+
+| Key ID | สร้าง | สถานะ |
+|---|---|---|
+| `cc69a06e...dc854` | 22 ส.ค. | ⛔ รอ revoke (ต้นเหตุ suspect) |
+| `8c798c04...ef634` | 25 ก.ค. | ⛔ รอ revoke (เกินจำเป็น) |
+| `5702c598...45e4` | 26 ส.ค. | ✅ key ใหม่ — เก็บที่ `%USERPROFILE%\.config\snc\github-deployer-newkey-20260826.json` |
+
+**ขั้นตอนค้าง (ผู้ดูแล GitHub):**
+1. นำเนื้อหา JSON ไฟล์ใหม่ไปแทน secret ใน GitHub Actions workflow (repo ภายนอก)
+2. รัน workflow 1 ครั้งยืนยัน deploy ผ่าน
+3. Revoke key เก่า:
+   ```bash
+   gcloud iam service-accounts keys delete cc69a06e022efbe84b84ffd606638841840dc854 \
+     --iam-account=github-deployer@hotel-ecs-nithep.iam.gserviceaccount.com --project hotel-ecs-nithep -q
+   gcloud iam service-accounts keys delete 8c798c04538d7de04a1a10bbf30aaed9606ef634 \
+     --iam-account=github-deployer@hotel-ecs-nithep.iam.gserviceaccount.com --project hotel-ecs-nithep -q
+   ```
+4. ลบไฟล์ JSON ในเครื่องหลังย้ายเข้า secret แล้ว
+
+> Workflow ต้องตั้ง env `SNC_DB_BACKEND: firestore` ทุกครั้ง (หรือพึ่ง code guard ใน `api/storage.py`
+> ซึ่ง force firestore ให้เองบน Cloud Run — guard เป็นตาข่ายด้านล่าง ไม่ใช่ข้อแก้ตัวของ pipeline)
 
 ## 📎 ข้อมูลอ้างอิง
 

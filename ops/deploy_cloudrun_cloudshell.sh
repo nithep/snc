@@ -176,6 +176,12 @@ echo "Verify..."
 sleep 10
 HEALTH=$(curl -s --max-time 15 "$SERVICE_URL/health" || true)
 echo "  /health → $HEALTH"
+if echo "$HEALTH" | grep -q '"db":"firestore"'; then
+  echo "  ✅ db=firestore (persistent)"
+else
+  echo "  ❌ /health ไม่มี db=firestore — SNC_DB_BACKEND หายจาก deploy (data loss risk, ดู incident 19-24 ส.ค.)" >&2
+  exit 1
+fi
 CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
   -X POST "$SERVICE_URL/api/events/acknowledge/9999" \
   -H 'Content-Type: application/json' -d '{}')
