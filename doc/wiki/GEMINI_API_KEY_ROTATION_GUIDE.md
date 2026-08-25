@@ -33,18 +33,7 @@ tags: [security, ai]
 1. **key ต้องตรงกันระหว่าง Edge (Pi4) กับ Cloud (Cloud Run)** — ถ้าขัดกัน อีกด้านจะได้ `401/429` และ SNC-Bot จะคืนข้อความ *"ระบบ AI ไม่พร้อมให้บริการชั่วคราว"*
 2. **ห้าม hardcode ลงโค้ด/เอกสาร** — key อยู่ใน `.env` (chmod 600) หรือ Secret Manager เท่านั้น
 3. **ห้าม commit `.env` ลง git** — `.gitignore` ครอบคลุมอยู่แล้ว (ดู `AGENTS.md` ข้อ 5)
-4. **key เก่าต้องเพิกถอน (revoke) ทันที** — หลัง rotate เสร็จ ให้ revoke key เก่าบน Google AI Studio
-
----
-
-## 📍 ตำแหน่ง key ทั้งระบบ (5-Core)
-
-| Component | ตำแหน่ง | วิธีอ่าน |
-|---|---|---|
-| Backend (Pi4 Edge) | `/home/ecs-agent/snc/api/.env` (บรรทัด `GEMINI_API_KEY=`) | `grep GEMINI_API_KEY /home/ecs-agent/snc/api/.env` |
-| Backend (Cloud Run) | GCP **Secret Manager** — secret `snc-gemini-api-key` (mount เป็น env เมื่อ deploy) | `gcloud secrets versions access latest --secret=snc-gemini-api-key` |
-| Local dev | `api/.env` (ไม่ deploy ขึ้น Pi โดยตรง — ใช้ `ops/.env` / `.env.example` เป็นแม่แบบ) | `grep GEMINI_API_KEY api/.env` |
-| Client | — ไม่มี (SNC-Bot เรียกผ่าน backend เท่านั้น) | — |
+4. **key เก่าต้องเพิกถอน (revoke) ทันที** — หลัง rotate เสร็จ ให้ revoke key เก่าบน Google AI Studio## 📍 ตำแหน่ง key ทั้งระบบ (5-Core)| Component | ตำแหน่ง | วิธีอ่าน ||---|---|---|| Backend (Pi4 Edge) | `/home/ecs-agent/snc/api/.env` (บรรทัด `GEMINI_API_KEY=`) | `grep GEMINI_API_KEY /home/ecs-agent/snc/api/.env` || Backend (Cloud Run) | GCP **Secret Manager** — secret `snc-gemini-api-key` (mount เป็น env เมื่อ deploy) ⚠️ **ใช้งานบังคับแล้วตั้งแต่ 26 ส.ค. 2569** | `gcloud secrets versions access latest --secret=snc-gemini-api-key` || Local dev | `api/.env` (ไม่ deploy ขึ้น Pi โดยตรง — ใช้ `ops/.env` / `.env.example` เป็นแม่แบบ) | `grep GEMINI_API_KEY api/.env` || Client | — ไม่มี (SNC-Bot เรียกผ่าน backend เท่านั้น) | — |> **สถานะ 26 ส.ค. 2569:** ย้าย `GEMINI_API_KEY` ขึ้น Secret Manager บน Cloud Run แล้ว — deploy ด้วย `--set-secrets GEMINI_API_KEY=snc-gemini-api-key:latest` + `--remove-env-vars GEMINI_API_KEY` (เลิก plaintext env บน service), ให้สิทธิ์ `roles/secretmanager.secretAccessor` แก่ Cloud Run SA แล้ว, ทดสอบ `/api/ai/snc-bot` ผ่าน (rev `00026-sbm`)
 
 ---
 

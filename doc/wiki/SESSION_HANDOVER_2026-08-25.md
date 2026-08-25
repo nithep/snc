@@ -112,7 +112,7 @@ tags: [status, dashboard, deploy, cloud-run, pbx, kpi, ai]
 
 1. **Firestore มี test events เก่า** (ไม่มี field `source` → ถูกนับเป็น real) — เก็บกวาดก่อนถ้าจะ demo ผ่าน Cloud Run
 2. `nursecall.nithep.com` DNS ไม่ resolve จากเครื่อง dev (ใช้ `snc.nithep.com` ซึ่งเสิร์ฟจาก Pi ผ่าน Cloudflare)
-3. `GEMINI_API_KEY` ไม่ได้อยู่ใน Secret Manager (rotation guide เขียนไว้แต่ยังไม่ถูกปฏิบัติ) — key อยู่ใน `.env` ของ Pi + env ของ Cloud Run
+3. ~~`GEMINI_API_KEY` ไม่ได้อยู่ใน Secret Manager (rotation guide เขียนไว้แต่ยังไม่ถูกปฏิบัติ) — key อยู่ใน `.env` ของ Pi + env ของ Cloud Run~~ — **แก้แล้ว 26 ส.ค.**: ขึ้น Secret Manager (`snc-gemini-api-key`) + mount บน Cloud Run แล้ว (rev `00026-sbm`) — ดู [[SESSION_HANDOVER_2026-08-26]]; ยังเหลือค้างคือ `SNC_API_KEY` + `TELEGRAM_BOT_TOKEN` ที่ยังเป็น plaintext env
 4. **Config Builder หน้า Offline แสดงค่า default (1001-1028) ไม่ใช่ config จริง** — ต้อง Online → Read เท่านั้น (หลงมาแล้ว 1 ครั้ง)
 5. Cloudflare บล็อก User-Agent แบบ python-urllib (403) — ทดสอบ API ด้วย UA อื่น ไม่ใช่บั๊ก
 6. ห้อง 1116 ไม่มีตัวตนบนตู้ — dashboard แสดงการ์ด cosmetic (ไม่กระทบ KPI)
