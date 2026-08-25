@@ -49,7 +49,7 @@ flowchart TB
     subgraph CLOUD["☁️ Cloud — GCP (hotel-ecs-nithep)"]
         CR_BE["snc-cloud-backend<br/>(Cloud Run)"] --> FS[(Firestore)]
         BRIDGE["snc-alert-bridge<br/>(Cloud Run)"]
-        SM["Secret Manager<br/>(3 secrets)"]
+        SM["Secret Manager<br/>(4 secrets)"]
         MON["Cloud Monitoring<br/>(uptime + alert)"]
         MON --> BRIDGE
     end
