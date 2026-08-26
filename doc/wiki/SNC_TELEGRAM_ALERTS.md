@@ -96,7 +96,12 @@ Token เคยถูกแชร์ในแชท (ตรวจแล้ว **
 | **หลักฐาน** | ทุก alert เขียน JSON 1 บรรทัดต่อท้าย `logs/alerts.log` (บน Pi) — ค้นด้วย `grep SNC-AL-POWER logs/alerts.log` หรือ `/alerts` ใน bot |
 | ใช้แล้ว | `ops/ws-tunnel-cron.sh` (tunnel ตาย 2 ครั้งติด → CRITICAL + ledger) |
 | ส่งเอง | `python3 ops/alerting.py --severity CRITICAL --type POWER --summary "..." --details "..." --verify "..."` |
+| ดูตัวอย่างไม่ส่งจริง | `python3 ops/alerting.py --dry-run --type POWER --summary "..."` |
 | ดูรายการ | `python3 ops/alerting.py --list [คำค้น]` |
+
+**Checklist กู้คืนอัตโนมัติ** — alert ประเภท `POWER` / `TUNNEL` / `BACKEND` / `CLOUD`
+จะแนบ 📋 ขั้นตอนกู้คืนท้ายข้อความเสมอ (กู้ได้ทันทีจากมือถือโดยไม่ต้องเปิดคอม) —
+เช่น ไฟดับ: ตรวจเบรกเกอร์ → รอ Pi บูต → เช็ค services → เช็ค tunnel → ตรวจ UPS
 
 > หลักการ: **alert ทุกครั้งต้องค้นหลักฐานยืนยันได้** — ถ้าไม่มี ledger entry แสดงว่าไม่มีการแจ้งจริง (เช่น ไฟดับที่ Pi = alert มาจาก cloud monitor แทน ดูหัวข้อถัดไป)
 

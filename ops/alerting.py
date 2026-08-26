@@ -41,6 +41,32 @@ DEFAULT_LEDGER = os.path.join(PARENT, "logs", "alerts.log")
 
 SEVERITY_ICON = {"CRITICAL": "🚨", "WARNING": "⚠️", "INFO": "ℹ️", "TEST": "🧪"}
 
+# ขั้นตอนกู้คืนอัตโนมัติตามประเภท alert — แนบท้ายข้อความเสมอ (กู้ได้ทันทีจากมือถือ)
+CHECKLISTS = {
+    "POWER": [
+        "1) ตรวจไฟ/เบรกเกอร์/ปลั๊กของ Pi และตู้ PBX",
+        "2) ไฟกลับมา → รอ Pi บูต ~2 นาที (systemd ปลุก service เอง)",
+        "3) ssh pi4 → systemctl is-active snc-backend snc-pbx-listener snc-cloudflared",
+        "4) curl https://snc.nithep.com/health (tunnel กลับมาเมื่อ cloudflared ต่อได้)",
+        "5) มี UPS → เช็คสถานะแบต กันไฟดับซ้ำ",
+    ],
+    "TUNNEL": [
+        "1) ssh pi4 → systemctl status snc-cloudflared",
+        "2) cloudflared tunnel list (0 connections → tunnel-self-heal ต่ออายุ secret เอง)",
+        "3) curl https://snc.nithep.com/health",
+        "4) ดู logs/ws-tunnel-check.log + logs/tunnel-self-heal.log",
+    ],
+    "BACKEND": [
+        "1) ssh pi4 → systemctl status snc-backend",
+        "2) sudo journalctl -u snc-backend -n 50",
+        "3) curl http://localhost:8000/health",
+    ],
+    "CLOUD": [
+        "1) GCP console → Cloud Run → snc-cloud-backend → Logs",
+        "2) curl https://snc-cloud-backend-59781590359.asia-southeast1.run.app/health",
+    ],
+}
+
 
 def load_env(path):
     try:
@@ -130,13 +156,18 @@ def send_alert(severity: str, alert_type: str, summary: str,
                details: str = "", verify: str = "") -> str:
     """ส่ง alert มาตรฐาน + บันทึก ledger → คืนรหัสอ้างอิง (SNC-AL-...)"""
     code = make_code(alert_type)
+    atype = (alert_type or "ALERT").upper()
+    steps = CHECKLISTS.get(atype)
     text = format_alert(severity, code, summary, details, verify)
+    if steps:
+        text += "\n\n📋 <b>ขั้นตอนกู้คืน:</b>\n" + "\n".join(steps)
     ok = send_telegram(text)
     append_ledger({
         "code": code, "severity": severity.upper(),
-        "type": (alert_type or "ALERT").upper(),
+        "type": atype,
         "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "summary": summary, "details": details, "verify": verify,
+        "checklist": steps,
         "sent": ok,
     })
     print(f"[alerting] {code} severity={severity.upper()} type={(alert_type or 'ALERT').upper()} "
@@ -181,6 +212,8 @@ def cli():
     p.add_argument("--verify", default="", help="วิธีตรวจสอบ/หลักฐาน (เช่น path log)")
     p.add_argument("--list", nargs="?", const="", default=None,
                    help="แสดงรายการล่าสุด (optional: คำค้น)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="แสดงฟอร์แมตโดยไม่ส่งจริง/ไม่เขียน ledger")
     p.add_argument("--limit", type=int, default=10)
     args = p.parse_args()
     if args.list is not None:
@@ -190,6 +223,15 @@ def cli():
         return 0
     if not args.summary:
         p.error("--summary จำเป็น (หรือใช้ --list เพื่อดูรายการ)")
+    if args.dry_run:
+        code = make_code(args.type)
+        steps = CHECKLISTS.get(args.type.upper())
+        text = format_alert(args.severity, code, args.summary, args.details, args.verify)
+        if steps:
+            text += "\n\n📋 <b>ขั้นตอนกู้คืน:</b>\n" + "\n".join(steps)
+        print(text)
+        print(f"\n[alerting] DRY-RUN (ไม่ส่ง ไม่เขียน ledger) — รหัสตัวอย่าง: {code}")
+        return 0
     send_alert(args.severity, args.type, args.summary, args.details, args.verify)
     return 0
 
