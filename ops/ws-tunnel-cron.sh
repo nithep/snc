@@ -34,10 +34,13 @@ echo "$N" > "$STATE"
 echo "$(date '+%Y-%m-%d %H:%M:%S') [ws-tunnel-cron] FAIL ครั้งที่ $N ติดต่อกัน" >> "$LOG"
 
 if [ "$N" -ge "$ALERT_AFTER" ]; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') [ws-tunnel-cron] ส่ง Telegram alert..." >> "$LOG"
-  "$SCRIPT_DIR/notify-telegram.sh" "⚠️ <b>SNC WS Tunnel ตายซ้ำ</b>
-ตรวจพบ <code>wss://snc.nithep.com/ws/nurse-station</code> ล้มเหลว ${N} ครั้งติดต่อกัน (cron ทุก 15 นาที)
-→ ตรวจสอบ: tunnel/cloudflared, backend :8000, หรือดู log <code>logs/ws-tunnel-check.log</code>" >> "$LOG" 2>&1
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [ws-tunnel-cron] ส่ง Telegram alert (ผ่าน ops/alerting.py)..." >> "$LOG"
+  # alerting.py สร้างรหัส SNC-AL-TUNNEL-... + เขียนหลักฐานใน logs/alerts.log อัตโนมัติ
+  /usr/bin/python3 "$SCRIPT_DIR/alerting.py" \
+    --severity CRITICAL --type TUNNEL \
+    --summary "WS Tunnel ตาย ${N} ครั้งติดต่อกัน" \
+    --details "wss://snc.nithep.com/ws/nurse-station ล้มเหลว ${N} ครั้ง (cron ทุก 15 นาที)" \
+    --verify "ssh pi4 tail -20 logs/ws-tunnel-check.log" >> "$LOG" 2>&1
   echo "0" > "$STATE"   # รีเซ็ต หลังแจ้งแล้วต้อง fail ใหม่ 2 ครั้งถึงแจ้งอีก
 fi
 exit 1

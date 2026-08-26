@@ -49,6 +49,9 @@ FILES=(
   "ops/snc-pbx-listener.service:ops/snc-pbx-listener.service"
   "ops/ws-tunnel-test.py:ops/ws-tunnel-test.py"
   "ops/ws-tunnel-cron.sh:ops/ws-tunnel-cron.sh"
+  "ops/alerting.py:ops/alerting.py"
+  "ops/snc_telegram_agent.py:ops/snc_telegram_agent.py"
+  "ops/snc-tg-agent.service:ops/snc-tg-agent.service"
 )
 
 # --- 5-Core structure check (Blueprint: doc/BLUEPRINT_5CORE.md) ------------
@@ -230,9 +233,9 @@ if [ "$DRY_RUN" -eq 1 ]; then
 else
   ssh "${SSH_OPTS[@]}" "$PI_HOST" "sudo -n true" 2>/dev/null \
     || die "Pi ไม่รองรับ passwordless sudo — รันสคริปต์ผ่าน user ที่มี NOPASSWD"
-  ssh "${SSH_OPTS[@]}" "$PI_HOST" "sudo systemctl restart $SERVICE && echo RESTART_OK" \
+  ssh "${SSH_OPTS[@]}" "$PI_HOST" "sudo systemctl restart $SERVICE && (sudo systemctl restart snc-tg-agent.service || true) && echo RESTART_OK" \
     || die "restart $SERVICE ล้มเหลว"
-  ok "restart $SERVICE สำเร็จ"
+  ok "restart $SERVICE สำเร็จ (รวม snc-tg-agent ถ้ามี)"
 fi
 
 # ===============================================================

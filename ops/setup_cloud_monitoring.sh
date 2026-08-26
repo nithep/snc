@@ -16,8 +16,11 @@
 #   [1] enable monitoring.googleapis.com
 #   [2] ดึง MONITOR_WEBHOOK_TOKEN จาก env ของ bridge service (source of truth)
 #   [3] สร้าง uptime check ที่ /health ของ service หลัก (ทุก 5 นาที)
+#   [3b] สร้าง uptime check ของ Pi ผ่าน tunnel (https://snc.nithep.com/health) —
+#       ตรวจจับ ไฟดับ/เน็ตหลุด/ตู้ล่ม ที่ Pi (สำคัญ: Pi เองแจ้งเองไม่ได้ตอนไฟดับ)
 #   [4] สร้าง notification channel (webhook) ชี้ไปที่ bridge
 #   [5] สร้าง alerting policy: uptime fail 120s → ส่ง webhook → bridge → Telegram
+#   [5b] สร้าง alerting policy ของ Pi (แยก policy — ดูได้ว่า "Cloud Run down" หรือ "Pi down")
 #   [6] ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram)
 # อ้างอิง: doc/wiki/TELEGRAM_ALERTS.md, doc/BLUEPRINT_5CORE.md
 # ============================================================================
@@ -33,6 +36,11 @@ BRIDGE_URL="https://snc-alert-bridge-59781590359.asia-southeast1.run.app"
 UPTIME_ID="snc-cloud-run-health"
 CHANNEL_NAME="SNC Telegram alert bridge"
 POLICY_NAME="SNC Cloud Run uptime alert"
+# ── ตรวจ Pi ผ่าน tunnel (สำคัญ: ไฟดับ/เน็ตหลุดที่ Pi → snc.nithep.com ตาย → alert ผ่าน GCP) ──
+PI_URL="https://snc.nithep.com"
+PI_HOST="snc.nithep.com"
+UPTIME_PI_ID="snc-pi-tunnel-health"
+PI_POLICY_NAME="SNC Pi (tunnel) uptime alert"
 API="https://monitoring.googleapis.com/v3/projects/$PROJECT_ID"
 
 echo "═══════════ Cloud Monitoring Setup (uptime → Telegram) ═══════════"
@@ -119,6 +127,28 @@ elif _api POST "$API/uptimeCheckConfigs" "$UP_JSON"; then
   echo "  ✅ uptime check สร้างแล้ว ($UPTIME_ID)"
 else
   echo "  ❌ [3/6] HTTP $_API_CODE — สร้าง uptime check ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
+  exit 1
+fi
+
+# ── [3b] สร้าง uptime check ของ Pi (snc.nithep.com — ตรวจจับไฟดับ/ตู้หลุด) ─────
+echo "[3b/6] สร้าง uptime check ของ Pi ($PI_URL/health, ทุก 300s)..."
+PI_UP_JSON=$(cat <<JSON
+{
+  "displayName": "SNC Pi (tunnel) /health",
+  "period": "300s",
+  "timeout": "10s",
+  "httpCheck": {"requestMethod": "GET", "path": "/health", "useSsl": true, "validateSsl": true},
+  "monitoredResource": {"type": "uptime_url", "labels": {"host": "$PI_HOST", "project_id": "$PROJECT_ID"}},
+  "selectedRegions": ["USA", "EUROPE", "ASIA_PACIFIC"]
+}
+JSON
+)
+if _api GET "$API/uptimeCheckConfigs/$UPTIME_PI_ID"; then
+  echo "  ✅ uptime check Pi มีอยู่แล้ว ($UPTIME_PI_ID)"
+elif _api POST "$API/uptimeCheckConfigs" "$PI_UP_JSON"; then
+  echo "  ✅ uptime check Pi สร้างแล้ว ($UPTIME_PI_ID)"
+else
+  echo "  ❌ [3b/6] HTTP $_API_CODE — สร้าง uptime check Pi ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
   exit 1
 fi
 
@@ -214,6 +244,46 @@ else
   fi
 fi
 
+# ── [5b] สร้าง alerting policy ของ Pi (uptime fail 120s → webhook → Telegram) ─
+echo "[5b/6] สร้าง alerting policy ของ Pi (ไฟดับ/หลุด)..."
+PI_POLICY_JSON='{
+  "displayName": "'"$PI_POLICY_NAME"'",
+  "combiner": "OR",
+  "conditions": [{
+    "displayName": "Pi (tunnel) /health failed",
+    "conditionThreshold": {
+      "filter": "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND metric.label.\"check_id\"=\"'"$UPTIME_PI_ID"'\"",
+      "comparison": "COMPARISON_LT",
+      "thresholdValue": 1,
+      "duration": "120s",
+      "trigger": {"count": 1},
+      "aggregations": [{"alignmentPeriod": "120s", "perSeriesAligner": "ALIGN_NEXT_OLDER"}]
+    }
+  }],
+  "alertStrategy": {"autoClose": "3600s"},
+  "notificationChannels": ["'"$CHANNEL"'"]
+}'
+EXIST_PI_POLICY="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/alertPolicies" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-urlencode 'filter=display_name="'"$PI_POLICY_NAME"'"' | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print((d.get('alertPolicies') or [{}])[0].get('name', ''))
+except Exception:
+    print('')
+" || true)"
+if [ -n "$EXIST_PI_POLICY" ]; then
+  echo "  ✅ policy Pi มีอยู่แล้ว: $EXIST_PI_POLICY"
+else
+  if _api POST "$API/alertPolicies" "$PI_POLICY_JSON"; then
+    echo "  ✅ policy Pi สร้างแล้ว"
+  else
+    echo "  ❌ [5b/6] HTTP $_API_CODE — สร้าง alerting policy Pi ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2
+    exit 1
+  fi
+fi
+
 # ── [6] ทดสอบ bridge จริง (คุณควรเห็นข้อความใน Telegram) ────────────────────
 echo "[6/6] ทดสอบ webhook bridge → Telegram..."
 T=$(curl -sS --max-time 20 -X POST "$BRIDGE_URL/webhook?token=$MONITOR_WEBHOOK_TOKEN" \
@@ -224,6 +294,8 @@ echo "$T" | grep -q '"sent"' && echo "  ✅ Telegram ส่งแล้ว (เ�
   || echo "  ⚠️ bridge รับได้แต่ส่ง Telegram ไม่ได้ — ตรวจ TELEGRAM env บน bridge service"
 
 echo ""
-echo "✅ เสร็จสิ้น — uptime check: https://console.cloud.google.com/monitoring/uptime?project=$PROJECT_ID"
+echo "✅ เสร็จสิ้น — uptime checks: https://console.cloud.google.com/monitoring/uptime?project=$PROJECT_ID"
+echo "   • $SERVICE_URL (/health) → Cloud Run หลัก"
+echo "   • $PI_URL (/health) → Pi ผ่าน tunnel (ตรวจจับไฟดับ/ตู้หลุด/เน็ตตัด)"
 echo "   เส้นทาง alert: Cloud Monitoring → webhook → snc-alert-bridge → Telegram"
 echo "   (bridge อยู่คนละ service กับ backend หลัก — alert ส่งถึงแม้ backend หลัก down)"

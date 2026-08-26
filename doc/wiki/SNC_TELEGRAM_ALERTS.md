@@ -76,16 +76,43 @@ Token เคยถูกแชร์ในแชท (ตรวจแล้ว **
 4. restart backend: `sudo systemctl restart snc-backend`
 (chat_id ไม่เปลี่ยน — ใช้ของเดิมได้)
 
+## 📋 ระบบแจ้งเตือนมาตรฐาน — รหัสอ้างอิง + หลักฐาน (ops/alerting.py)
+
+ทุก alert ของระบบใช้ `ops/alerting.py` (zero-dependency) เพื่อให้ **รูปแบบตรงกัน + มีรหัสอ้างอิง + มีหลักฐานยืนยัน**:
+
+```text
+🚨 [CRITICAL] WS Tunnel ตาย 2 ครั้งติดต่อกัน
+━━━━━━━━━━━━━━━━
+รหัส: SNC-AL-TUNNEL-20260826-211500
+เวลา: 2026-08-26 21:15:00
+รายละเอียด: wss://snc.nithep.com/ws/nurse-station ล้มเหลว 2 ครั้ง
+ตรวจสอบ: ssh pi4 tail -20 logs/ws-tunnel-check.log
+```
+
+| รายการ | ค่า |
+|---|---|
+| **รหัสอ้างอิง** | `SNC-AL-<TYPE>-<YYYYMMDD>-<HHMMSS>` (เช่น `SNC-AL-POWER-20260826-210415`) — ใช้ค้น/อ้างอิงในแชท, ledger, คำสั่ง `/alerts` |
+| **ระดับ** | `CRITICAL 🚨` / `WARNING ⚠️` / `INFO ℹ️` / `TEST 🧪` |
+| **หลักฐาน** | ทุก alert เขียน JSON 1 บรรทัดต่อท้าย `logs/alerts.log` (บน Pi) — ค้นด้วย `grep SNC-AL-POWER logs/alerts.log` หรือ `/alerts` ใน bot |
+| ใช้แล้ว | `ops/ws-tunnel-cron.sh` (tunnel ตาย 2 ครั้งติด → CRITICAL + ledger) |
+| ส่งเอง | `python3 ops/alerting.py --severity CRITICAL --type POWER --summary "..." --details "..." --verify "..."` |
+| ดูรายการ | `python3 ops/alerting.py --list [คำค้น]` |
+
+> หลักการ: **alert ทุกครั้งต้องค้นหลักฐานยืนยันได้** — ถ้าไม่มี ledger entry แสดงว่าไม่มีการแจ้งจริง (เช่น ไฟดับที่ Pi = alert มาจาก cloud monitor แทน ดูหัวข้อถัดไป)
+
 ## ☁️ Cloud Monitoring uptime check → Telegram (bridge service แยก, ไม่พึ่ง Pi)
 
-GCP ตรวจ `/health` ของ Cloud Run เองทุก 5 นาที (แม้ Pi ตายก็ยังเช็ค) — พบ fail 120s
-→ ส่ง webhook ไปที่ **`snc-alert-bridge`** (Cloud Run service แยกจาก backend หลัก) → แจ้ง Telegram:
+GCP ตรวจ `/health` ของระบบเองทุก 5 นาที (แม้ Pi ตายก็ยังเช็ค — ไฟดับที่ Pi จะถูกตรวจจับตรงนี้
+เพราะ Pi เองแจ้งไม่ได้ตอนไฟดับ) → พบ fail 120s → ส่ง webhook ไปที่ **`snc-alert-bridge`**
+(Cloud Run service แยกจาก backend หลัก) → แจ้ง Telegram:
 
 | รายการ | ค่า |
 |---|---|
 | bridge service | `snc-alert-bridge` (`api/bridge_server.py` — จิ๋ว, ไม่ import backend เลย) |
-| uptime check | `snc-cloud-run-health` (GET `/health` ของ backend หลัก, 300s, ASIA_PACIFIC) |
-| alert policy | `SNC Cloud Run uptime alert` (fail 120s → autoClose 3600s) |
+| uptime check #1 | `snc-cloud-run-health` (GET `/health` ของ backend หลัก Cloud Run, 300s) |
+| uptime check #2 | `snc-pi-tunnel-health` (GET `https://snc.nithep.com/health` — **Pi ผ่าน tunnel**, 300s) → ตรวจจับ **ไฟดับ/เน็ตหลุด/ตู้ล่ม** ที่ Pi |
+| alert policy #1 | `SNC Cloud Run uptime alert` |
+| alert policy #2 | `SNC Pi (tunnel) uptime alert` (แยก policy — ดู title ใน Telegram รู้ทันทีว่า "Cloud Run down" หรือ "Pi down") |
 | channel | webhook_tokenauth → `BRIDGE_URL/webhook?token=...` |
 | auth | `?token=MONITOR_WEBHOOK_TOKEN` หรือ header `X-SNC-Token` (fail-closed) |
 | env บน bridge | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` / `MONITOR_WEBHOOK_TOKEN` |
@@ -117,6 +144,9 @@ bash ops/setup_cloud_monitoring.sh
 | `/rooms` | สายเรียกค้าง + เหตุการณ์ล่าสุด |
 | `/burn` | สถานะ burn-in (ผ่านไป/เหลือกี่ชม.) |
 | `/status` | backend health + services |
+| `/alerts` | แจ้งเตือนล่าสุด 10 รายการ (พร้อมรหัสอ้างอิง `SNC-AL-...`) |
+| `/alerts SNC-AL-TUNNEL-20260826-211500` | รายละเอียดเต็มของ alert ตามรหัส |
+| `/alerts TUNNEL` (หรือ POWER/BACKEND/คำค้น) | ค้นประวัติ alert ตามประเภท/คีย์เวิร์ด |
 | `/help` | รายการคำสั่ง |
 
 พิมพ์ภาษาไทยได้ เช่น "ห้องไหนค้าง", "burn ถึงไหนแล้ว" และถามเกี่ยวกับตัว agent เองได้ เช่น

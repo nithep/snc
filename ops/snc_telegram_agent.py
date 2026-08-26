@@ -23,6 +23,7 @@ import json
 import time
 import subprocess
 import datetime
+import importlib.util
 import urllib.request
 import urllib.parse
 
@@ -77,8 +78,10 @@ HELP = (
     "/rooms — สายเรียกค้าง / เหตุการณ์ล่าสุด\n"
     "/burn — สถานะ Burn-in 48 ชม.\n"
     "/status — สุขภาพ backend + services\n"
+    "/alerts — แจ้งเตือนล่าสุด 10 รายการ (มีรหัสอ้างอิง)\n"
+    "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด เช่น SNC-AL-POWER-20260826-210415\n"
     "/help — คำสั่งทั้งหมด\n\n"
-    "พิมพ์ภาษาไทยก็ได้ เช่น \"ห้องไหนค้าง\", \"burn ถึงไหนแล้ว\""
+    "พิมพ์ภาษาไทยก็ได้ เช่น \"ห้องไหนค้าง\", \"burn ถึงไหนแล้ว\", \"alert ล่าสุด\""
 )
 
 
@@ -141,6 +144,53 @@ def burn_reply():
         return f"อ่าน burnin.log ไม่ได้: {e}"
 
 
+def alerts_reply(text):
+    """ดู/ค้นประวัติการแจ้งเตือนจาก ledger (logs/alerts.log) — มีรหัสอ้างอิง SNC-AL-..."""
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "alerting", os.path.join(BASE, "alerting.py"))
+        a = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(a)
+    except Exception as e:
+        return f"อ่าน alerting.py ไม่ได้: {e} — ดู logs/alerts.log ตรง ๆ"
+
+    # ตัดคำฟุ่มเฟือย: "alert ล่าสุด" / "แจ้งเตือนรายการ" → โหมดรายการ
+    q = text.replace("/alerts", "").replace("alert", "").lower()
+    for w in ("ล่าสุด", "รายการ", "ประวัติ", "ดู", "โชว์", "แจ้งเตือน", "แจ้ง"):
+        q = q.replace(w, "")
+    q = q.strip()
+    if not q:
+        items = a.list_alerts(limit=10)
+        if not items:
+            return "📭 ยังไม่มี alert ใน ledger (logs/alerts.log)"
+        lines = ["🗂️ <b>Alert ล่าสุด 10 รายการ</b> (รหัส/เวลา/เรื่อง):"]
+        for e in items:
+            icon = a.SEVERITY_ICON.get(e.get("severity"), "🔔")
+            sent = "" if e.get("sent") else " ⏭️(ยังไม่ส่ง)"
+            lines.append(f"{icon} <code>{e['code']}</code> {e['ts']}{sent}\n   {e['summary']}")
+        return "\n".join(lines)
+
+    items = a.list_alerts(q, limit=5)
+    if not items:
+        return f"🔍 ไม่พบ alert ที่ตรงกับ '{q}' — ลอง /alerts เพื่อดูรายการทั้งหมด"
+    if len(items) == 1 and items[0]["code"].lower() == q.lower():
+        e = items[0]
+        return (
+            f"📋 <b>รายละเอียด alert</b>\n"
+            f"รหัส: <code>{e['code']}</code>\n"
+            f"ระดับ: {e['severity']} | เวลา: {e['ts']}\n"
+            f"เรื่อง: {e['summary']}\n"
+            f"รายละเอียด: {e.get('details') or '-'}\n"
+            f"ตรวจสอบ: {e.get('verify') or '-'}\n"
+            f"ส่ง Telegram แล้ว: {'✅' if e.get('sent') else '⏭️ (ข้าม — ดู ledger)'}"
+        )
+    lines = [f"🔍 <b>ค้น '{q}' พบ {len(items)} รายการ:</b>"]
+    for e in items:
+        icon = a.SEVERITY_ICON.get(e.get("severity"), "🔔")
+        lines.append(f"{icon} <code>{e['code']}</code> {e['ts']} — {e['summary']}")
+    return "\n".join(lines)
+
+
 def status_reply():
     h = http_json("/health")
     svc = subprocess.run(["systemctl", "is-active", "snc-backend", "snc-pbx-listener"],
@@ -155,6 +205,8 @@ def answer(text):
     t = text.lower()
     if any(k in t for k in ("help", "ช่วย", "คำสั่ง", "command", "/start")):
         return HELP
+    if any(k in t for k in ("alerts", "alert", "แจ้งเตือน", "แจ้ง")):
+        return alerts_reply(text)
     if any(k in t for k in ("kpi", "sla", "เป้า", "เกณฑ์")):
         return kpi_reply()
     if any(k in t for k in ("ห้อง", "room", "สาย", "ค้าง", "active")):
