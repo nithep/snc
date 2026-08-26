@@ -652,6 +652,14 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
+            # Heartbeat: ตอบ pong ให้ ping จาก dashboard — กันสายค้าง (zombie socket) ที่ onclose ไม่ fire
+            try:
+                parsed = json.loads(data)
+                if parsed.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+            except (json.JSONDecodeError, TypeError):
+                pass
             logging.info(f"Received WS message: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)

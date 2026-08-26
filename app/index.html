@@ -669,6 +669,8 @@ let ws = null;
 let wsRetry = 0;
 let wsReconnectTimer = null;
 let wsManualClose = false;
+let wsLastMsgAt = 0;             // ล่าสุดที่ได้รับข้อความ/pong จาก server (ตรวจจับสายค้างที่ onclose ไม่ fire)
+let wsPongSeen = false;          // server ตอบ pong แล้ว (รองรับ heartbeat) — เท่านั้นที่จะบังคับ reconnect เอง
 let alarmTimer = null;
 
 /* ═══════════════════════════ Toast ═══════════════════════════ */
@@ -1166,6 +1168,8 @@ function updateAlarm() {
 
 /* ═══════════════════════════ WebSocket ═══════════════════════════ */
 const WS_MAX_RETRY_MS = 30000;  // ขีดจำกัดสูงสุดของ delay ระหว่าง reconnect
+const WS_HEARTBEAT_MS = 15000;   // ความถี่ส่ง ping กัน Cloudflare drop สาย idle (และตรวจความมีชีวิต)
+const WS_STALE_MS = 60000;       // ไม่มีข้อความตอบกลับเกินนี้ → ถือว่าสายค้าง บังคับ reconnect
 function wsBackoffDelay() {
   // exponential backoff + jitter: 1s → 2s → 4s → 8s → 16s → 30s (cap)
   const base = Math.min(1000 * Math.pow(2, wsRetry), WS_MAX_RETRY_MS);
@@ -1218,11 +1222,14 @@ function initWebSocket() {
   ws.onopen = () => {
     wsRetry = 0;
     wsManualClose = false;  // เปิดสำเร็จแล้ว — สายหลุดครั้งต่อไปคือของจริงเสมอ
+    wsLastMsgAt = Date.now();
     setConnState('live');
   };
   ws.onmessage = (ev) => {
     try {
       const data = JSON.parse(ev.data);
+      wsLastMsgAt = Date.now();  // ทุกข้อความ (รวม pong/ที่ถูก filter) = หลักฐานว่าสายยังมีชีวิต
+      if (data.type === 'pong') { wsPongSeen = true; }  // server รองรับ heartbeat → เปิดการบังคับ reconnect
       const ext = data.extension || {};
       
       // Filter out events that do not match the current mode (demo vs real)
@@ -1378,6 +1385,17 @@ loadHealth();
 setInterval(loadEvents, 10000);
 setInterval(loadKpi, 30000);
 setInterval(loadHealth, 30000);
+// Heartbeat WS: ส่ง ping ทุก 15 วิ + บังคับ reconnect ถ้าเงียบเกิน 60 วิ (สายค้างที่ onclose ไม่ fire)
+setInterval(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {}
+  if (wsPongSeen && Date.now() - wsLastMsgAt > WS_STALE_MS) {
+    console.warn('WS ไม่มีสัญญาณตอบกลับเกิน ' + (WS_STALE_MS / 1000) + 's — บังคับ reconnect');
+    wsRetry++;
+    setConnState('retry');
+    initWebSocket();
+  }
+}, WS_HEARTBEAT_MS);
 setInterval(tickTimers, 1000);
 </script>
 </body>

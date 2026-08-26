@@ -91,6 +91,30 @@ curl -I https://snc.nithep.com/dashboard
 curl -H "X-API-Key: [SNC_API_KEY_ที่ตั้งไว้]" https://hotel.nithep.com/api/events
 ```
 
+### 3. ตรวจสอบ WebSocket ผ่าน Tunnel แบบเต็มวงจร (real-time broadcast)
+ใช้สคริปต์ `ops/ws-tunnel-test.py` — เชื่อม WS ผ่าน `wss://<host>/ws/nurse-station`
+ยิง demo trigger แล้วรอรับ broadcast กลับมาตรวจ payload (roomId/source/status):
+```bash
+# ตรวจแบบเต็ม (ยิง demo event + รอ broadcast) — ใช้ตอนสงสัยว่า real-time พัง
+python ops/ws-tunnel-test.py
+
+# ตรวจแค่ reachability (ไม่ยิง event) — เหมาะกับ cron ตรวจทุก N นาที
+python ops/ws-tunnel-test.py --check-only
+```
+
+**ติดตั้งแล้วบน Pi (cron ทุก 15 นาที)** — ใช้ `ops/ws-tunnel-cron.sh` wrapper
+ซึ่งนอกจากตรวจ WS แล้วยัง **แจ้ง Telegram อัตโนมัติเมื่อ tunnel ตาย 2 ครั้งติด**
+(≈30 นาที, ผ่าน `ops/notify-telegram.sh` แล้วรีเซ็ต counter กันสแปม):
+```
+*/15 * * * * /home/ecs-agent/snc/ops/ws-tunnel-cron.sh
+# log: /home/ecs-agent/snc/logs/ws-tunnel-check.log
+# state (consecutive fail): /home/ecs-agent/snc/logs/.ws-tunnel-fail-count
+```
+> [!IMPORTANT]
+> **Cloudflare WAF กัน POST ที่ไม่มี User-Agent เบราว์เซอร์จริง (HTTP 403)** —
+> สคริปต์ส่ง browser UA ให้แล้ว แต่ถ้าเขียนสคริปต์อื่น POST ผ่าน tunnel (เช่น automation ภายนอก)
+> ต้องใส่ browser UA หรือยิงตรง `localhost:8000` บน Pi แทน — เบราว์เซอร์ปกติไม่เจอปัญหานี้
+
 ---
 
 ## 📝 บันทึกประวัติการปรับปรุง

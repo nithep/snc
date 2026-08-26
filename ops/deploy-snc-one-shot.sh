@@ -39,6 +39,7 @@ FILES=(
   "api/server.py:api/server.py"
   "api/services/gemini_direct_service.py:api/services/gemini_direct_service.py"
   "app/index.html:app/index.html"
+  "app/demo.html:app/demo.html"
   "app/landing.html:app/landing.html"
   "app/roi.html:app/roi.html"
   "app/snc-vs-imported.html:app/snc-vs-imported.html"
@@ -46,6 +47,8 @@ FILES=(
   "pbx/snc_pbx_listener.py:pbx/snc_pbx_listener.py"
   "ops/snc-backend.service:ops/snc-backend.service"
   "ops/snc-pbx-listener.service:ops/snc-pbx-listener.service"
+  "ops/ws-tunnel-test.py:ops/ws-tunnel-test.py"
+  "ops/ws-tunnel-cron.sh:ops/ws-tunnel-cron.sh"
 )
 
 # --- 5-Core structure check (Blueprint: doc/BLUEPRINT_5CORE.md) ------------

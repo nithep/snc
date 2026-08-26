@@ -55,6 +55,8 @@ echo [OK] API deployed
 echo [3/6] Deploying dashboard...
 scp %SSH_OPTS% app\index.html %PI_USER%@%PI_HOST%:%PI_ROOT%/app/index.html
 if %ERRORLEVEL% NEQ 0 goto error
+scp %SSH_OPTS% app\demo.html %PI_USER%@%PI_HOST%:%PI_ROOT%/app/demo.html
+if %ERRORLEVEL% NEQ 0 goto error
 echo [OK] Dashboard deployed
 
 echo [4/6] Deploying PBX listener...
