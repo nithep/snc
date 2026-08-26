@@ -77,6 +77,18 @@ header {
 @keyframes sheen { 0%, 60% { transform: translateX(-100%);} 85%, 100% { transform: translateX(100%);} }
 .brand h1 { font-size: 1.12rem; font-weight: 700; letter-spacing: 0.2px; line-height: 1.25; }
 .brand p { font-size: 0.74rem; color: var(--text-dim); font-weight: 400; }
+.mode-badge {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.22rem 0.6rem; border-radius: 7px;
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  margin-top: 0.25rem; width: fit-content;
+}
+.mode-badge.demo {
+  background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.mode-badge.real {
+  background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.35);
+}
 .header-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .pill {
   display: inline-flex; align-items: center; gap: 0.5rem;
@@ -376,6 +388,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <div>
       <h1 data-i18n-key="appTitle">Smart Nurse Call (SNC)</h1>
       <p data-i18n-key="appSubtitle">ระบบเฝ้าระวังสายเรียกพยาบาลเรียลไทม์</p>
+      <div id="modeBadge" class="mode-badge" style="display:none"></div>
     </div>
   </div>
   <div class="header-right">
@@ -555,7 +568,9 @@ const I18N = {
     ackDone: 'รับเรื่องห้อง {room} แล้ว', clearDone: 'เคลียร์สายห้อง {room} แล้ว', triggerDone: 'ส่งสัญญาณจำลองห้อง {room} แล้ว',
     demoTest: 'DEMO', demoTestSending: 'กำลังส่งสัญญาณจำลอง…', demoTestDone: 'ส่งสัญญาณจำลองแล้ว (DEMO — ไม่นับ KPI)', demoTestFail: 'ส่งสัญญาณจำลองไม่สำเร็จ', demoTestReset: 'DEMO เคลียร์แล้ว — ระบบพร้อมใช้งาน',
     footerNote: 'เซิร์ฟเวอร์หลัก Raspberry Pi 4', liveFeed: 'ฟีดสด WebSocket',
-    eventsByType: 'จำนวนเหตุการณ์แยกตามประเภท'
+    eventsByType: 'จำนวนเหตุการณ์แยกตามประเภท',
+    modeDemo: 'โหมดสาธิตจำลอง',
+    modeReal: 'ระบบจริง (Production)'
   },
   en: {
     appTitle: 'Smart Nurse Call (SNC)', appSubtitle: 'Nurse Station Live Monitor',
@@ -595,7 +610,9 @@ const I18N = {
     ackDone: 'Room {room} acknowledged', clearDone: 'Room {room} cleared', triggerDone: 'Simulated call sent for room {room}',
     demoTest: 'DEMO', demoTestSending: 'Sending demo call…', demoTestDone: 'Demo call sent (DEMO — not counted in KPI)', demoTestFail: 'Failed to send demo call', demoTestReset: 'DEMO cleared — system ready',
     footerNote: 'Primary server: Raspberry Pi 4', liveFeed: 'WebSocket Live Feed',
-    eventsByType: 'Events by type'
+    eventsByType: 'Events by type',
+    modeDemo: 'Demo Simulation Mode',
+    modeReal: 'Production Active'
   }
 };
 let LANG = (localStorage.getItem('snc_lang') || 'th');
@@ -608,11 +625,39 @@ const t = (k, vars) => {
 /* ═══════════════════════════ Config ═══════════════════════════ */
 const isFile = location.protocol === 'file:';
 const q = new URLSearchParams(location.search);
+
+// Detect mode from url parameter or utm parameters
+let detectedMode = q.get('mode'); // real | demo
+if (!detectedMode) {
+  const hasUtm = q.get('utm_source') === 'landing' || q.get('utm_medium') === 'cta' || q.get('utm_campaign') === 'snc_home';
+  detectedMode = hasUtm ? 'demo' : 'real';
+}
+
 let cfg = {
   apiKey: q.get('api_key') || q.get('key') || localStorage.getItem('snc_api_key') || '',
   host: localStorage.getItem('snc_backend_host') || '',
-  sound: localStorage.getItem('snc_sound') !== '0'
+  sound: localStorage.getItem('snc_sound') !== '0',
+  sourceMode: detectedMode
 };
+
+function updateModeIndicator() {
+  const badge = document.getElementById('modeBadge');
+  const demoBtn = document.getElementById('demoTestBtn');
+  if (badge) {
+    badge.style.display = 'inline-flex';
+    if (cfg.sourceMode === 'demo') {
+      badge.className = 'mode-badge demo';
+      badge.textContent = t('modeDemo');
+    } else {
+      badge.className = 'mode-badge real';
+      badge.textContent = t('modeReal');
+    }
+  }
+  if (demoBtn) {
+    // Hide DEMO button in production mode to avoid user confusion
+    demoBtn.style.display = cfg.sourceMode === 'demo' ? 'inline-block' : 'none';
+  }
+}
 
 function apiUrl(path) {
   const host = cfg.host || (isFile ? '192.168.1.94:8000' : '');
@@ -738,7 +783,7 @@ function roomDisplayName(id) {
 /* ═══════════════════════════ Data loading ═══════════════════════════ */
 async function loadEvents() {
   try {
-    const data = await apiGet('/api/events');
+    const data = await apiGet('/api/events?source=' + cfg.sourceMode);
     allEvents = (data.events || []);
     
     // Force-create Floor 11 rooms if no events are found (Fallback for empty DB)
@@ -764,7 +809,7 @@ async function loadEvents() {
 }
 async function loadKpi() {
   try {
-    kpiData = await apiGet('/api/analytics/kpi');
+    kpiData = await apiGet('/api/analytics/kpi?source=' + cfg.sourceMode);
     renderKpi();
   } catch (err) { console.warn('loadKpi failed:', err); }
 }
@@ -1196,6 +1241,13 @@ function initWebSocket() {
     try {
       const data = JSON.parse(ev.data);
       const ext = data.extension || {};
+      
+      // Filter out events that do not match the current mode (demo vs real)
+      const msgSource = ext.source || 'real';
+      if (msgSource !== cfg.sourceMode) {
+        return;
+      }
+
       const room = ext.roomId;
       if (!room) return;
       const content = (data.payload && data.payload[0] && data.payload[0].contentString) || '';
@@ -1358,6 +1410,7 @@ document.addEventListener('pointerdown', ensureAudio, { once: true });
 
 /* ═══════════════════════════ Boot ═══════════════════════════ */
 applyI18n();
+updateModeIndicator();
 document.getElementById('soundBtn').textContent = cfg.sound ? '🔊' : '🔇';
 document.getElementById('kpiView').value = kpiViewSel;
 initWebSocket();

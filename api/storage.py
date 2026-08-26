@@ -178,18 +178,19 @@ class SqliteStore:
             })
         return events
 
-    def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict]]:
+    def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT timestamp FROM nurse_call_events
+            SELECT timestamp, source FROM nurse_call_events
             WHERE room_id = ? AND status = 'active' ORDER BY timestamp DESC LIMIT 1
         """, (room_id,))
         row = cursor.fetchone()
         if not row:
             conn.close()
-            return None, None
+            return None, None, None
         created_at = row[0]
+        source = row[1] if len(row) > 1 and row[1] else "real"
         sla_metrics = calculate_sla_metrics(created_at, acknowledged_at=now_iso)
         cursor.execute("""
             UPDATE nurse_call_events SET status = 'acknowledged', acknowledged_at = ?,
@@ -198,21 +199,22 @@ class SqliteStore:
         """, (now_iso, sla_metrics["ack_time_seconds"], sla_metrics["sla_breached"], room_id))
         conn.commit()
         conn.close()
-        return created_at, sla_metrics
+        return created_at, sla_metrics, source
 
-    def clear_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict]]:
+    def clear_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT timestamp FROM nurse_call_events
+            SELECT timestamp, source FROM nurse_call_events
             WHERE room_id = ? AND status IN ('active', 'acknowledged')
             ORDER BY timestamp DESC LIMIT 1
         """, (room_id,))
         row = cursor.fetchone()
         if not row:
             conn.close()
-            return None, None
+            return None, None, None
         created_at = row[0]
+        source = row[1] if len(row) > 1 and row[1] else "real"
         sla_metrics = calculate_sla_metrics(created_at, resolved_at=now_iso)
         cursor.execute("""
             UPDATE nurse_call_events SET status = 'resolved', resolved_at = ?,
@@ -221,7 +223,7 @@ class SqliteStore:
         """, (now_iso, sla_metrics["resolution_time_seconds"], sla_metrics["sla_breached"], room_id))
         conn.commit()
         conn.close()
-        return created_at, sla_metrics
+        return created_at, sla_metrics, source
 
     def get_kpi_summary(self, source: str = None) -> dict:
         conn = self._connect()
@@ -370,6 +372,7 @@ class FirestoreStore:
             "status": doc["status"],
             "event_id": doc["id"],
             "timestamp": doc["timestamp"],
+            "source": doc.get("source", "real")
         })
 
     def get_recent_events(self, limit: int = 200, source: str = None) -> List[dict]:
@@ -392,13 +395,14 @@ class FirestoreStore:
         snap = self._events.document(event_id).get()
         return snap.exists
 
-    def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict]]:
+    def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
         ref = self._room_state.document(room_id)
         snap = ref.get()
         if not snap.exists or snap.get("status") != "active":
-            return None, None
+            return None, None, None
         created_at = snap.get("timestamp")
         event_id = snap.get("event_id")
+        source = snap.get("source") if "source" in snap.to_dict() else "real"
         sla_metrics = calculate_sla_metrics(created_at, acknowledged_at=now_iso)
         self._events.document(event_id).update({
             "status": "acknowledged",
@@ -407,15 +411,16 @@ class FirestoreStore:
             "sla_breached": sla_metrics["sla_breached"],
         })
         ref.update({"status": "acknowledged"})
-        return created_at, sla_metrics
+        return created_at, sla_metrics, source
 
-    def clear_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict]]:
+    def clear_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
         ref = self._room_state.document(room_id)
         snap = ref.get()
         if not snap.exists or snap.get("status") not in ("active", "acknowledged"):
-            return None, None
+            return None, None, None
         created_at = snap.get("timestamp")
         event_id = snap.get("event_id")
+        source = snap.get("source") if "source" in snap.to_dict() else "real"
         sla_metrics = calculate_sla_metrics(created_at, resolved_at=now_iso)
         self._events.document(event_id).update({
             "status": "resolved",
@@ -424,7 +429,7 @@ class FirestoreStore:
             "sla_breached": sla_metrics["sla_breached"],
         })
         ref.update({"status": "resolved"})
-        return created_at, sla_metrics
+        return created_at, sla_metrics, source
 
     def get_kpi_summary(self, source: str = None) -> dict:
         total_events = 0

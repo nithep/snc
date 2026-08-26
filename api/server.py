@@ -337,14 +337,18 @@ async def acknowledge_call(room_id: str):
     now_iso = datetime.now().isoformat()
     formatted_room = room_id.zfill(4)
 
-    created_at, sla_metrics = store.acknowledge_room(formatted_room, now_iso)
+    created_at, sla_metrics, source = store.acknowledge_room(formatted_room, now_iso)
 
     ack_event = {
         "resourceType": "CommunicationRequest",
         "id": f"ack-{formatted_room}-{int(datetime.now().timestamp())}",
         "status": "acknowledged",
         "payload": [{"contentString": "ACKNOWLEDGED"}],
-        "extension": {"roomId": formatted_room, "timestamp": now_iso}
+        "extension": {
+            "roomId": formatted_room, 
+            "timestamp": now_iso,
+            "source": source or "real"
+        }
     }
     await manager.broadcast(ack_event)
     return {"status": "acknowledged", "room_id": formatted_room, "sla_metrics": sla_metrics if created_at else None}
@@ -355,14 +359,18 @@ async def clear_call(room_id: str):
     now_iso = datetime.now().isoformat()
     formatted_room = room_id.zfill(4)
 
-    created_at, sla_metrics = store.clear_room(formatted_room, now_iso)
+    created_at, sla_metrics, source = store.clear_room(formatted_room, now_iso)
 
     clear_event = {
         "resourceType": "CommunicationRequest",
         "id": f"clear-{formatted_room}-{int(datetime.now().timestamp())}",
         "status": "resolved",
         "payload": [{"contentString": "CALL_CLEARED"}],
-        "extension": {"roomId": formatted_room, "timestamp": now_iso}
+        "extension": {
+            "roomId": formatted_room, 
+            "timestamp": now_iso,
+            "source": source or "real"
+        }
     }
     await manager.broadcast(clear_event)
     return {"status": "cleared", "room_id": formatted_room, "sla_metrics": sla_metrics if created_at else None}
