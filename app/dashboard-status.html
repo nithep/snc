@@ -391,7 +391,7 @@
             <div class="actions">
                 <h2>Quick Actions</h2>
                 <button class="btn btn-primary" onclick="refreshStatus()">🔄 Refresh Status</button>
-                <button class="btn btn-success" onclick="window.open('http://' + window.location.hostname + ':8000', '_blank')">📊 Open Dashboard</button>
+                <button class="btn btn-success" onclick="window.open('/index.html', '_blank')">📊 Open Dashboard</button>
                 <button class="btn btn-warning" onclick="viewLogs()">📋 View Logs</button>
                 <a href="/api/events" class="btn btn-primary" target="_blank">📈 View Events API</a>
             </div>
@@ -615,7 +615,7 @@
         }
         
         function viewLogs() {
-            alert('To view logs on Pi:\n\nBackend: tail -f /home/pi/Hotel-ECS/logs/backend.log\nPBX: tail -f /home/pi/Hotel-ECS/logs/pbx_listener.log');
+            alert('To view logs on Pi (SSH):\n\nBackend:\n  ssh ecs-agent@pi4 "sudo journalctl -u snc-backend -f"\n\nPBX Listener:\n  ssh ecs-agent@pi4 "sudo journalctl -u snc-pbx-listener -f"');
         }
         
         // Initial load
