@@ -833,5 +833,23 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **สถานะ:** ✅ แก้เสร็จสิ้น — pipeline Pi → Cloud Run ใช้งานได้จริง end-to-end ข้อมูลช่วง 19–24 ส.ค. recover ไม่ได้ (container ephemeral) แต่ระบบปัจจุบัน durable แล้ว
 
 
+## [2026-08-26] ออกแบบแผนผังการเชื่อมโยงระบบและจัดทำคู่มือแนวทางการพัฒนาแบบแยกโหมด (SNC Development & Isolated Simulation Guide)
+
+**ผู้ดำเนินการ:** Senior Software Engineer (Antigravity Agent)
+
+**รายละเอียดการอัปเดต:**
+- **ออกแบบการเชื่อมโยงและการจำลองแบบแยกโหมด (Isolated Simulation)**:
+  - วางโครงสร้างแยกเหตุการณ์จำลอง (Demo) จากเหตุการณ์จริงหน้างาน (Real-time Production) ด้วยการใช้ tag `source: "demo" | "real"` ในระดับฐานข้อมูล
+  - กำหนด endpoint `/api/demo/trigger` เป็นสาธารณะเพื่อรองรับ widget จำลองบน Landing Page โดยจำกัดประเภทข้อมูลเป็น `source="demo"` เท่านั้น ป้องกันการบิดเบือนของสถิติและ SLA/KPI ทางการแพทย์บนระบบจริง
+  - ในฝั่ง Dashboard เคาน์เตอร์พยาบาลกำหนดให้กรองแสดงเฉพาะ `source="real"` เพื่อป้องกันเจ้าหน้าที่สับสน
+- **จัดทำคู่มือ [[SNC_DEVELOPMENT_WORKFLOW_GUIDE]]**:
+  - สร้างไฟล์คู่มือแนวทางการทำงานใน [SNC_DEVELOPMENT_WORKFLOW_GUIDE.md](file:///d:/snc/doc/wiki/SNC_DEVELOPMENT_WORKFLOW_GUIDE.md) เพื่อเป็นแนวทางปฏิบัติมาตรฐานสำหรับทีมงาน
+  - กำหนดขั้นตอนการทำงานแบบไปป์ไลน์ 5 สเต็ป: **สร้าง** (บนเครื่อง Dev Local) ➔ **จำลอง** (ยิง Mock SMDR / Unit Test) ➔ **ดู** (ทดสอบ UI/UX บน Browser) ➔ **Commit** (Push ขึ้น GitHub Main) ➔ **Deploy** (แยกระหว่าง Pi 4 Edge via SSH และ GCP Cloud Run via Ops Script)
+- **การจัดการความปลอดภัยและสุขอนามัยของโค้ด**:
+  - บันทึกการควบคุม API Key/Secrets (ห้ามบันทึก key ใน git, ควบคุมสิทธิ์เข้าถึงไฟล์ `.env`) และเน้นย้ำความปลอดภัยในการแลกเปลี่ยนข้อมูล
+  - กำหนดมาตรฐานความเข้ากันได้ของการแสดงผลอักขระไทยผ่าน Strict UTF-8 ในทุกสภาพแวดล้อม
+
+
+
 
 
