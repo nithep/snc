@@ -318,6 +318,34 @@ details.ai-panel summary .chev { margin-left: auto; transition: transform .2s ea
 details.ai-panel[open] summary .chev { transform: rotate(180deg); }
 details.ai-panel summary:hover { opacity: .9; }
 
+/* ═══════════════ Simulation Bar ═══════════════ */
+.sim-bar {
+  position: sticky; bottom: 0; left: 0; right: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center; gap: 0.7rem;
+  padding: 0.8rem 1.6rem;
+  background: rgba(9, 14, 26, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--stroke-strong);
+  box-shadow: 0 -10px 40px -15px rgba(0,0,0,0.7);
+  flex-wrap: wrap;
+}
+.sim-title { font-size: 0.82rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 0.35rem; }
+.sim-btn {
+  padding: 0.55rem 1rem; border: none; border-radius: 999px;
+  font-family: var(--font); font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; color: #fff;
+  transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+}
+.sim-btn:hover { transform: translateY(-1.5px); opacity: 0.95; }
+.sim-btn:active { transform: translateY(0) scale(.98); }
+.sim-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.sim-btn-red { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+.sim-btn-orange { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+.sim-btn-green { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+.sim-btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
+
 /* ═══════════════ Footer ═══════════════ */
 footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-size: 0.72rem; border-top: 1px solid var(--stroke); background: rgba(6,10,19,.5); }
 
@@ -398,7 +426,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <div class="header-clock" id="clock" aria-label="Clock">--:--:--</div>
     <button class="icon-btn" id="soundBtn" title="เสียงเตือน" aria-label="Toggle alarm sound">🔊</button>
     <button class="icon-btn" id="langBtn" title="ภาษา / Language" aria-label="Switch language">EN</button>
-    <button class="demo-test-btn" id="demoTestBtn" title="ทดสอบ DEMO — จำลองเรียกห้อง 0400 (ไม่นับ KPI)" aria-label="Trigger demo call">🧪 <span data-i18n-key="demoTest">DEMO</span></button>
+    <!-- demoTestBtn: ย้ายไปใช้ Simulation Bar ด้านล่าง -->
     <button class="icon-btn" id="settingsBtn" title="การตั้งค่า" aria-label="Open settings" style="font-size:1.1rem">⚙️</button>
   </div>
 </header>
@@ -498,6 +526,16 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 <footer>
   SNC v2.1 — Phonik PBX Smart Nurse Call · <span data-i18n-key="footerNote">เซิร์ฟเวอร์หลัก Raspberry Pi 4</span>
 </footer>
+
+<!-- ═══════════ Simulation Bar ═══════════ -->
+<div class="sim-bar" id="simulationBar">
+  <div class="sim-title">⚡ จำลองสัญญาณเรียกฉุกเฉิน & เคลียร์สาย (SLA Simulation):</div>
+  <button class="sim-btn sim-btn-red" id="simBedsideBtn">🚨 กด STA (ห้อง 400)</button>
+  <button class="sim-btn sim-btn-red" id="simBathroomBtn">🚿 ดึงสายห้องน้ำ (ห้อง 400)</button>
+  <button class="sim-btn sim-btn-orange" id="simAckBtn">📞 พยาบาลยกหูรับสาย (Ack)</button>
+  <button class="sim-btn sim-btn-green" id="simClearBtn">✅ พยาบาลกดล้างสาย (Clear)</button>
+  <button class="sim-btn sim-btn-purple" id="simFastSlaBtn">⚡ ทดสอบ SLA ลูปอัตโนมัติ (Fast SLA Test)</button>
+</div>
 
 <!-- ═══════════ Settings Modal ═══════════ -->
 <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -626,36 +664,19 @@ const t = (k, vars) => {
 const isFile = location.protocol === 'file:';
 const q = new URLSearchParams(location.search);
 
-// Detect mode from url parameter or utm parameters
-let detectedMode = q.get('mode'); // real | demo
-if (!detectedMode) {
-  const hasUtm = q.get('utm_source') === 'landing' || q.get('utm_medium') === 'cta' || q.get('utm_campaign') === 'snc_home';
-  detectedMode = hasUtm ? 'demo' : 'real';
-}
-
 let cfg = {
   apiKey: q.get('api_key') || q.get('key') || localStorage.getItem('snc_api_key') || '',
   host: localStorage.getItem('snc_backend_host') || '',
   sound: localStorage.getItem('snc_sound') !== '0',
-  sourceMode: detectedMode
+  sourceMode: 'demo' // Force Demo Mode for demo.html
 };
 
 function updateModeIndicator() {
   const badge = document.getElementById('modeBadge');
-  const demoBtn = document.getElementById('demoTestBtn');
   if (badge) {
     badge.style.display = 'inline-flex';
-    if (cfg.sourceMode === 'demo') {
-      badge.className = 'mode-badge demo';
-      badge.textContent = t('modeDemo');
-    } else {
-      badge.className = 'mode-badge real';
-      badge.textContent = t('modeReal');
-    }
-  }
-  if (demoBtn) {
-    // Hide DEMO button in production mode to avoid user confusion
-    demoBtn.style.display = cfg.sourceMode === 'demo' ? 'inline-block' : 'none';
+    badge.className = 'mode-badge demo';
+    badge.textContent = t('modeDemo');
   }
 }
 
@@ -1372,31 +1393,88 @@ document.getElementById('soundBtn').addEventListener('click', () => {
 });
 document.getElementById('langBtn').addEventListener('click', () => setLang(LANG === 'th' ? 'en' : 'th'));
 document.getElementById('exportBtn').addEventListener('click', exportCsv);
-document.getElementById('demoTestBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('demoTestBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  toast(t('demoTestSending'));
+
+// Simulation helper functions
+async function triggerDemoCall(eventType) {
   try {
-    // ปุ่มทดสอบสาธารณะ (ไม่ต้อง key) — server บังคับ source=demo → ไม่นับ KPI ของจริง
     const res = await fetch(apiUrl('/api/demo/trigger'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room_id: '0400', event_type: 'CALL_BEDSIDE' })
+      body: JSON.stringify({ room_id: '0400', event_type: eventType })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     toast(t('demoTestDone'), 'ok');
-    // เคลียร์การ์ด demo อัตโนมัติหลัง ~15 วิ (กันการ์ดค้างแดง) — KPI/History ไม่นับอยู่แล้ว
-    setTimeout(() => {
-      if (roomStates['0400']) { delete roomStates['0400']; renderRooms(); }
-      toast(t('demoTestReset'));
-    }, 15000);
   } catch (e) {
     toast(t('demoTestFail'), 'err');
-  } finally {
-    btn.disabled = false;
   }
-});
+}
+
+async function acknowledgeDemoCall() {
+  try {
+    const res = await fetch(apiUrl('/api/events/acknowledge/0400'), {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    toast('📞 พยาบาลยกหูรับสาย (Ack) ห้อง 0400 แล้ว', 'ok');
+  } catch (e) {
+    toast('ดำเนินการรับสายไม่สำเร็จ (กรุณาตรวจการเชื่อมต่อ/API Key)', 'err');
+  }
+}
+
+async function clearDemoCall() {
+  try {
+    const res = await fetch(apiUrl('/api/events/clear/0400'), {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    toast('✅ พยาบาลกดล้างสาย (Clear) ห้อง 0400 แล้ว', 'ok');
+  } catch (e) {
+    toast('ดำเนินการล้างสายไม่สำเร็จ (กรุณาตรวจการเชื่อมต่อ/API Key)', 'err');
+  }
+}
+
+// Automated simulation loop
+let simTimeout1 = null;
+let simTimeout2 = null;
+
+function setSimButtonsDisabled(disabled) {
+  document.getElementById('simBedsideBtn').disabled = disabled;
+  document.getElementById('simBathroomBtn').disabled = disabled;
+  document.getElementById('simAckBtn').disabled = disabled;
+  document.getElementById('simClearBtn').disabled = disabled;
+  document.getElementById('simFastSlaBtn').disabled = disabled;
+}
+
+async function runFastSlaTest() {
+  setSimButtonsDisabled(true);
+  toast('⚡ เริ่มการทดสอบ SLA อัตโนมัติ (Fast SLA Test)', 'ok');
+  
+  // Step 1: Trigger bedside call
+  toast('🚨 Step 1: คนไข้กดปุ่มเรียกจากเตียง (ห้อง 400)...');
+  await triggerDemoCall('CALL_BEDSIDE');
+  
+  // Step 2: Acknowledge after 4 seconds
+  simTimeout1 = setTimeout(async () => {
+    toast('📞 Step 2: พยาบาลกดรับสาย (Acknowledge)...');
+    await acknowledgeDemoCall();
+    
+    // Step 3: Clear call after 5 seconds
+    simTimeout2 = setTimeout(async () => {
+      toast('✅ Step 3: แก้ไขเสร็จสิ้น พยาบาลล้างสาย (Clear)...');
+      await clearDemoCall();
+      toast('🏁 การทดสอบลูป SLA อัตโนมัติเสร็จสมบูรณ์', 'ok');
+      setSimButtonsDisabled(false);
+    }, 5000);
+  }, 4000);
+}
+
+document.getElementById('simBedsideBtn').addEventListener('click', () => triggerDemoCall('CALL_BEDSIDE'));
+document.getElementById('simBathroomBtn').addEventListener('click', () => triggerDemoCall('CALL_BATHROOM_EMERGENCY'));
+document.getElementById('simAckBtn').addEventListener('click', acknowledgeDemoCall);
+document.getElementById('simClearBtn').addEventListener('click', clearDemoCall);
+document.getElementById('simFastSlaBtn').addEventListener('click', runFastSlaTest);
 document.getElementById('searchInput').addEventListener('input', renderHistory);
 document.getElementById('statusFilter').addEventListener('change', renderHistory);
 document.getElementById('kpiView').addEventListener('change', () => {

@@ -398,7 +398,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <div class="header-clock" id="clock" aria-label="Clock">--:--:--</div>
     <button class="icon-btn" id="soundBtn" title="เสียงเตือน" aria-label="Toggle alarm sound">🔊</button>
     <button class="icon-btn" id="langBtn" title="ภาษา / Language" aria-label="Switch language">EN</button>
-    <button class="demo-test-btn" id="demoTestBtn" title="ทดสอบ DEMO — จำลองเรียกห้อง 0400 (ไม่นับ KPI)" aria-label="Trigger demo call">🧪 <span data-i18n-key="demoTest">DEMO</span></button>
+    <!-- demoTestBtn: ลบออกเพื่อความปลอดภัยของระบบจริง -->
     <button class="icon-btn" id="settingsBtn" title="การตั้งค่า" aria-label="Open settings" style="font-size:1.1rem">⚙️</button>
   </div>
 </header>
@@ -626,36 +626,19 @@ const t = (k, vars) => {
 const isFile = location.protocol === 'file:';
 const q = new URLSearchParams(location.search);
 
-// Detect mode from url parameter or utm parameters
-let detectedMode = q.get('mode'); // real | demo
-if (!detectedMode) {
-  const hasUtm = q.get('utm_source') === 'landing' || q.get('utm_medium') === 'cta' || q.get('utm_campaign') === 'snc_home';
-  detectedMode = hasUtm ? 'demo' : 'real';
-}
-
 let cfg = {
   apiKey: q.get('api_key') || q.get('key') || localStorage.getItem('snc_api_key') || '',
   host: localStorage.getItem('snc_backend_host') || '',
   sound: localStorage.getItem('snc_sound') !== '0',
-  sourceMode: detectedMode
+  sourceMode: 'real' // Force Production Mode for index.html
 };
 
 function updateModeIndicator() {
   const badge = document.getElementById('modeBadge');
-  const demoBtn = document.getElementById('demoTestBtn');
   if (badge) {
     badge.style.display = 'inline-flex';
-    if (cfg.sourceMode === 'demo') {
-      badge.className = 'mode-badge demo';
-      badge.textContent = t('modeDemo');
-    } else {
-      badge.className = 'mode-badge real';
-      badge.textContent = t('modeReal');
-    }
-  }
-  if (demoBtn) {
-    // Hide DEMO button in production mode to avoid user confusion
-    demoBtn.style.display = cfg.sourceMode === 'demo' ? 'inline-block' : 'none';
+    badge.className = 'mode-badge real';
+    badge.textContent = t('modeReal');
   }
 }
 
@@ -1372,31 +1355,6 @@ document.getElementById('soundBtn').addEventListener('click', () => {
 });
 document.getElementById('langBtn').addEventListener('click', () => setLang(LANG === 'th' ? 'en' : 'th'));
 document.getElementById('exportBtn').addEventListener('click', exportCsv);
-document.getElementById('demoTestBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('demoTestBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  toast(t('demoTestSending'));
-  try {
-    // ปุ่มทดสอบสาธารณะ (ไม่ต้อง key) — server บังคับ source=demo → ไม่นับ KPI ของจริง
-    const res = await fetch(apiUrl('/api/demo/trigger'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room_id: '0400', event_type: 'CALL_BEDSIDE' })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    toast(t('demoTestDone'), 'ok');
-    // เคลียร์การ์ด demo อัตโนมัติหลัง ~15 วิ (กันการ์ดค้างแดง) — KPI/History ไม่นับอยู่แล้ว
-    setTimeout(() => {
-      if (roomStates['0400']) { delete roomStates['0400']; renderRooms(); }
-      toast(t('demoTestReset'));
-    }, 15000);
-  } catch (e) {
-    toast(t('demoTestFail'), 'err');
-  } finally {
-    btn.disabled = false;
-  }
-});
 document.getElementById('searchInput').addEventListener('input', renderHistory);
 document.getElementById('statusFilter').addEventListener('change', renderHistory);
 document.getElementById('kpiView').addEventListener('change', () => {
