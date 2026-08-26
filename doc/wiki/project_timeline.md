@@ -850,6 +850,29 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   - กำหนดมาตรฐานความเข้ากันได้ของการแสดงผลอักขระไทยผ่าน Strict UTF-8 ในทุกสภาพแวดล้อม
 
 
+## [2026-08-26] ดำเนินการแยกโหมดสาธิต-ระบบจริงด้วยไฟล์อิสระ พร้อมแถบจำลองขั้นตอนจริงบนหน้าสาธิต (SNC Mode Isolation & Simulation Bar)
+
+**ผู้ดำเนินการ:** Senior Software Engineer (opencode — ox-alpha)
+
+**รายละเอียดการอัปเดต:**
+- **ยกระดับการแยกโหมดจาก URL Parameters สู่ไฟล์อิสระ (File-based Mode Isolation):**
+  - เลิกใช้การตรวจจับโหมดผ่าน UTM parameters (`?utm_source=landing` / `?mode=demo`) บน Dashboard เดิม แล้วเปลี่ยนเป็นแยกไฟล์หน้าจอโดยสมบูรณ์ — `app/demo.html` ประทับ `cfg.sourceMode = 'demo'` ถาวร ส่วน `app/index.html` ประทับ `cfg.sourceMode = 'real'` ถาวร ขจัดความเสี่ยงพยาบาลหน้างานเปิดเข้าโหมดสาธิตโดยไม่ตั้งใจ
+  - Badge สถานะแสดงถาวรข้างโลโก้แบรนด์: สีส้ม **[โหมดสาธิตจำลอง]** บน demo.html / สีเขียว **[ระบบจริง (Production)]** บน index.html
+  - ลบปุ่มจำลองเดิม `#demoTestBtn` และโค้ดสลับโหมดทั้งหมดออกจาก index.html เหลือหน้างานจริงที่สะอาด
+- **สร้างแถบจำลองขั้นตอนจริง (Simulation Bar) บน `app/demo.html`:**
+  - แถบ Sticky ด้านล่างสุดของจอ ปุ่มสีจัดตาม mockup 4 สี: 🔴 กด STA (CALL_BEDSIDE) / 🔴 ดึงสายห้องน้ำ (CALL_BATHROOM_EMERGENCY) / 🟠 พยาบาลยกหูรับสาย (Ack) / 🟢 พยาบาลกดล้างสาย (Clear) — ทุกปุ่มยิงเข้า `/api/demo/trigger` และ endpoint Ack/Clear ของห้อง 0400
+  - ปุ่ม 🟣 **Fast SLA Test**: รันลูปอัตโนมัติ Trigger ➔ หน่วง 4 วินาที ➔ Ack ➔ หน่วง 5 วินาที ➔ Clear พร้อม Toast แจ้งความคืบหน้าทีละขั้น และล็อกทั้งแถบระหว่างรันกันกดซ้ำ
+- **ปรับ Funnel การตลาด:** ลิงก์ Call to Action 3 จุดบน Landing Page (`app/landing.html`) และปุ่ม "ดู Dashboard ตัวอย่าง" บน `app/roi.html` เปลี่ยนจาก `index.html?utm_source=...` ไปชี้ `demo.html` ตรง — ผู้เยี่ยมชมเข้าถึงหน้าสาธิตที่มี Simulation Bar ทันทีโดยไม่แตะระบบจริง
+- **ผลการทดสอบ (Verification):**
+  - Syntax inline `<script>` ของทั้ง 2 ไฟล์ parse ผ่าน Node.js ไม่มี error
+  - Parser tests (`pbx/test_smdr_parser.py`) ผ่าน **28/28**
+  - Smoke test วงจร Fast SLA จริงบน backend: trigger (ไม่ใช้ Key) → 4s → ack (`ack_time_seconds` ถูกนับ) → 5s → clear (`resolution_time_seconds`, `sla_breached=false`) สถานะ `resolved` ครบ
+  - Isolation สมบูรณ์: `/api/events?source=demo` เห็นเฉพาะ demo / `?source=real` = 0 / KPI default นับเฉพาะ real — เหตุการณ์จำลองไม่บิดเบือนสถิติทางการแพทย์
+  - WebSocket broadcast แนบ `extension.source` ถูกต้อง — filter ใน `ws.onmessage` ของทั้ง 2 หน้าทำงานได้จริง
+- **เอกสาร:** ปรับปรุง `doc/raw/walkthrough.md` ฉบับใหม่สะท้อนสถาปัตยกรรม File-based Isolation พร้อมผลทดสอบครบถ้วน สอดคล้องคู่มือ [[SNC_DEVELOPMENT_WORKFLOW_GUIDE]]
+- **สถานะ**: ✅ แยกโหมดสาธิต-ระบบจริงสมบูรณ์ด้วยไฟล์อิสระ — Landing Page ชี้ Demo Page พร้อม Simulation Bar ใช้สาธิตลูกค้าได้ทันทีโดยไม่กระทบ SLA/KPI หน้างาน
+
+
 
 
 

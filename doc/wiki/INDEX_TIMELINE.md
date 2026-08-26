@@ -51,6 +51,11 @@ tags: [knowledge]
 ### 🔁 Production Hardening & Field Config (24–25 ส.ค. 2569)
 - **24–25 ส.ค.** — Dashboard Overhaul (History redesign + แยก Real/Demo + KPI Views + Status Strip), Deploy Infra Fixes (Dockerfile `core/`, deploy script env-safe), **AI บน Cloud ผ่าน OpenRouter**, เก็บกวาด DB ทดสอบ, ผังพอร์ตตู้ as-built → [[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]] · [[PBX_PORT_ROOM_MAPPING|Port→Room Map]]
 
+### 🎭 Mode Isolation & Simulation Bar (26 ส.ค. 2569)
+- **25–26 ส.ค.** — **Cloud Run Data Loss Incident** (rev ไร้ `SNC_DB_BACKEND` → event หายเมื่อ scale-to-zero) แก้รากปัญหา deploy script + code guard → [[SNC_CLOUDRUN_DATALOSS_INCIDENT_2026-08-25|Incident Report]]
+- **26 ส.ค.** — คู่มือ Workflow 5 ขั้น (สร้าง→จำลอง→ดู→Commit→Deploy) + Source Tagging `demo|real` → [[SNC_DEVELOPMENT_WORKFLOW_GUIDE|Workflow Guide]]
+- **26 ส.ค.** — **Mode Isolation ฉบับ File-based**: `app/demo.html` (Simulation Bar: STA/ห้องน้ำ/Ack/Clear + Fast SLA Test ลูปอัตโนมัติ) แยกจาก `index.html` (Production ถาวร), CTA Landing/ROI ชี้ `demo.html`, ผ่าน smoke test วงจร SLA + isolation + WS filter
+
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
