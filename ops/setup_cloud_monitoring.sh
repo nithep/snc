@@ -72,6 +72,15 @@ gcloud services enable monitoring.googleapis.com --project "$PROJECT_ID" >/dev/n
   || echo "  ⚠️ enable ล้มเหลว (อาจ enable แล้ว) — ดำเนินการต่อ"
 
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
+# รองรับทั้ง Linux (python3) และ Windows (python) — ใช้สำหรับ parse JSON จาก API
+# ต้องทดสอบจริง กัน Microsoft Store stub (python3.exe ปลอมที่ปริ้นต์ "Python was not found")
+PY=""
+for _cand in python3 python py; do
+  if command -v "$_cand" >/dev/null 2>&1 && "$_cand" -c 'import sys' >/dev/null 2>&1; then
+    PY="$_cand"; break
+  fi
+done
+[ -n "$PY" ] || PY="python"
 
 # ── [2] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager (source of truth) ─────
 echo "[2/6] ดึง MONITOR_WEBHOOK_TOKEN จาก Secret Manager..."
@@ -164,7 +173,7 @@ CHANNEL_JSON='{
 }'
 EXISTING="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/notificationChannels" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
-  --data-urlencode 'filter=user_labels.purpose="telegram-alert"' | python3 -c "
+  --data-urlencode 'filter=user_labels.purpose="telegram-alert"' | "$PY" -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -179,7 +188,7 @@ if [ -n "$EXISTING" ]; then
   # ── กัน stale-token: เทียบ token ใน URL ที่ channel ใช้อยู่กับ token ปัจจุบัน ──
   CUR_URL="$(curl -sS --connect-timeout 15 --max-time 40 \
     "$API/notificationChannels/$CHANNEL_ID" -H "Authorization: Bearer $ACCESS_TOKEN" \
-    2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("labels",{}).get("url",""))' 2>/dev/null || true)"
+    2>/dev/null | "$PY" -c 'import sys,json; print(json.load(sys.stdin).get("labels",{}).get("url",""))' 2>/dev/null || true)"
   CUR_TOKEN="$(printf '%s' "$CUR_URL" | sed -n 's/.*token=\([^&]*\).*/\1/p')"
   if [ "$CUR_TOKEN" != "$MONITOR_WEBHOOK_TOKEN" ]; then
     echo "  ⚠️ channel มี token เก่า (${CUR_TOKEN:0:8}... ≠ ${MONITOR_WEBHOOK_TOKEN:0:8}...) — PATCH URL ให้ตรง"
@@ -195,7 +204,7 @@ if [ -n "$EXISTING" ]; then
   fi
 else
   if _api POST "$API/notificationChannels" "$CHANNEL_JSON"; then
-    CHANNEL="$(printf '%s' "$_API_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["name"])' 2>/dev/null || true)"
+    CHANNEL="$(printf '%s' "$_API_BODY" | "$PY" -c 'import sys,json; print(json.load(sys.stdin)["name"])' 2>/dev/null || true)"
     [ -n "$CHANNEL" ] && echo "  ✅ channel ใหม่: $CHANNEL" \
       || { echo "  ❌ [4/6] HTTP $_API_CODE — parse channel name ล้มเหลว (body: $(printf '%s' "$_API_BODY" | head -c 300))" >&2; exit 1; }
   else
@@ -225,7 +234,7 @@ POLICY_JSON='{
 }'
 EXIST_POLICY="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/alertPolicies" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
-  --data-urlencode 'filter=display_name="'"$POLICY_NAME"'"' | python3 -c "
+  --data-urlencode 'filter=display_name="'"$POLICY_NAME"'"' | "$PY" -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -265,7 +274,7 @@ PI_POLICY_JSON='{
 }'
 EXIST_PI_POLICY="$(curl -sS -G --connect-timeout 15 --max-time 40 "$API/alertPolicies" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
-  --data-urlencode 'filter=display_name="'"$PI_POLICY_NAME"'"' | python3 -c "
+  --data-urlencode 'filter=display_name="'"$PI_POLICY_NAME"'"' | "$PY" -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
