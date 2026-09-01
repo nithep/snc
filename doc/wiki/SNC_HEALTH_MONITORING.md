@@ -1,19 +1,27 @@
 ---
-title: "🏥 SNC Health Monitoring — /health schema + Telegram เมนูตรวจระบบ"
+title: "🏥 SNC Health Monitoring — /health + การแจ้งเตือน 3 ชั้น (Pi4 · GCP · Telegram)"
 type: wiki
-tags: [snc, monitoring, health, telegram, alerting, systemd]
+tags: [snc, monitoring, health, telegram, alerting, systemd, cloud-run]
 updated: 2026-09-02
 ---
 
-# 🏥 SNC Health Monitoring — /health + เมนูตรวจระบบผ่าน Telegram
+# 🏥 SNC Health Monitoring — /health + การแจ้งเตือน 3 ชั้น
 
 > มาตรฐานใหม่ (commit `1755202`): ทุกข้อความตรวจสอบ/แจ้งเตือนต้องมี
 > **สถานะรวม + รายการตรวจราย service + สาเหตุ + เมนูถัดไป** — ห้ามมีข้อความกำกวม
 > แบบ `services: active, active` อีก
 
+เอกสารนี้บูรณาการ 2 เรื่องเข้าด้วยกัน:
+
+1. **Health Check** — `/health` schema + เมนูตรวจระบบผ่าน Telegram
+2. **การแจ้งเตือน (Alerting)** — เส้นทาง alert 3 ชั้น: Pi4 local, GCP Cloud Monitoring,
+   และ Telegram — พร้อม template/dedupe/recovery มาตรฐานเดียวกัน
+
 ---
 
-## 1. `/health` Response Schema
+# ส่วนที่ 1 — Health Check
+
+## 1.1 `/health` Response Schema
 
 `GET /health` คืนผลตรวจราย service เสมอ:
 
@@ -54,9 +62,7 @@ updated: 2026-09-02
 > ⚠️ `skipped` **ไม่ใช่ failure** — ออกแบบเพื่อกัน false alarm: uptime check ของ GCP
 > และ `deploy-snc-one-shot.sh` (grep `"status":"healthy"`) ต้องได้ `healthy` บน Cloud Run เสมอ
 
----
-
-## 2. เมนูคำสั่ง Telegram (@snc2569_bot)
+## 1.2 เมนูคำสั่ง Telegram (@snc2569_bot)
 
 | คำสั่ง | หน้าที่ |
 |---|---|
@@ -89,11 +95,74 @@ updated: 2026-09-02
 
 กรณี backend ล่ม ข้อความเป็น `DOWN` + สาเหตุ (HTML-escaped) + แนะนำ `/logs` `/cloudrun`
 
+## 1.3 หมายเหตุ: Cloudflare WAF บล็อก python-urllib
+
+- `https://snc.nithep.com` **บล็อก UA `Python-urllib*` ด้วย 403** (WAF bot rule)
+- `snc_telegram_agent.py` จึงตั้ง `User-Agent: SNC-Telegram-Agent/1.0` ทุก request
+- Production บน Pi ใช้ `http://localhost:8000` อยู่แล้ว — ไม่กระทบ
+- สคริปต์ Python ตัวใหม่ที่ยิงเข้า tunnel ตรง ๆ ต้องตั้ง UA เองด้วย
+
 ---
 
-## 3. Template Alert (ops/alerting.py)
+# ส่วนที่ 2 — การแจ้งเตือน (Alerting Architecture)
 
-ทุก alert มี 4 ส่วนตามที่ผู้ดูแลร่วมกันตกลง:
+## 2.1 ภาพรวมเส้นทาง alert 3 ชั้น
+
+```mermaid
+flowchart LR
+    subgraph Pi4["🖥️ Pi4 (Edge) — local monitor"]
+        CR1[cron: verify-daily.sh] --> HC[/health ตรวจเอง/]
+        CR2[cron: ws-tunnel-cron.sh] --> TC[tunnel/WS check]
+    end
+    subgraph GCP["☁️ GCP Cloud Monitoring"]
+        UP1[uptime check: Cloud Run /health ทุก 300s]
+        UP2[uptime check: Pi tunnel /health ทุก 300s]
+        AP[alert policy: fail 120s → OPEN]
+    end
+    subgraph TG["📣 Telegram @snc2569_bot"]
+        MSG[ข้อความมาตรฐาน 4 ส่วน + เมนู]
+    end
+    HC -->|"notify-telegram.sh"| MSG
+    TC -->|"alerting.py + ledger"| MSG
+    UP1 -->|webhook| BR[snc-alert-bridge<br/>(Cloud Run แยก service)]
+    UP2 -->|webhook| BR
+    BR --> MSG
+```
+
+จุดประสงค์ของการมี 2 แหล่งตรวจ (Pi เอง + GCP):
+
+- **Pi local**: ตรวจสิ่งที่ตัวเองเห็น — service, PBX, tunnel client
+- **GCP uptime**: ตรวจจับกรณี **Pi แจ้งเองไม่ได้** — ไฟดับ / เน็ตหลุด / ตู้ล่ม
+  (`snc-pi-tunnel-health` ตรวจ `snc.nithep.com/health` จากภายนอก)
+
+## 2.2 องค์ประกอบแต่ละชั้น
+
+### ชั้นที่ 1: Pi4 local monitoring
+
+| ส่วน | ไฟล์ | บทบาท |
+|---|---|---|
+| ตรวจรายวัน | `ops/verify-daily.sh` (cron) | health + service + key |
+| ตรวจ tunnel/WS | `ops/ws-tunnel-cron.sh` (cron) | WS ผ่าน tunnel, ตาย 2 ครั้งติด → alert |
+| ส่ง Telegram | `ops/notify-telegram.sh` | ส่งข้อความดิบ (ใช้กับข้อความง่าย ๆ) |
+| ส่ง + บันทึก ledger | `ops/alerting.py` | **ทางหลัก** — template มาตรฐาน + รหัสอ้างอิง |
+| ตอบคำถาม | `ops/snc_telegram_agent.py` | คำสั่ง `/health` `/logs` ฯลฯ (pull) |
+
+### ชั้นที่ 2: GCP Cloud Monitoring
+
+| ส่วน | ไฟล์ | บทบาท |
+|---|---|---|
+| ตั้งค่าทั้งหมด | `ops/setup_cloud_monitoring.sh` | uptime check ×2 + alert policy ×2 + webhook |
+| รับ webhook | `api/bridge_server.py` (Cloud Run `snc-alert-bridge`) | แปล incident → Telegram |
+| Deploy bridge | `ops/deploy_bridge_cloudshell.sh` | แยก service — alert ถึงแม้ backend หลัก down |
+
+### ชั้นที่ 3: Telegram
+
+- **alert (fail)**: template "สถานะ + รายการตรวจ + สาเหตุ + เมนูถัดไป"
+- **recovery (กลับมาปกติ)**: template "ระบบกลับมาปกติแล้ว" แยกชัดเจน (ดู 2.4)
+
+## 2.3 Template มาตรฐาน (ใช้ร่วมทุกแหล่ง)
+
+ทุก alert มี 4 ส่วนเหมือนกัน ต่างแค่เนื้อหา — `ops/alerting.py` เป็นจุดกลาง:
 
 ```text
 🚨 ระบบ SNC พบความผิดปกติ
@@ -115,25 +184,68 @@ curl https://snc-cloud-backend-...run.app/health
 📋 ขั้นตอนกู้คืน: (ตาม type: POWER/TUNNEL/BACKEND/CLOUD)
 ```
 
-ทดสอบ template โดยไม่ส่งจริง:
+- ทุก alert มีรหัสอ้างอิง `SNC-AL-<TYPE>-<YYYYMMDD>-<HHMMSS>` และเขียนลง ledger
+  `logs/alerts.log` — ค้นย้อนได้ด้วย `/alerts <คำค้น>` ใน Telegram
+- ทดสอบ template โดยไม่ส่งจริง:
 
 ```bash
 python3 ops/alerting.py --dry-run --severity CRITICAL --type CLOUD \
   --summary "ทดสอบ" --details "..." --verify "..."
 ```
 
+## 2.4 Recovery Message (แยกจาก alert)
+
+เมื่อระบบกลับมา healthy ให้ส่งข้อความ recovery แยกเป็นอีกประเภท — แนะนำ type
+`RECOVERY` + severity `INFO`:
+
+```text
+💚 ระบบ SNC กลับมาปกติแล้ว
+
+สถานะรวม: HEALTHY
+เวลา: 2026-09-02 02:10:00
+รหัส: SNC-AL-RECOVERY-20260902-021000
+
+กู้คืนจาก:
+SNC-AL-CLOUD-20260902-010947 (Cloud Run uptime check /health failed)
+
+ระยะเวลาผิดปกติ: ~60 นาที
+
+เมนูถัดไป: /health | /status
+```
+
+วิธีทำงานจริง: cron ตรวจซ้ำ (เช่น `verify-daily.sh` หรือ ws-tunnel-cron) เมื่อเจอ
+healthy หลังเคยส่ง alert → เรียก `alerting.py --severity INFO --type RECOVERY`
+พร้อมอ้างรหัส alert เดิม (ledger เก็บรหัสไว้ค้นได้)
+
+## 2.5 Dedupe — กัน alert ซ้ำจากหลายแหล่ง
+
+กรณี cron บน Pi และ GCP uptime เจอปัญหาเดียวกันพร้อมกัน อาจได้ alert ซ้ำ 2 ฉบับ
+แนวทางกันซ้ำ (key = `service + status + time bucket`):
+
+1. ก่อนส่ง ตรวจ ledger (`list_alerts`) ว่ามี alert **type เดียวกัน** ใน bucket เวลา
+   (เช่น 10 นาทีล่าสุด) อยู่แล้วหรือไม่
+2. ถ้ามี → ข้ามส่ง (บันทึก ledger `sent: false` + หมายเหตุ dedupe)
+3. alert ที่ซ้ำกันจะมีรหัสต่างกันแต่ summary เดียวกัน — ผู้ดูแลดู ledger รวมได้ฉบับเดียว
+
+> สถานะปัจจุบัน: ยังไม่ได้ implement อัตโนมัติ — ครั้งแรกที่พบ alert ซ้ำ
+> ให้เพิ่ม helper ใน `alerting.py` (เช่น `should_send(type, bucket_minutes)`)
+
+## 2.6 สรุปการไหลเมื่อเกิดเหตุ
+
+```text
+เกิดเหตุ (เช่น Cloud Run down)
+    ├─ GCP uptime ตรวจไม่ผ่าน 120s → policy OPEN → webhook → bridge → 📣 Telegram
+    └─ (ถ้า Pi ยังรัน) cron ตรวจเจอ → alerting.py → ledger + 📣 Telegram (dedupe ข้าม)
+ผู้ดูแลกด /health → เห็นรายการตรวจราย service + สาเหตุ
+ผู้ดูแลกด /logs หรือ /cloudrun → รายละเอียดเพิ่ม
+ระบบกลับมาปกติ → RECOVERY message อ้างรหัส alert เดิม
+```
+
 ---
 
-## 4. หมายเหตุ: Cloudflare WAF บล็อก python-urllib
+# ภาคผนวก
 
-- `https://snc.nithep.com` **บล็อก UA `Python-urllib*` ด้วย 403** (WAF bot rule)
-- `snc_telegram_agent.py` จึงตั้ง `User-Agent: SNC-Telegram-Agent/1.0` ทุก request
-- Production บน Pi ใช้ `http://localhost:8000` อยู่แล้ว — ไม่กระทบ
-- สคริปต์ Python ตัวใหม่ที่ยิงเข้า tunnel ตรง ๆ ต้องตั้ง UA เองด้วย
-
----
-
-## 5. การทดสอบ
+## A. การทดสอบ
 
 ```bash
 # unit tests (ไม่ต้องมี pytest)
@@ -144,14 +256,22 @@ python -m unittest tests.test_health_monitoring -v
 ฟอร์แมตข้อความ agent (ห้าม `active, active`), HTML-escape, graceful `/logs`,
 template alert 4 ส่วน
 
----
-
-## 6. ไฟล์ที่เกี่ยวข้อง
+## B. ไฟล์ที่เกี่ยวข้องทั้งหมด
 
 | ไฟล์ | บทบาท |
 |---|---|
 | `api/server.py` | `/health` + `_systemd_service_status()` |
 | `ops/snc_telegram_agent.py` | คำสั่ง/เมนู Telegram + `SNC-Telegram-Agent/1.0` UA |
 | `ops/alerting.py` | template alert + ledger `logs/alerts.log` |
-| `ops/setup_cloud_monitoring.sh` | uptime check → webhook → bridge → Telegram |
+| `ops/notify-telegram.sh` | ส่ง Telegram แบบเรียบง่าย (shell) |
+| `ops/verify-daily.sh` | cron ตรวจรายวันฝั่ง Pi |
+| `ops/ws-tunnel-cron.sh` | cron ตรวจ WS/tunnel ฝั่ง Pi |
+| `api/bridge_server.py` | webhook bridge (Cloud Run แยก service) |
+| `ops/setup_cloud_monitoring.sh` | ตั้งค่า uptime check + policy + webhook |
 | `tests/test_health_monitoring.py` | unit tests |
+
+## C. เอกสารที่เกี่ยวข้อง
+
+- [[SNC_TELEGRAM_ALERTS]] — คู่มือ Telegram bot + การ rotate token
+- [[SNC_CLOUDFLARE_TUNNEL_SUMMARY]] — tunnel + WS heartbeat
+- [[SNC_API_KEY_ROTATION_GUIDE]] — key ที่ใช้ใน alert chain
