@@ -10,14 +10,18 @@ tags: [email, smtp, alerts, security]
 
 ฟอร์ม `ติดต่อทีมงาน SNC` ที่ `snc.nithep.com` จะบันทึกข้อความลงระบบและส่งอีเมลแจ้งเตือนผ่าน SMTP เมื่อกำหนดตัวแปรต่อไปนี้ใน environment ของ backend:
 
+ตัวอย่างสำหรับโดเมน `nithep.com` และ mailbox `admin@nithep.com`:
+
 ```text
-SNC_SMTP_HOST=smtp.example.com
+SNC_SMTP_HOST=<SMTP host ของผู้ให้บริการ nithep.com>
 SNC_SMTP_PORT=587
-SNC_SMTP_USERNAME=alerts@example.com
-SNC_SMTP_PASSWORD=<smtp-password>
-SNC_SMTP_FROM=alerts@example.com
-SNC_CONTACT_EMAIL=team@example.com
+SNC_SMTP_USERNAME=admin@nithep.com
+SNC_SMTP_PASSWORD=<smtp-password-or-app-password>
+SNC_SMTP_FROM=admin@nithep.com
+SNC_CONTACT_EMAIL=admin@nithep.com
 ```
+
+> ต้องใช้ SMTP host จริงของผู้ให้บริการอีเมลสำหรับ `nithep.com` เช่น host ที่ผู้ให้บริการระบุใน control panel ห้ามเดา host เพราะอาจทำให้ TLS หรือ authentication ล้มเหลว
 
 ใช้ SMTP submission แบบ STARTTLS บนพอร์ต 587 โดยห้ามนำ password ใส่ใน source code, Git หรือเอกสารที่ commit
 
@@ -32,7 +36,7 @@ gcloud run services update snc-cloud-backend \
   --project hotel-ecs-nithep \
   --region asia-southeast1 \
   --update-env-vars \
-SNC_SMTP_HOST=smtp.example.com,SNC_SMTP_PORT=587,SNC_SMTP_USERNAME=alerts@example.com,SNC_SMTP_FROM=alerts@example.com,SNC_CONTACT_EMAIL=team@example.com \
+SNC_SMTP_HOST=<SMTP_HOST>,SNC_SMTP_PORT=587,SNC_SMTP_USERNAME=admin@nithep.com,SNC_SMTP_FROM=admin@nithep.com,SNC_CONTACT_EMAIL=admin@nithep.com \
   --update-secrets SNC_SMTP_PASSWORD=snc-smtp-password:latest
 ```
 
