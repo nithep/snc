@@ -190,7 +190,8 @@ class RecoveryAndDedupeTest(unittest.TestCase):
 
     def tearDown(self):
         self.alerting.LEDGER = self._old_ledger
-        os.unlink(self.tmp_ledger)
+        if os.path.exists(self.tmp_ledger):
+            os.unlink(self.tmp_ledger)
 
     def _ts(self, minutes_ago: int) -> str:
         ts = datetime.datetime.now() - datetime.timedelta(minutes=minutes_ago)
@@ -252,6 +253,30 @@ class RecoveryAndDedupeTest(unittest.TestCase):
         self.assertEqual(len(entries), 2)
         self.assertFalse(entries[0]["deduped"])
         self.assertTrue(entries[1]["deduped"])
+
+    def test_review_counts_and_downtime(self):
+        now = datetime.datetime.now()
+        def ts(min_ago):
+            return (now - datetime.timedelta(minutes=min_ago)).strftime("%Y-%m-%d %H:%M:%S")
+        self._write({"code": "SNC-AL-CLOUD-1", "type": "CLOUD", "ts": ts(60),
+                     "sent": True, "deduped": False})
+        self._write({"code": "SNC-AL-CLOUD-2", "type": "CLOUD", "ts": ts(30),
+                     "sent": False, "deduped": True})
+        self._write({"code": "SNC-AL-RECOVERY-1", "type": "RECOVERY", "ts": ts(10),
+                     "recovered_type": "CLOUD", "downtime": "~50 นาที", "sent": True})
+        self._write({"code": "SNC-AL-OLD", "type": "CLOUD",
+                     "ts": ts(60 * 72), "sent": True})  # เก่าเกิน 24 ชม. — ไม่นับ
+        text = self.alerting.review(24)
+        self.assertIn("Alerts: 2", text)
+        self.assertIn("ส่งจริง 1", text)
+        self.assertIn("dedupe ข้าม 1", text)
+        self.assertIn("CLOUD: 2", text)
+        self.assertIn("Recovery: 1", text)
+        self.assertIn("~50 นาที", text)
+
+    def test_review_empty_ledger(self):
+        os.unlink(self.tmp_ledger)   # mkstemp สร้างไฟล์ว่างไว้ — ลบเพื่อทดสอบกรณีไม่มีไฟล์
+        self.assertIn("ยังไม่มี ledger", self.alerting.review(24))
 
     def test_send_recovery_logs_ledger(self):
         with mock.patch.object(self.alerting, "send_telegram",

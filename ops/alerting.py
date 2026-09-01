@@ -267,6 +267,57 @@ def pending_incidents() -> dict:
     }
 
 
+def review(hours: int = 24) -> str:
+    """สรุปปริมาณ alert/recovery/dedupe ย้อนหลัง N ชัม. — ใช้ทบทวน false alarm"""
+    if not os.path.isfile(LEDGER):
+        return f"📊 Alert Review: ยังไม่มี ledger ({LEDGER})"
+    since = datetime.datetime.now() - datetime.timedelta(hours=hours)
+    by_type = {}
+    sent = deduped = recoveries = 0
+    downtime_mins = []
+    try:
+        with open(LEDGER, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                    ts = datetime.datetime.strptime(e.get("ts", ""), "%Y-%m-%d %H:%M:%S")
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if ts < since:
+                    continue
+                atype = (e.get("type") or "").upper()
+                if atype == "RECOVERY":
+                    recoveries += 1
+                    dt = str(e.get("downtime", ""))
+                    if dt:
+                        try:
+                            downtime_mins.append(int("".join(ch for ch in dt if ch.isdigit()) or 0))
+                        except ValueError:
+                            pass
+                    continue
+                by_type[atype] = by_type.get(atype, 0) + 1
+                if e.get("deduped"):
+                    deduped += 1
+                elif e.get("sent"):
+                    sent += 1
+    except OSError:
+        return "📊 Alert Review: อ่าน ledger ไม่ได้"
+
+    since_str = since.strftime("%Y-%m-%d %H:%M")
+    lines = [f"📊 Alert Review (ล่าสุด {hours} ชม. — ตั้งแต่ {since_str})"]
+    total = sum(by_type.values())
+    lines.append(f"Alerts: {total} (ส่งจริง {sent}, dedupe ข้าม {deduped})")
+    if by_type:
+        lines.append("  " + " | ".join(f"{t}: {n}" for t, n in sorted(by_type.items())))
+    lines.append(f"Recovery: {recoveries}"
+                 + (f" (เฉลี่ยกู้ตัว ~{sum(downtime_mins) // len(downtime_mins)} นาที)"
+                    if downtime_mins else ""))
+    return "\n".join(lines)
+
+
 def check_auto_recovery(health_url: str) -> int:
     """cron helper: ถ้า /health กลับมา healthy แต่มี incident ค้าง → ส่ง RECOVERY
     คืนจำนวน recovery ที่ส่ง (cron-safe: exit 0 เสมอ)"""
@@ -382,9 +433,14 @@ def cli():
     p.add_argument("--downtime", default="", help="ระยะเวลาผิดปกติ เช่น '~45 นาที' (ใช้กับ --recovery-from)")
     p.add_argument("--recovery-auto", action="store_true",
                    help="cron helper: ถ้า /health healthy และมี incident ค้างใน ledger → ส่ง RECOVERY อัตโนมัติ")
+    p.add_argument("--review", nargs="?", type=int, const=24, default=None, metavar="HOURS",
+                   help="สรุปปริมาณ alert/recovery/dedupe ย้อนหลัง N ชัม. (default 24)")
     p.add_argument("--health-url", default="http://localhost:8000/health",
                    help="URL ตรวจสุขภาพสำหรับ --recovery-auto")
     args = p.parse_args()
+    if args.review is not None:
+        print(review(args.review))
+        return 0
     if args.recovery_auto:
         sent = check_auto_recovery(args.health_url)
         print(f"[alerting] recovery-auto: ส่ง {sent} ข้อความ")
