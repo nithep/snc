@@ -14,6 +14,7 @@
 #   env บังคับ: SNC_API_KEY
 #   env เลือกได้ (เพื่อแจ้งเตือน + SNC-Bot บน Cloud Run):
 #     GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+#   หากไม่ export secret เหล่านี้ สคริปต์จะพยายามอ่านจาก Secret Manager โดยตรง
 # อ้างอิง: doc/BLUEPRINT_5CORE.md, doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md,
 #         doc/wiki/GEMINI_API_KEY_ROTATION_GUIDE.md
 # ============================================================================
@@ -143,16 +144,23 @@ GEMINI_SECRET_FLAG=""
 if [ -n "${GEMINI_API_KEY:-}" ]; then
   GEMINI_SECRET_FLAG="--update-secrets GEMINI_API_KEY=snc-gemini-api-key:latest"
   echo "✅ GEMINI_API_KEY พร้อม (len ${#GEMINI_API_KEY}) — SNC-Bot จะตอบอัตโนมัติได้"
+elif gcloud secrets describe snc-gemini-api-key --project "$PROJECT_ID" >/dev/null 2>&1; then
+  GEMINI_SECRET_FLAG="--update-secrets GEMINI_API_KEY=snc-gemini-api-key:latest"
+  echo "✅ ใช้ GEMINI_API_KEY จาก Secret Manager — SNC-Bot จะตอบอัตโนมัติได้"
 else
-  echo "  ⚠️ ไม่พบ GEMINI_API_KEY — SNC-Bot บน Cloud Run จะตอบแบบสอบถามเท่านั้น"
+  echo "  ⚠️ ไม่พบ GEMINI_API_KEY และ secret snc-gemini-api-key — SNC-Bot จะตอบ fallback"
 fi
 TELEGRAM_SECRET_FLAG=""
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
   EXTRA_ENV="$EXTRA_ENV,TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID"
   TELEGRAM_SECRET_FLAG="--update-secrets TELEGRAM_BOT_TOKEN=snc-telegram-bot-token:latest"
   echo "✅ TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID พร้อม — ฟอร์มติดต่อจะแจ้งเตือนได้"
+elif gcloud secrets describe snc-telegram-bot-token --project "$PROJECT_ID" >/dev/null 2>&1; then
+  EXTRA_ENV="$EXTRA_ENV,TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-7346817215}"
+  TELEGRAM_SECRET_FLAG="--update-secrets TELEGRAM_BOT_TOKEN=snc-telegram-bot-token:latest"
+  echo "✅ ใช้ TELEGRAM_BOT_TOKEN จาก Secret Manager — ฟอร์มติดต่อจะแจ้งเตือนได้"
 else
-  echo "  ⚠️ ไม่พบ TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID — ฟอร์มติดต่อจะบันทึกได้แต่ไม่แจ้งเตือน"
+  echo "  ⚠️ ไม่พบ TELEGRAM_BOT_TOKEN และ secret snc-telegram-bot-token — ฟอร์มติดต่อจะบันทึกได้แต่ไม่แจ้งเตือน"
 fi
 
 # ── deploy + set env ──────────────────────────────────────────────────────
@@ -208,11 +216,12 @@ fi
 TRIG=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
   -X POST "$SERVICE_URL/api/events/trigger" \
   -H "Content-Type: application/json" -H "X-API-Key: $SNC_API_KEY" \
-  -d '{"room_id":"0999","event_type":"CALL_BEDSIDE"}')
+  -d "{\"room_id\":\"0999\",\"event_type\":\"CALL_BEDSIDE\",\"event_id\":\"deploy-verify-$(date +%s%N 2>/dev/null || date +%s)\"}")
 if [ "$TRIG" = "200" ]; then
   echo "  ✅ Firestore: เขียน event → HTTP 200"
 else
-  echo "  ❌ Firestore: เขียน event → HTTP $TRIG (ตรวจ SNC_DB_BACKEND + IAM datastore.user)" >&2
+  echo "  ❌ Firestore: เขียน event → HTTP $TRIG (ตรวจ SNC_API_KEY/Secret Manager และ IAM datastore.user)" >&2
+  echo "     Key ที่ใช้ verify ต้องเป็นค่าเดียวกับ Secret Manager: snc-api-key:latest" >&2
   exit 1
 fi
 KPI=$(curl -s --max-time 15 -H "X-API-Key: $SNC_API_KEY" "$SERVICE_URL/api/analytics/kpi" || true)
