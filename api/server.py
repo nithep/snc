@@ -688,7 +688,8 @@ def _systemd_service_status(service_name: str):
             check=False,
         )
     except FileNotFoundError:
-        return "unknown", "ไม่มี systemd (สภาพแวดล้อม dev/Windows)"
+        # ไม่ใช่ failure — Cloud Run/Windows ไม่มี systemd (PBX Listener รันที่ Pi เท่านั้น)
+        return "skipped", "ไม่มี systemd — PBX Listener รันที่ Edge Pi เท่านั้น"
     except (OSError, subprocess.TimeoutExpired) as exc:
         return "unknown", f"ตรวจสอบ systemd ไม่ได้ ({type(exc).__name__})"
 
@@ -714,6 +715,7 @@ def health_check():
         "websocket": {"status": "healthy", "message": "พร้อมรับการเชื่อมต่อ"},
         "cloud_run": {"status": "ready", "message": "พร้อมให้บริการ"},
     }
+    # skipped (ไม่มี systemd) ไม่นับเป็นปัญหา — สถานะ down/degraded/unknown เท่านั้นที่กระทบสถานะรวม
     failed = [name for name, check in checks.items() if check["status"] in {"down", "failed"}]
     degraded = [name for name, check in checks.items() if check["status"] in {"degraded", "unknown"}]
     overall = "down" if failed else ("degraded" if degraded else "healthy")
