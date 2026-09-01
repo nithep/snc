@@ -125,20 +125,24 @@ def make_code(alert_type: str, now=None) -> str:
 
 def format_alert(severity: str, code: str, summary: str,
                  details: str = "", verify: str = "") -> str:
-    """ฟอร์แมตมาตรฐาน — ทุก alert เหมือนกัน ต่างแค่เนื้อหา"""
+    """Format every alert as status, checks/cause, and next menu."""
     sev = severity.upper()
     icon = SEVERITY_ICON.get(sev, "🔔")
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
-        f"{icon} <b>[{sev}] {summary}</b>",
-        "━━━━━━━━━━━━━━━━",
-        f"รหัส: <code>{code}</code>",
+        f"{icon} <b>ระบบ SNC พบความผิดปกติ</b>",
+        f"สถานะรวม: <b>{sev}</b>",
         f"เวลา: {now}",
+        f"รหัส: <code>{code}</code>",
+        "",
+        "รายการตรวจสอบ:",
+        f"❌ Service ที่เกี่ยวข้อง: {summary}",
     ]
     if details:
-        lines.append(f"รายละเอียด: {details}")
+        lines.append(f"\nสาเหตุที่ตรวจพบ:\n{details}")
     if verify:
-        lines.append(f"ตรวจสอบ: {verify}")
+        lines.append(f"\nหลักฐาน/วิธีตรวจสอบ:\n{verify}")
+    lines.append("\nเมนูถัดไป: /health | /cloudrun | /logs | /uptime")
     return "\n".join(lines)
 
 

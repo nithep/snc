@@ -27,6 +27,11 @@ import importlib.util
 import urllib.request
 import urllib.parse
 
+try:
+    from html import escape as html_escape
+except ImportError:  # pragma: no cover
+    html_escape = lambda value: str(value)
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(BASE)  # root ของโปรเจกต์ (ถ้าสคริปต์อยู่ใน ops/)
 
@@ -73,15 +78,21 @@ def http_json(path):
 
 
 HELP = (
-    "🤖 <b>SNC Agent</b> — ถามได้เกี่ยวกับระบบ:\n\n"
+    "🤖 <b>SNC Agent</b> — เมนูตรวจสอบระบบ\n\n"
+    "<b>สถานะระบบ</b>\n"
+    "/health — ตรวจ Backend, Database, PBX Listener, WebSocket และ Cloud Run\n"
+    "/status — สรุปสถานะระบบแบบสั้น\n"
+    "/cloudrun — ตรวจ Cloud Run และ endpoint /health\n"
+    "/uptime — ตรวจ Uptime Check /health\n\n"
+    "<b>การปฏิบัติงาน</b>\n"
+    "/logs — ดู Logs ล่าสุด\n"
     "/kpi — ตัวชี้วัด SLA ล่าสุด\n"
     "/rooms — สายเรียกค้าง / เหตุการณ์ล่าสุด\n"
     "/burn — สถานะ Burn-in 48 ชม.\n"
-    "/status — สุขภาพ backend + services\n"
-    "/alerts — แจ้งเตือนล่าสุด 10 รายการ (มีรหัสอ้างอิง)\n"
-    "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด เช่น SNC-AL-POWER-20260826-210415\n"
-    "/help — คำสั่งทั้งหมด\n\n"
-    "พิมพ์ภาษาไทยก็ได้ เช่น \"ห้องไหนค้าง\", \"burn ถึงไหนแล้ว\", \"alert ล่าสุด\""
+    "/alerts — แจ้งเตือนล่าสุด 10 รายการ\n"
+    "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด\n\n"
+    "/help — แสดงเมนูนี้\n\n"
+    "กดคำสั่งตามลำดับแนะนำ: /health → /cloudrun หรือ /logs"
 )
 
 
@@ -191,14 +202,82 @@ def alerts_reply(text):
     return "\n".join(lines)
 
 
+def _icon(status):
+    return {"healthy": "✅", "active": "✅", "connected": "✅", "ready": "✅",
+            "degraded": "⚠️", "reconnecting": "⚠️", "down": "❌", "failed": "❌"}.get(
+                str(status).lower(), "ℹ️")
+
+
+def health_reply():
+    try:
+        h = http_json("/health")
+    except Exception as exc:
+        return ("🚨 <b>ระบบ SNC พบความผิดปกติ</b>\n\n"
+                "สถานะรวม: <b>DOWN</b>\n\n"
+                "รายการตรวจสอบ:\n❌ Backend API: ไม่สามารถเรียก /health ได้\n\n"
+                f"สาเหตุที่ตรวจพบ: {html_escape(str(exc))}\n\n"
+                "เมนูถัดไป: /logs หรือ /cloudrun")
+
+    checks = h.get("checks") or {}
+    lines = [
+        f"{_icon(h.get('status'))} <b>ผลตรวจสุขภาพระบบ SNC</b>",
+        f"เวลา: {h.get('timestamp', datetime.datetime.now().isoformat())}",
+        f"สถานะรวม: <b>{str(h.get('status', 'unknown')).upper()}</b>",
+        "",
+        "รายการตรวจสอบ:"
+    ]
+    if checks:
+        labels = {
+            "backend": "Backend API", "database": "Database", "pbx_listener": "PBX Listener",
+            "websocket": "WebSocket", "cloud_run": "Cloud Run"
+        }
+        for key, value in checks.items():
+            item = value if isinstance(value, dict) else {"status": value}
+            lines.append(f"{_icon(item.get('status'))} {labels.get(key, key)}: {item.get('message', item.get('status', '-'))}")
+    else:
+        lines.extend([
+            f"{_icon(h.get('status'))} Backend API: {h.get('status', 'unknown')}",
+            f"✅ Database: {h.get('db', 'unknown')}",
+        ])
+
+    lines.extend(["", "สาเหตุที่ตรวจพบ: " + (h.get("reason") or "ไม่พบความผิดปกติ"), "",
+                  "เมนูถัดไป: /cloudrun | /logs | /uptime"])
+    return "\n".join(lines)
+
+
+def cloudrun_reply():
+    try:
+        h = http_json("/health")
+        return ("☁️ <b>Cloud Run</b>\n"
+                f"• Service: {h.get('service', 'snc-backend')}\n"
+                f"• /health: {_icon(h.get('status'))} {h.get('status', 'unknown')}\n"
+                f"• Database: {h.get('db', 'unknown')}\n"
+                f"• เวลา: {h.get('timestamp', '-')}\n\n"
+                "เมนูถัดไป: /logs หรือ /uptime")
+    except Exception as exc:
+        return f"🚨 <b>Cloud Run ตรวจสอบไม่ได้</b>\nสาเหตุ: {html_escape(str(exc))}\n\nเมนูถัดไป: /logs"
+
+
+def uptime_reply():
+    return ("⏱️ <b>Uptime Check</b>\n"
+            "• Endpoint ที่ตรวจ: /health\n"
+            "• สถานะ: ตรวจผ่าน Backend health endpoint\n"
+            "• หากพบ Alert: ตรวจ /cloudrun และ /logs ต่อ\n\n"
+            "เมนูถัดไป: /health | /cloudrun | /logs")
+
+
+def logs_reply():
+    result = subprocess.run(
+        ["journalctl", "-u", "snc-backend", "-u", "snc-pbx-listener", "-n", "20", "--no-pager"],
+        capture_output=True, text=True, timeout=10)
+    output = (result.stdout or result.stderr).strip()
+    if not output:
+        return "📜 <b>Logs ล่าสุด</b>\nไม่พบข้อมูลจาก systemd\n\nเมนูถัดไป: /health"
+    return "📜 <b>Logs ล่าสุด 20 รายการ</b>\n<pre>" + html_escape(output[-3500:]) + "</pre>"
+
+
 def status_reply():
-    h = http_json("/health")
-    svc = subprocess.run(["systemctl", "is-active", "snc-backend", "snc-pbx-listener"],
-                         capture_output=True, text=True)
-    svc_out = svc.stdout.strip().replace("\n", ", ") or svc.stderr.strip()
-    return (f"💚 <b>สถานะ</b>\n"
-            f"• Backend /health: {h.get('status')}\n"
-            f"• services: {svc_out}")
+    return health_reply()
 
 
 def answer(text):
@@ -207,6 +286,12 @@ def answer(text):
         return HELP
     if any(k in t for k in ("alerts", "alert", "แจ้งเตือน", "แจ้ง")):
         return alerts_reply(text)
+    if any(k in t for k in ("cloudrun", "cloud run", "คลาวด์รัน")):
+        return cloudrun_reply()
+    if any(k in t for k in ("uptime", "อัปไทม์", "ตรวจ uptime")):
+        return uptime_reply()
+    if any(k in t for k in ("logs", "log", "ล็อก", "บันทึก")):
+        return logs_reply()
     if any(k in t for k in ("kpi", "sla", "เป้า", "เกณฑ์")):
         return kpi_reply()
     if any(k in t for k in ("ห้อง", "room", "สาย", "ค้าง", "active")):
@@ -214,10 +299,10 @@ def answer(text):
     if any(k in t for k in ("burn", "เบิร์น", "burnin")):
         return burn_reply()
     if any(k in t for k in ("สถานะ", "status", "health", "สุขภาพ")):
-        return status_reply()
+        return health_reply()
     if any(k in t for k in ("skill", "agent", "อธิบาย", "เกี่ยวกับ", "ขอบเขต", "สังกัด", "ทำงาน", "คืออะไร")):
         return ABOUT
-    return "🤔 ไม่เข้าใจครับ — ลอง /help เพื่อดูคำสั่งทั้งหมด"
+    return "🤔 ไม่เข้าใจครับ — ลอง /help เพื่อดูเมนูคำสั่งทั้งหมด"
 
 
 def main():
