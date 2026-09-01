@@ -19,6 +19,7 @@ tags: [index, snc, toc]
 | **มาตรฐานการเรียกขาน** | [[NOMENCLATURE]] |
 | **Blueprint 5-Core** | [[BLUEPRINT_5CORE]] |
 | **ผังสถาปัตยกรรม** | [[ARCHITECTURE_FLOW]] · [[ARCHITECTURE_DIAGRAM]] |
+| **สรุปเชิงสถาปัตยกรรมล่าสุด** | [[ARCHITECTURE_FLOW#Knowledge Header]] · [[SESSION_HANDOVER_2026-09-01]] |
 | **ฐานความรู้ Phonik** | [[phonik_nurse_call_knowledge]] |
 | **แผนโครงการ** | [[smart_nurse_call_project_plan]] |
 
