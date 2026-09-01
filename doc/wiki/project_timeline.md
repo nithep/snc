@@ -872,7 +872,22 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **เอกสาร:** ปรับปรุง `doc/raw/walkthrough.md` ฉบับใหม่สะท้อนสถาปัตยกรรม File-based Isolation พร้อมผลทดสอบครบถ้วน สอดคล้องคู่มือ [[SNC_DEVELOPMENT_WORKFLOW_GUIDE]]
 - **สถานะ**: ✅ แยกโหมดสาธิต-ระบบจริงสมบูรณ์ด้วยไฟล์อิสระ — Landing Page ชี้ Demo Page พร้อม Simulation Bar ใช้สาธิตลูกค้าได้ทันทีโดยไม่กระทบ SLA/KPI หน้างาน
 
+## [2026-09-01] Sync Pi4 ↔ GitHub ↔ GCP + Deploy Cloud Run + Fix Secret Manager
 
+- **รายละเอียด**: sync โค้ดระหว่าง D:\snc ↔ GitHub ↔ Pi4 (落后 20 commits), deploy ขึ้น GCP Cloud Run, แก้ deploy script ปัญหา Secret Manager conflict
+- **การเปลี่ยนแปลงหลัก**:
+  1. **Pi4 Sync**: stash → pull 20 commits (32 files, +3677 lines) → resolve conflicts → reset hard → restart services → health check ผ่าน
+  2. **Push D:\snc → GitHub**: commit `f26e477` (chore(dashboard): extract main Nurse Station logic to app/index.js) + commit `b502603` (fix deploy script)
+  3. **GCP Cloud Run Deploy**: build image (392s, 15/15 steps) → push image → deploy สำเร็จ
+  4. **แก้ Deploy Script** (`ops/deploy_cloudrun_cloudshell.sh`): เปลี่ยน `--set-env-vars SNC_API_KEY=...` (string literal) เป็น `--update-secrets SNC_API_KEY=snc-api-key:latest` (Secret Manager ref) — Cloud Run ปฏิเสธการเปลี่ยน Secret ref เป็น string literal
+  5. **Secret Manager**: `snc-api-key` updated to v3
+- **ผลการทดสอบ**:
+  - `/health`: ✅ `healthy`, `db=firestore`
+  - Auth: ✅ POST ไม่มี key → 401
+  - Dashboard: ✅ HTTP 200
+  - Firestore write: ✅ HTTP 200
+  - KPI: ✅ 41 events, SLA 100%, avg resolution 20.49s
+- **สถานะ**: ✅ ทั้ง 3 ฝั่ง (D:\snc, Pi4, GCP Cloud Run) ทำงานปกติ — ดู [[SESSION_HANDOVER_2026-09-01]] สำหรับรายละเอียดครบถ้วน
 
 
 
