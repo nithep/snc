@@ -138,15 +138,18 @@ fi
 
 # ── รวม env ทั้งหมด (รวมตัวเลือกสำหรับแจ้งเตือน + SNC-Bot) ──────────────────
 # หากไม่ส่งตัวแปรเหล่านี้ Cloud Run จะ deploy ได้但 SNC-Bot/แจ้งเตือนจะไม่ทำงาน
-EXTRA_ENV="SNC_API_KEY=$SNC_API_KEY,SNC_DB_BACKEND=firestore"
+EXTRA_ENV="SNC_DB_BACKEND=firestore"
+GEMINI_SECRET_FLAG=""
 if [ -n "${GEMINI_API_KEY:-}" ]; then
-  EXTRA_ENV="$EXTRA_ENV,GEMINI_API_KEY=$GEMINI_API_KEY"
+  GEMINI_SECRET_FLAG="--update-secrets GEMINI_API_KEY=snc-gemini-api-key:latest"
   echo "✅ GEMINI_API_KEY พร้อม (len ${#GEMINI_API_KEY}) — SNC-Bot จะตอบอัตโนมัติได้"
 else
   echo "  ⚠️ ไม่พบ GEMINI_API_KEY — SNC-Bot บน Cloud Run จะตอบแบบสอบถามเท่านั้น"
 fi
+TELEGRAM_SECRET_FLAG=""
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-  EXTRA_ENV="$EXTRA_ENV,TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID"
+  EXTRA_ENV="$EXTRA_ENV,TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID"
+  TELEGRAM_SECRET_FLAG="--update-secrets TELEGRAM_BOT_TOKEN=snc-telegram-bot-token:latest"
   echo "✅ TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID พร้อม — ฟอร์มติดต่อจะแจ้งเตือนได้"
 else
   echo "  ⚠️ ไม่พบ TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID — ฟอร์มติดต่อจะบันทึกได้แต่ไม่แจ้งเตือน"
@@ -168,7 +171,10 @@ gcloud run deploy "$SERVICE_NAME" \
   --region "$REGION" \
   --allow-unauthenticated \
   --project "$PROJECT_ID" \
-  --set-env-vars "$EXTRA_ENV"
+  --set-env-vars "$EXTRA_ENV" \
+  --update-secrets "SNC_API_KEY=snc-api-key:latest" \
+  $GEMINI_SECRET_FLAG \
+  $TELEGRAM_SECRET_FLAG
 
 # ── verify ────────────────────────────────────────────────────────────────
 echo ""
