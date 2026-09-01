@@ -39,7 +39,8 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(BASE)  # root ของโปรเจกต์ (สคริปต์อยู่ใน ops/)
 DEFAULT_LEDGER = os.path.join(PARENT, "logs", "alerts.log")
 
-SEVERITY_ICON = {"CRITICAL": "🚨", "WARNING": "⚠️", "INFO": "ℹ️", "TEST": "🧪"}
+SEVERITY_ICON = {"CRITICAL": "🚨", "WARNING": "⚠️", "INFO": "ℹ️", "TEST": "🧪",
+                "RECOVERY": "💚"}
 
 # ขั้นตอนกู้คืนอัตโนมัติตามประเภท alert — แนบท้ายข้อความเสมอ (กู้ได้ทันทีจากมือถือ)
 CHECKLISTS = {
@@ -146,6 +147,32 @@ def format_alert(severity: str, code: str, summary: str,
     return "\n".join(lines)
 
 
+def format_recovery(code: str, alert_type: str = "", recovered_from: str = "",
+                    details: str = "", verify: str = "", downtime: str = "") -> str:
+    """ข้อความ RECOVERY — แยกชัดเจนจาก alert ว่าระบบกลับมาปกติแล้ว"""
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines = [
+        "💚 <b>ระบบ SNC กลับมาปกติแล้ว</b>",
+        "สถานะรวม: <b>HEALTHY</b>",
+        f"เวลา: {now}",
+        f"รหัส: <code>{code}</code>",
+        "",
+    ]
+    if recovered_from:
+        src = f"กู้คืนจาก: <code>{recovered_from}</code>"
+        if alert_type:
+            src += f" ({alert_type})"
+        lines.append(src)
+    if downtime:
+        lines.append(f"ระยะเวลาผิดปกติ: {downtime}")
+    if details:
+        lines.append(f"\nรายละเอียด: {details}")
+    if verify:
+        lines.append(f"\nตรวจสอบ: {verify}")
+    lines.append("\nเมนูถัดไป: /health | /status")
+    return "\n".join(lines)
+
+
 def append_ledger(entry: dict) -> None:
     """เขียนหลักฐานการแจ้ง (JSON 1 บรรทัด/alert) — ค้นด้วย grep / list_alerts()"""
     try:
@@ -156,26 +183,155 @@ def append_ledger(entry: dict) -> None:
         print(f"[alerting] เขียน ledger ล้มเหลว: {e}", file=sys.stderr)
 
 
+def recent_same_type(alert_type: str, minutes: int) -> bool:
+    """มี alert type เดียวกันใน ledger ภายใน N นาทีล่าสุดหรือไม่ (ใช้ทำ dedupe)"""
+    if not os.path.isfile(LEDGER) or minutes <= 0:
+        return False
+    cutoff = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
+    atype = (alert_type or "").upper()
+    try:
+        with open(LEDGER, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if e.get("type", "").upper() != atype or e.get("deduped"):
+                    continue
+                try:
+                    ts = datetime.datetime.strptime(e.get("ts", ""), "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    continue
+                if ts >= cutoff:
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def send_recovery(alert_type: str = "", recovered_from: str = "",
+                  details: str = "", verify: str = "", downtime: str = "") -> str:
+    """ส่งข้อความ RECOVERY (ระบบกลับมาปกติ) + บันทึก ledger → คืนรหัส SNC-AL-RECOVERY-..."""
+    code = make_code("RECOVERY")
+    atype = (alert_type or "ALERT").upper()
+    text = format_recovery(code, atype, recovered_from, details, verify, downtime)
+    ok = send_telegram(text)
+    append_ledger({
+        "code": code, "severity": "INFO", "type": "RECOVERY",
+        "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "summary": f"ระบบกลับมาปกติ ({atype})",
+        "recovered_type": atype, "recovered_from": recovered_from,
+        "downtime": downtime, "details": details, "verify": verify,
+        "sent": ok,
+    })
+    print(f"[alerting] {code} type=RECOVERY recovered={atype} "
+          f"telegram={'OK' if ok else 'SKIP'} ledger={LEDGER}")
+    return code
+
+
+def pending_incidents() -> dict:
+    """เหตุการณ์ที่ยังไม่มี RECOVERY ตามหลัง — dict {type: alert_entry ล่าสุด}
+
+    state มาจาก ledger ทั้งหมด (ไม่ต้องมีไฟล์ state แยก):
+    type ใดถือว่ายังไม่ปิด ถ้า alert ล่าสุดของ type นั้นใหม่กว่า RECOVERY ล่าสุด
+    """
+    if not os.path.isfile(LEDGER):
+        return {}
+    last_alert = {}
+    last_recovery = {}
+    try:
+        with open(LEDGER, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                atype = (e.get("type") or "").upper()
+                if atype == "RECOVERY":
+                    rf = (e.get("recovered_type") or "").upper()
+                    if rf:
+                        last_recovery[rf] = e
+                elif atype:
+                    last_alert[atype] = e
+    except OSError:
+        return {}
+    return {
+        t: e for t, e in last_alert.items()
+        if t not in last_recovery or e.get("ts", "") > (last_recovery[t].get("ts") or "")
+    }
+
+
+def check_auto_recovery(health_url: str) -> int:
+    """cron helper: ถ้า /health กลับมา healthy แต่มี incident ค้าง → ส่ง RECOVERY
+    คืนจำนวน recovery ที่ส่ง (cron-safe: exit 0 เสมอ)"""
+    import urllib.parse
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(
+            health_url, headers={"User-Agent": "SNC-Recovery-Check/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        healthy = str(data.get("status", "")).lower() in ("healthy", "ok")
+    except Exception as e:
+        print(f"[alerting] recovery-check: health ไม่พร้อม ({e}) — ไม่ส่ง RECOVERY")
+        return 0
+    if not healthy:
+        print("[alerting] recovery-check: ระบบยังไม่ healthy — ไม่ส่ง RECOVERY")
+        return 0
+
+    incidents = pending_incidents()
+    if not incidents:
+        return 0
+    now = datetime.datetime.now()
+    sent = 0
+    for atype, entry in sorted(incidents.items()):
+        downtime = ""
+        try:
+            t0 = datetime.datetime.strptime(entry.get("ts", ""), "%Y-%m-%d %H:%M:%S")
+            mins = int((now - t0).total_seconds() // 60)
+            downtime = f"~{mins} นาที" if mins >= 1 else "<1 นาที"
+        except ValueError:
+            pass
+        code = send_recovery(atype, recovered_from=entry.get("code", ""),
+                             downtime=downtime, details=entry.get("summary", ""))
+        print(f"[alerting] RECOVERY สำหรับ {atype} → {code}")
+        sent += 1
+    return sent
+
+
 def send_alert(severity: str, alert_type: str, summary: str,
-               details: str = "", verify: str = "") -> str:
-    """ส่ง alert มาตรฐาน + บันทึก ledger → คืนรหัสอ้างอิง (SNC-AL-...)"""
+               details: str = "", verify: str = "",
+               dedupe_minutes: int = 0) -> str:
+    """ส่ง alert มาตรฐาน + บันทึก ledger → คืนรหัสอ้างอิง (SNC-AL-...)
+
+    dedupe_minutes > 0: ถ้ามี alert type เดียวกันใน N นาทีล่าสุด → ไม่ส่ง Telegram
+    ซ้ำ (ยังบันทึก ledger โดยมี deduped: true เพื่อให้ RECOVERY รู้ว่ามีเหตุการณ์)
+    """
     code = make_code(alert_type)
     atype = (alert_type or "ALERT").upper()
     steps = CHECKLISTS.get(atype)
     text = format_alert(severity, code, summary, details, verify)
     if steps:
         text += "\n\n📋 <b>ขั้นตอนกู้คืน:</b>\n" + "\n".join(steps)
-    ok = send_telegram(text)
+    deduped = recent_same_type(atype, dedupe_minutes)
+    ok = False if deduped else send_telegram(text)
     append_ledger({
         "code": code, "severity": severity.upper(),
         "type": atype,
         "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "summary": summary, "details": details, "verify": verify,
         "checklist": steps,
-        "sent": ok,
+        "sent": ok, "deduped": deduped,
     })
-    print(f"[alerting] {code} severity={severity.upper()} type={(alert_type or 'ALERT').upper()} "
-          f"telegram={'OK' if ok else 'SKIP'} ledger={LEDGER}")
+    print(f"[alerting] {code} severity={severity.upper()} type={atype} "
+          f"telegram={'DEDUPED' if deduped else ('OK' if ok else 'SKIP')} ledger={LEDGER}")
     return code
 
 
