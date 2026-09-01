@@ -79,7 +79,7 @@ async def webhook(request: Request):
     incident = body.get("incident", {}) if isinstance(body, dict) else {}
     state = incident.get("state", "OPEN")
     summary = incident.get("summary", "") or "uptime check failed"
-    condition = incident.get("condition_name", "")
+    condition = incident.get("condition_name", "") or "Uptime check /health failed"
     incident_url = incident.get("incident_url", "")
     # ระบุเป้าหมายที่ตรวจ (เช่น snc.nithep.com = Pi / run.app = Cloud Run) — ใช้รหัสอ้างอิงจาก GCP
     host = ""
@@ -87,16 +87,27 @@ async def webhook(request: Request):
     if isinstance(res, dict):
         labels = res.get("labels", {}) if isinstance(res.get("labels"), dict) else {}
         host = str(labels.get("host") or labels.get("url") or "")
-    title = "GCP Monitoring: ระบบ SNC ผิดปกติ"
-    if host:
-        title += f" — {host}"
+
+    host_label = host.strip() or "SNC endpoint"
+    if ".run.app" in host_label or "run.app" in host_label:
+        target_type = "Cloud Run service"
+        title = "GCP Monitoring: Cloud Run health check failed"
+    elif "snc.nithep.com" in host_label or "nithep.com" in host_label:
+        target_type = "Pi tunnel / public health endpoint"
+        title = "GCP Monitoring: Pi health check failed"
+    else:
+        target_type = "SNC endpoint"
+        title = "GCP Monitoring: SNC health check failed"
+
     lines = [
         f"🚨 <b>{title}</b>",
         "━━━━━━━━━━━━━━━━",
-        f"สถานะ: {state}",
-        f"รหัส GCP: <code>{incident.get('incident_id', '-')}</code>",
-        f"เงื่อนไข: {condition}" if condition else "",
-        f"รายละเอียด: {summary}",
+        f"สถานะ incident: {state}",
+        f"เป้าหมาย: {host_label}",
+        f"ประเภท: {target_type}",
+        f"เงื่อนไข: {condition}",
+        f"สรุป: {summary}",
+        f"รหัสเหตุการณ์: <code>{incident.get('incident_id', '-')}</code>",
         f"ลิงก์: {incident_url}" if incident_url else "",
     ]
     text = "\n".join(line for line in lines if line)

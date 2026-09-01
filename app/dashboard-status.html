@@ -293,17 +293,17 @@
         <div id="dashboard" style="display: none;">
             <div id="overallStatus" class="overall-status healthy">
                 <h2>Overall System Status</h2>
-                <p id="overallMessage">All systems operational</p>
+                <p id="overallMessage">System healthy — no active incidents</p>
             </div>
             
             <div class="status-grid">
                 <!-- Backend Server Card -->
                 <div class="status-card">
-                    <h2>🖥️ Backend Server (FastAPI)</h2>
+                    <h2>🖥️ Backend API (FastAPI)</h2>
                     <div class="status-indicator">
                         <div id="backendDot" class="status-dot running"></div>
                         <div class="status-info">
-                            <div class="status-label">Status</div>
+                            <div class="status-label">Service State</div>
                             <div id="backendStatus" class="status-value">Checking...</div>
                         </div>
                     </div>
@@ -329,11 +329,11 @@
                 
                 <!-- PBX Listener Card -->
                 <div class="status-card">
-                    <h2>📞 PBX Listener (Python)</h2>
+                    <h2>📞 PBX Event Listener (Python)</h2>
                     <div class="status-indicator">
                         <div id="listenerDot" class="status-dot running"></div>
                         <div class="status-info">
-                            <div class="status-label">Process Status</div>
+                            <div class="status-label">Process State</div>
                             <div id="listenerStatus" class="status-value">Checking...</div>
                         </div>
                     </div>
@@ -359,11 +359,11 @@
                 
                 <!-- PBX Stream Card -->
                 <div class="status-card">
-                    <h2>🔌 PBX Stream (Telnet)</h2>
+                    <h2>🔌 PBX Stream Health (Telnet)</h2>
                     <div class="status-indicator">
                         <div id="streamDot" class="status-dot running"></div>
                         <div class="status-info">
-                            <div class="status-label">Connectivity</div>
+                            <div class="status-label">Connectivity State</div>
                             <div id="streamStatus" class="status-value">Checking...</div>
                         </div>
                     </div>
@@ -582,19 +582,19 @@
             
             if (backendOK && listenerOK && streamOK) {
                 overallDiv.className = 'overall-status healthy';
-                message.textContent = '✓ ALL SYSTEMS OPERATIONAL';
+                message.textContent = '✓ System healthy — no active incidents';
                 message.style.color = '#4CAF50';
             } else if (backendOK && listenerOK) {
                 overallDiv.className = 'overall-status degraded';
-                message.textContent = '⚠ PARTIAL: Backend & Listener OK, PBX Stream may be idle';
+                message.textContent = '⚠ Partial service — backend and listener are up, PBX stream is idle or not recently active';
                 message.style.color = '#ff9800';
             } else if (backendOK) {
                 overallDiv.className = 'overall-status degraded';
-                message.textContent = '⚠ PARTIAL: Backend only, services degraded';
+                message.textContent = '⚠ Degraded — backend is reachable, but listener/stream checks are not healthy';
                 message.style.color = '#ff9800';
             } else {
                 overallDiv.className = 'overall-status down';
-                message.textContent = '✗ SYSTEM DOWN: Critical failures detected';
+                message.textContent = '✗ Critical outage — backend health check failed';
                 message.style.color = '#f44336';
             }
         }
