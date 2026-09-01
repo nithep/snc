@@ -72,6 +72,7 @@ updated: 2026-09-02
 | `/uptime` | ข้อมูล uptime check endpoint |
 | `/logs` | journalctl ล่าสุด 20 บรรทัด (เฉพาะบน Pi — ที่อื่นตอบ graceful) |
 | `/kpi` `/rooms` `/burn` `/alerts` | เดิม — KPI/สายค้าง/burn-in/ledger |
+| `/recovery` | incident ที่ยังไม่ปิด (รอ RECOVERY) — ดู §2.4 |
 | `/help` | เมนูทั้งหมด |
 
 ตัวอย่าง `/health` เมื่อปกติ:
