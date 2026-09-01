@@ -267,5 +267,44 @@ class RecoveryAndDedupeTest(unittest.TestCase):
         self.assertTrue(entries[0]["sent"])
 
 
+class AgentRecoveryCommandTest(unittest.TestCase):
+    """/recovery ของ Telegram agent — state จาก ledger (ชี้ ALERT_LOG ไป temp file)"""
+
+    def setUp(self):
+        import snc_telegram_agent as agent
+
+        self.agent = agent
+        fd, path = tempfile.mkstemp(suffix=".log")
+        os.close(fd)
+        self.tmp_ledger = path
+        self._old_env = os.environ.get("ALERT_LOG")
+        os.environ["ALERT_LOG"] = path
+
+    def tearDown(self):
+        if self._old_env is None:
+            os.environ.pop("ALERT_LOG", None)
+        else:
+            os.environ["ALERT_LOG"] = self._old_env
+        os.unlink(self.tmp_ledger)
+
+    def _reply(self):
+        return self.agent.recovery_reply()
+
+    def test_no_pending_incidents(self):
+        self.assertIn("ไม่มี incident ค้าง", self._reply())
+
+    def test_lists_pending_incident(self):
+        with open(self.tmp_ledger, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "code": "SNC-AL-TUNNEL-20260902-010000", "type": "TUNNEL",
+                "ts": "2026-09-02 01:00:00", "summary": "WS Tunnel ตาย 2 ครั้งติด",
+                "sent": True}) + "\n")
+        text = self._reply()
+        self.assertIn("ยังไม่ปิด", text)
+        self.assertIn("TUNNEL", text)
+        self.assertIn("SNC-AL-TUNNEL-20260902-010000", text)
+        self.assertIn("RECOVERY อัตโนมัติ", text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

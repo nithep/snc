@@ -93,7 +93,8 @@ HELP = (
     "/rooms — สายเรียกค้าง / เหตุการณ์ล่าสุด\n"
     "/burn — สถานะ Burn-in 48 ชม.\n"
     "/alerts — แจ้งเตือนล่าสุด 10 รายการ\n"
-    "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด\n\n"
+    "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด\n"
+    "/recovery — incident ที่ยังไม่ปิด (รอ RECOVERY)\n\n"
     "/help — แสดงเมนูนี้\n\n"
     "กดคำสั่งตามลำดับแนะนำ: /health → /cloudrun หรือ /logs"
 )
@@ -287,12 +288,37 @@ def status_reply():
     return health_reply()
 
 
+def recovery_reply():
+    """รายการ incident ที่ยังไม่มี RECOVERY ตามหลัง (state จาก ledger)"""
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "alerting", os.path.join(BASE, "alerting.py"))
+        a = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(a)
+    except Exception as e:
+        return f"อ่าน alerting.py ไม่ได้: {e}"
+
+    incidents = a.pending_incidents()
+    if not incidents:
+        return ("💚 ไม่มี incident ค้าง — ทุกเหตุการณ์ปิดด้วย RECOVERY แล้ว\n"
+                "(หรือยังไม่มี alert เลย — ดู /alerts)")
+    lines = ["⏳ <b>Incident ที่ยังไม่ปิด (รอ RECOVERY)</b>:"]
+    for t, e in sorted(incidents.items()):
+        lines.append(f"• <b>{t}</b>: <code>{e.get('code', '-')}</code>\n"
+                     f"  {e.get('summary', '')} ({e.get('ts', '')})")
+    lines.append("\nระบบจะส่ง 💚 RECOVERY อัตโนมัติเมื่อ /health กลับมา healthy "
+                 "(cron ทุก 10 นาที)")
+    return "\n".join(lines)
+
+
 def answer(text):
     t = text.lower()
     if any(k in t for k in ("help", "ช่วย", "คำสั่ง", "command", "/start")):
         return HELP
     if any(k in t for k in ("alerts", "alert", "แจ้งเตือน", "แจ้ง")):
         return alerts_reply(text)
+    if any(k in t for k in ("recovery", "กู้คืน", "incident ค้าง", "ปิดหรือยัง")):
+        return recovery_reply()
     if any(k in t for k in ("cloudrun", "cloud run", "คลาวด์รัน")):
         return cloudrun_reply()
     if any(k in t for k in ("uptime", "อัปไทม์", "ตรวจ uptime")):

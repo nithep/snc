@@ -40,7 +40,8 @@ if [ "$N" -ge "$ALERT_AFTER" ]; then
     --severity CRITICAL --type TUNNEL \
     --summary "WS Tunnel ตาย ${N} ครั้งติดต่อกัน" \
     --details "wss://snc.nithep.com/ws/nurse-station ล้มเหลว ${N} ครั้ง (cron ทุก 15 นาที)" \
-    --verify "ssh pi4 tail -20 logs/ws-tunnel-check.log" >> "$LOG" 2>&1
+    --verify "ssh pi4 tail -20 logs/ws-tunnel-check.log" \
+    --dedupe-minutes 30 >> "$LOG" 2>&1   # กันซ้ำซ้อนกับ GCP uptime alert
   echo "0" > "$STATE"   # รีเซ็ต หลังแจ้งแล้วต้อง fail ใหม่ 2 ครั้งถึงแจ้งอีก
 fi
 exit 1

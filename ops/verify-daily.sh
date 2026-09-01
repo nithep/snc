@@ -51,11 +51,14 @@ $SUMMARIES" >/dev/null 2>&1 || true
   exit 0
 fi
 
-# ── มีปัญหา → ส่งไป Telegram ───────────────────────────────────────────────
+# ── มีปัญหา → ส่งไป Telegram (ผ่าน alerting.py — template มาตรฐาน + ledger + dedupe) ──
 BODY="$(echo "$OUT" | grep -E '\[FAIL\]|\[WARN\]|สรุป:' | head -c 3400)"
-"$NOTIFY" "🚨 <b>Verify รายวันพบปัญหา</b> ($(hostname) — $(date '+%d %b %H:%M'))
-
-$BODY" >/dev/null 2>&1 || true
+/usr/bin/python3 "$OPS_DIR/alerting.py" \
+  --severity CRITICAL --type BACKEND \
+  --summary "Verify รายวันพบปัญหา ($(hostname))" \
+  --details "$BODY" \
+  --verify "ssh pi4 tail -40 $LOG" \
+  --dedupe-minutes 720 >> "$LOG" 2>&1 || true   # รายวัน → หน้าต่าง 12 ชม.
 
 echo "[verify-daily] FAIL — $SUMMARY_LINE (แจ้งเตือนแล้ว)"
 exit 1
