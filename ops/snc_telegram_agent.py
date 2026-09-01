@@ -73,7 +73,10 @@ def send(chat_id, text):
 
 
 def http_json(path):
-    with urllib.request.urlopen(f"{BACKEND}{path}", timeout=10) as r:
+    # UA เฉพาะของเรา — Cloudflare WAF บล็อก UA default ของ python-urllib (403)
+    req = urllib.request.Request(
+        f"{BACKEND}{path}", headers={"User-Agent": "SNC-Telegram-Agent/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
