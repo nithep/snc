@@ -1,0 +1,61 @@
+{
+  "version": "1.1.1",
+  "build_date": "2026-09-02T03:05:00.000000Z",
+  "platforms": {
+    "macOS": {
+      "architectures": [
+        "arm64",
+        "x64"
+      ],
+      "minimum": "macOS 11.0"
+    },
+    "Windows": {
+      "architectures": [
+        "x64"
+      ],
+      "minimum": "Windows 10"
+    },
+    "Raspberry Pi OS": {
+      "architectures": [
+        "arm64"
+      ],
+      "minimum": "Bookworm (Debian 12)"
+    }
+  },
+  "downloads": [
+    {
+      "platform": "Raspberry Pi OS",
+      "label": "SNC Source (zip) — รันบน Pi 4",
+      "meta": "arm64 · Bookworm+ · main branch",
+      "type": "zip",
+      "link": "https://github.com/nithep/snc/zipball/main"
+    },
+    {
+      "platform": "Windows",
+      "label": "SNC Source (zip)",
+      "meta": "x64 · Windows 10+ · main branch",
+      "type": "zip",
+      "link": "https://github.com/nithep/snc/zipball/main"
+    },
+    {
+      "platform": "macOS",
+      "label": "SNC Source (zip)",
+      "meta": "arm64/x64 · macOS 11+ · main branch",
+      "type": "zip",
+      "link": "https://github.com/nithep/snc/zipball/main"
+    },
+    {
+      "platform": "Linux / Server",
+      "label": "Clone ด้วย git (แนะนำสำหรับ deploy)",
+      "meta": "git clone https://github.com/nithep/snc.git",
+      "type": "docker",
+      "link": "https://github.com/nithep/snc"
+    }
+  ],
+  "service": {
+    "name": "Smart Nurse Call",
+    "base_url": "https://snc.nithep.com",
+    "health": "https://snc.nithep.com/health",
+    "dashboard": "https://snc.nithep.com/"
+  }
+}

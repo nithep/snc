@@ -38,6 +38,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY api/ .
 COPY app/ app/
 COPY core/ core/
+# manifest สำหรับ /api/downloads (หน้า /downloads portal อ่านรายการจาก endpoint นี้)
+# dist/ เป็น gitignore — ใช้ tracked source ที่ packaging/download_manifest.json
+COPY packaging/download_manifest.json packaging/dist/download_manifest.json
 
 # สร้าง user ไม่ใช่ root + ให้สิทธิ์เขียน /app (SQLite + logs)
 RUN useradd --create-home --uid 10001 nonroot \

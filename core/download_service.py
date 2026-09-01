@@ -6,11 +6,21 @@ from typing import Any, Dict, List
 
 
 class DownloadService:
-    """Read the packaged installer manifest and expose download metadata."""
+    """Read the packaged installer manifest and expose download metadata.
+
+    Manifest lookup order:
+      1) packaging/dist/download_manifest.json — built output (dist/ is gitignored)
+      2) packaging/download_manifest.json      — tracked source of truth (git)
+    """
 
     def __init__(self, manifest_path: str | Path | None = None) -> None:
         if manifest_path is None:
-            manifest_path = Path(__file__).resolve().parent.parent / "packaging" / "dist" / "download_manifest.json"
+            packaging_root = Path(__file__).resolve().parent.parent / "packaging"
+            candidates = [
+                packaging_root / "dist" / "download_manifest.json",
+                packaging_root / "download_manifest.json",
+            ]
+            manifest_path = next((p for p in candidates if p.exists()), candidates[0])
         self.manifest_path = Path(manifest_path)
 
     def load_manifest(self) -> Dict[str, Any]:
