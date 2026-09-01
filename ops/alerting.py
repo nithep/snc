@@ -375,11 +375,30 @@ def cli():
     p.add_argument("--dry-run", action="store_true",
                    help="แสดงฟอร์แมตโดยไม่ส่งจริง/ไม่เขียน ledger")
     p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--dedupe-minutes", type=int, default=0,
+                   help="ไม่ส่ง Telegram ซ้ำถ้ามี alert type เดียวกันใน N นาทีล่าสุด")
+    p.add_argument("--recovery-from", default="",
+                   help="ส่งข้อความ RECOVERY โดยอ้างรหัส alert เดิม (เช่น SNC-AL-TUNNEL-...) — ใช้ร่วม --type")
+    p.add_argument("--downtime", default="", help="ระยะเวลาผิดปกติ เช่น '~45 นาที' (ใช้กับ --recovery-from)")
+    p.add_argument("--recovery-auto", action="store_true",
+                   help="cron helper: ถ้า /health healthy และมี incident ค้างใน ledger → ส่ง RECOVERY อัตโนมัติ")
+    p.add_argument("--health-url", default="http://localhost:8000/health",
+                   help="URL ตรวจสุขภาพสำหรับ --recovery-auto")
     args = p.parse_args()
+    if args.recovery_auto:
+        sent = check_auto_recovery(args.health_url)
+        print(f"[alerting] recovery-auto: ส่ง {sent} ข้อความ")
+        return 0
     if args.list is not None:
         for e in list_alerts(args.list, args.limit):
             print(f"{e['code']} [{e['severity']}] {e['ts']} {e['summary']}"
                   + (f" — ยังไม่ส่ง (ledger only)" if not e.get("sent") else ""))
+        return 0
+    if args.recovery_from:
+        code = send_recovery(args.type, recovered_from=args.recovery_from,
+                             details=args.details, verify=args.verify,
+                             downtime=args.downtime)
+        print(f"[alerting] RECOVERY → {code}")
         return 0
     if not args.summary:
         p.error("--summary จำเป็น (หรือใช้ --list เพื่อดูรายการ)")
@@ -392,7 +411,8 @@ def cli():
         print(text)
         print(f"\n[alerting] DRY-RUN (ไม่ส่ง ไม่เขียน ledger) — รหัสตัวอย่าง: {code}")
         return 0
-    send_alert(args.severity, args.type, args.summary, args.details, args.verify)
+    send_alert(args.severity, args.type, args.summary, args.details, args.verify,
+               dedupe_minutes=args.dedupe_minutes)
     return 0
 
 

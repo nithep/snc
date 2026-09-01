@@ -12,9 +12,12 @@ tests/test_health_monitoring.py — ทดสอบระบบ monitoring ใ�
 รัน (ไม่ต้องมี pytest):
   python -m unittest tests/test_health_monitoring.py -v
 """
+import datetime
+import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -170,6 +173,98 @@ class AlertFormatTest(unittest.TestCase):
     def test_make_code_shape(self):
         code = self.alerting.make_code("cloud")
         self.assertTrue(code.startswith("SNC-AL-CLOUD-"))
+
+
+class RecoveryAndDedupeTest(unittest.TestCase):
+    """send_recovery / pending_incidents / dedupe — ใช้ temp ledger ไม่กระทบของจริง"""
+
+    def setUp(self):
+        import alerting
+
+        self.alerting = alerting
+        self._old_ledger = alerting.LEDGER
+        fd, path = tempfile.mkstemp(suffix=".log")
+        os.close(fd)
+        alerting.LEDGER = path
+        self.tmp_ledger = path
+
+    def tearDown(self):
+        self.alerting.LEDGER = self._old_ledger
+        os.unlink(self.tmp_ledger)
+
+    def _ts(self, minutes_ago: int) -> str:
+        ts = datetime.datetime.now() - datetime.timedelta(minutes=minutes_ago)
+        return ts.strftime("%Y-%m-%d %H:%M:%S")
+
+    def _write(self, entry):
+        with open(self.tmp_ledger, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def test_format_recovery_sections(self):
+        text = self.alerting.format_recovery(
+            "SNC-AL-RECOVERY-20260902-021000", "TUNNEL",
+            recovered_from="SNC-AL-TUNNEL-20260902-010000", downtime="~60 นาที")
+        self.assertIn("กลับมาปกติแล้ว", text)
+        self.assertIn("HEALTHY", text)
+        self.assertIn("SNC-AL-TUNNEL-20260902-010000", text)
+        self.assertIn("~60 นาที", text)
+        self.assertIn("เมนูถัดไป", text)
+
+    def test_pending_incidents_open_and_closed(self):
+        self._write({"code": "SNC-AL-TUNNEL-1", "type": "TUNNEL",
+                     "ts": self._ts(120), "sent": True})
+        self.assertEqual(list(self.alerting.pending_incidents()), ["TUNNEL"])
+
+        self._write({"code": "SNC-AL-RECOVERY-1", "type": "RECOVERY",
+                     "ts": self._ts(60), "recovered_type": "TUNNEL",
+                     "recovered_from": "SNC-AL-TUNNEL-1", "sent": True})
+        self.assertEqual(self.alerting.pending_incidents(), {})
+
+    def test_pending_incidents_ignores_recovery_without_target(self):
+        self._write({"code": "SNC-AL-RECOVERY-X", "type": "RECOVERY",
+                     "ts": self._ts(10), "sent": True})
+        self.assertEqual(self.alerting.pending_incidents(), {})
+
+    def test_recent_same_type_dedupe_window(self):
+        self._write({"code": "SNC-AL-CLOUD-1", "type": "CLOUD",
+                     "ts": self._ts(5), "sent": True})
+        self.assertTrue(self.alerting.recent_same_type("CLOUD", 10))
+        self.assertFalse(self.alerting.recent_same_type("CLOUD", 1))
+        self.assertFalse(self.alerting.recent_same_type("TUNNEL", 60))
+
+    def test_deduped_entries_do_not_extend_window(self):
+        self._write({"code": "SNC-AL-CLOUD-1", "type": "CLOUD",
+                     "ts": self._ts(5), "sent": False, "deduped": True})
+        self.assertFalse(self.alerting.recent_same_type("CLOUD", 60))
+
+    def test_send_alert_dedupe_skips_telegram_but_logs(self):
+        with mock.patch.object(self.alerting, "send_telegram",
+                               return_value=True) as tg_mock:
+            self.alerting.send_alert("CRITICAL", "CLOUD", "ครั้งแรก",
+                                     dedupe_minutes=10)
+            self.assertEqual(tg_mock.call_count, 1)
+            self.alerting.send_alert("CRITICAL", "CLOUD", "ซ้ำใน 10 นาที",
+                                     dedupe_minutes=10)
+            self.assertEqual(tg_mock.call_count, 1)  # ไม่ส่งซ้ำ
+
+        with open(self.tmp_ledger, encoding="utf-8") as f:
+            entries = [json.loads(l) for l in f if l.strip()]
+        self.assertEqual(len(entries), 2)
+        self.assertFalse(entries[0]["deduped"])
+        self.assertTrue(entries[1]["deduped"])
+
+    def test_send_recovery_logs_ledger(self):
+        with mock.patch.object(self.alerting, "send_telegram",
+                               return_value=True) as tg_mock:
+            code = self.alerting.send_recovery(
+                "TUNNEL", recovered_from="SNC-AL-TUNNEL-1", downtime="~30 นาที")
+        self.assertTrue(code.startswith("SNC-AL-RECOVERY-"))
+        tg_mock.assert_called_once()
+        with open(self.tmp_ledger, encoding="utf-8") as f:
+            entries = [json.loads(l) for l in f if l.strip()]
+        self.assertEqual(entries[0]["type"], "RECOVERY")
+        self.assertEqual(entries[0]["recovered_type"], "TUNNEL")
+        self.assertTrue(entries[0]["sent"])
 
 
 if __name__ == "__main__":

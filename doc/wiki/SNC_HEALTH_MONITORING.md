@@ -217,18 +217,37 @@ SNC-AL-CLOUD-20260902-010947 (Cloud Run uptime check /health failed)
 healthy หลังเคยส่ง alert → เรียก `alerting.py --severity INFO --type RECOVERY`
 พร้อมอ้างรหัส alert เดิม (ledger เก็บรหัสไว้ค้นได้)
 
+**อัตโนมัติ (แนะนำ)** — `ops/alert-recovery-check.sh` + `--recovery-auto`:
+state คำนวณจาก ledger ทั้งหมด (ไม่มีไฟล์ state แยก) — type ใดถือว่า "ค้าง"
+ถ้า alert ล่าสุดของ type นั้นใหม่กว่า RECOVERY ล่าสุด
+
+```bash
+# ทดสอบนอก cron
+ops/alert-recovery-check.sh http://localhost:8000/health
+
+# cron ตรวจทุก 10 นาที (บน Pi)
+*/10 * * * * /home/ecs-agent/snc/ops/alert-recovery-check.sh >> /home/ecs-agent/snc/logs/recovery-check.log 2>&1
+
+# ส่ง recovery แบบ manual อ้างรหัสเดิม
+python3 ops/alerting.py --recovery-from SNC-AL-TUNNEL-20260902-010000 \
+  --type TUNNEL --downtime "~45 นาที"
+```
+
 ## 2.5 Dedupe — กัน alert ซ้ำจากหลายแหล่ง
 
 กรณี cron บน Pi และ GCP uptime เจอปัญหาเดียวกันพร้อมกัน อาจได้ alert ซ้ำ 2 ฉบับ
-แนวทางกันซ้ำ (key = `service + status + time bucket`):
+key = `service + status + time bucket` — **implement แล้วใน `alerting.py`**:
 
-1. ก่อนส่ง ตรวจ ledger (`list_alerts`) ว่ามี alert **type เดียวกัน** ใน bucket เวลา
-   (เช่น 10 นาทีล่าสุด) อยู่แล้วหรือไม่
-2. ถ้ามี → ข้ามส่ง (บันทึก ledger `sent: false` + หมายเหตุ dedupe)
-3. alert ที่ซ้ำกันจะมีรหัสต่างกันแต่ summary เดียวกัน — ผู้ดูแลดู ledger รวมได้ฉบับเดียว
+```bash
+# ไม่ส่ง Telegram ซ้ำถ้ามี alert TUNNEL ใน 10 นาทีล่าสุด (ยังบันทึก ledger พร้อม deduped: true)
+python3 ops/alerting.py --severity CRITICAL --type TUNNEL \
+  --summary "WS Tunnel ตาย 2 ครั้งติด" --dedupe-minutes 10
+```
 
-> สถานะปัจจุบัน: ยังไม่ได้ implement อัตโนมัติ — ครั้งแรกที่พบ alert ซ้ำ
-> ให้เพิ่ม helper ใน `alerting.py` (เช่น `should_send(type, bucket_minutes)`)
+- entry ที่โดน dedupe จะมี `deduped: true` ใน ledger และ **ไม่ขยายหน้าต่าง dedupe**
+  (ต่อให้ยิงซ้ำกี่ครั้ง ก็ยังนับ window จาก alert จริงฉบับแรก)
+- RECOVERY จะยังทำงานถูกต้องเพราะ `pending_incidents()` ใช้ alert ล่าสุดใน ledger
+  รวมฉบับที่โดน dedupe ด้วย
 
 ## 2.6 สรุปการไหลเมื่อเกิดเหตุ
 
@@ -262,7 +281,8 @@ template alert 4 ส่วน
 |---|---|
 | `api/server.py` | `/health` + `_systemd_service_status()` |
 | `ops/snc_telegram_agent.py` | คำสั่ง/เมนู Telegram + `SNC-Telegram-Agent/1.0` UA |
-| `ops/alerting.py` | template alert + ledger `logs/alerts.log` |
+| `ops/alerting.py` | template alert + ledger + dedupe + RECOVERY (`--recovery-auto`) |
+| `ops/alert-recovery-check.sh` | cron wrapper ส่ง RECOVERY อัตโนมัติเมื่อกลับมา healthy |
 | `ops/notify-telegram.sh` | ส่ง Telegram แบบเรียบง่าย (shell) |
 | `ops/verify-daily.sh` | cron ตรวจรายวันฝั่ง Pi |
 | `ops/ws-tunnel-cron.sh` | cron ตรวจ WS/tunnel ฝั่ง Pi |
