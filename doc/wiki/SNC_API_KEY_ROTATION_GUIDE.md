@@ -89,14 +89,25 @@ ssh pi4 "sudo systemctl restart snc-backend.service snc-pbx-listener.service && 
 
 ### Step 5: ตั้ง key ที่ Cloud Run
 
-รันใน **Cloud Shell** หรือเครื่องที่มี gcloud:
+รันใน **Cloud Shell** หรือเครื่องที่มี gcloud โดยใช้ Secret Manager เป็น source of truth:
 
 ```bash
+# อ่านค่า secret เข้า shell โดยไม่แสดงค่าออกหน้าจอ
+a=$(gcloud secrets versions access latest --secret=snc-api-key --project hotel-ecs-nithep)
+export SNC_API_KEY="$a"
+unset a
+
+# ยืนยันเฉพาะความยาว ไม่พิมพ์ secret
+echo "SNC_API_KEY length: ${#SNC_API_KEY}"
+
+# deploy/update ให้ Cloud Run mount secret reference
 gcloud run services update snc-cloud-backend \
   --project hotel-ecs-nithep \
   --region asia-southeast1 \
-  --set-env-vars "SNC_API_KEY=<key ใหม่>"
+  --update-secrets "SNC_API_KEY=snc-api-key:latest"
 ```
+
+> ห้ามใช้ `--set-env-vars "SNC_API_KEY=..."` กับ service ที่ใช้ Secret Manager reference อยู่แล้ว เพราะ Cloud Run จะมองเป็นคนละชนิดของ environment variable และอาจเกิด conflict หรือ 401 จาก key ไม่ตรงกัน
 
 > ℹ️ ถ้า Cloud Run รัน image เก่า (ไม่มี routes API) ให้ redeploy พร้อมกัน:
 > ```bash

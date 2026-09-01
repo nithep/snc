@@ -47,6 +47,21 @@ if ! command -v gcloud >/dev/null 2>&1; then
   exit 1
 fi
 
+# โหลด/ตรวจค่าจาก Secret Manager ก่อน build เพื่อไม่ให้ deploy ผ่านด้วย key คนละค่า
+# กับ key ที่ใช้ verify หลัง deploy (ห้ามพิมพ์ค่า secret ออกหน้าจอ)
+SECRET_API_KEY="$(gcloud secrets versions access latest --secret=snc-api-key --project "$PROJECT_ID" 2>/dev/null || true)"
+if [ -z "$SECRET_API_KEY" ]; then
+  echo "❌ อ่าน Secret Manager snc-api-key:latest ไม่ได้" >&2
+  exit 1
+fi
+if [ "$SNC_API_KEY" != "$SECRET_API_KEY" ]; then
+  echo "❌ SNC_API_KEY ใน shell ไม่ตรงกับ snc-api-key:latest" >&2
+  echo "   หยุดก่อน build/deploy เพื่อป้องกัน Cloud Run 401" >&2
+  echo "   ใช้คำสั่ง: export SNC_API_KEY=\"$(gcloud secrets versions access latest --secret=snc-api-key --project "$PROJECT_ID")\"" >&2
+  exit 1
+fi
+echo "✅ SNC_API_KEY ตรงกับ Secret Manager (ค่าไม่ถูกแสดง)"
+
 # ── clone repo (ถ้ายังไม่มี) ───────────────────────────────────────────────
 if [ ! -d "$WORK_DIR/api" ]; then
   echo ""
