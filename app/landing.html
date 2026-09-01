@@ -290,6 +290,19 @@ section { padding: 84px 0; }
 .node li { color: var(--text-dim); font-size: 14px; padding-left: 1.1rem; position: relative; }
 .node li::before { content: "▸"; position: absolute; left: 0; color: var(--violet); }
 @media (max-width:860px){ .arch{grid-template-columns:1fr} }
+.knowledge-header { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:0 0 18px; }
+.knowledge-card, .arch-notes { background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); }
+.knowledge-card { padding:20px; }
+.knowledge-label { display:block; color:var(--violet); font-family:var(--mono); font-size:11px; letter-spacing:1px; text-transform:uppercase; margin-bottom:.45rem; }
+.knowledge-card strong { display:block; font-size:15px; }
+.knowledge-card p { color:var(--text-dim); font-size:13px; font-weight:300; margin-top:.45rem; line-height:1.55; }
+.arch-notes { display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:22px; margin-top:18px; }
+.arch-notes h3 { font-size:16px; margin-bottom:.7rem; }
+.arch-notes ul { list-style:none; display:grid; gap:.45rem; }
+.arch-notes li { color:var(--text-dim); font-size:13px; padding-left:1rem; position:relative; }
+.arch-notes li::before { content:'▸'; position:absolute; left:0; color:var(--violet); }
+@media (max-width:860px){ .knowledge-header{grid-template-columns:1fr 1fr} .arch-notes{grid-template-columns:1fr} }
+@media (max-width:520px){ .knowledge-header{grid-template-columns:1fr} }
 
 /* ── Event history (table) ── */
 .history-wrap { max-width: 880px; margin-inline: auto; border: 1px solid var(--stroke); border-radius: var(--radius); overflow: hidden; background: var(--card); }
@@ -516,7 +529,13 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
     <div class="section-head reveal">
       <div class="kicker">Architecture</div>
       <h2>สถาปัตยกรรม Edge-to-Cloud</h2>
-      <p>แยกชัดเจนระหว่าง Edge (Pi 4), Cloud (GCP) และ Delivery — ทนทานต่อการหลุดของเครือข่าย</p>
+      <p>แยกชัดเจนระหว่าง Edge (Pi 4), Cloud (GCP) และ Delivery — ทนทานต่อการหลุดของเครือข่าย · <a href="../doc/ARCHITECTURE_FLOW.md" style="color:var(--blue)">อ่าน architecture note ฉบับเต็ม</a></p>
+    </div>
+    <div class="knowledge-header reveal" aria-label="SNC architecture knowledge summary">
+      <div class="knowledge-card"><span class="knowledge-label">สถานะระบบ</span><strong>Hybrid · Edge-first + Cloud-assisted</strong><p>Pi4 ประมวลผล event จริงจาก PBX; Cloud Run ช่วย persistence, public API และ monitoring</p></div>
+      <div class="knowledge-card"><span class="knowledge-label">Source of truth</span><strong>Pi4 + SQLite WAL</strong><p>ทำงานใกล้ฮาร์ดแวร์และยังรับ event ได้เมื่อ cloud หรือ tunnel ขัดข้อง</p></div>
+      <div class="knowledge-card"><span class="knowledge-label">Deploy path</span><strong>D:\\snc → GitHub → Pi4 / Cloud Run</strong><p>GitHub `nithep/snc` เป็นศูนย์กลาง version control และ deploy source</p></div>
+      <div class="knowledge-card"><span class="knowledge-label">Alerting</span><strong>Monitoring → Bridge → Telegram</strong><p>Alert bridge แยกจาก backend หลัก เพื่อหลีกเลี่ยง shared failure</p></div>
     </div>
     <div class="arch">
       <div class="node reveal"><h4>📍 Edge · Pi 4 <span class="tag">192.168.1.94</span></h4><ul>
@@ -539,6 +558,10 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <li>WebSocket realtime channel</li>
         <li>Self-healing systemd units</li>
       </ul></div>
+    </div>
+    <div class="arch-notes reveal">
+      <div><h3>Key Learnings</h3><ul><li>แยก data plane ออกจาก alert plane</li><li>ใช้ outbox + event_id เป็น idempotency key</li><li>เก็บ secret ใน `.env` ที่จำกัดสิทธิ์ และ Secret Manager บน Cloud Run</li><li>Cloudflare Tunnel เป็น outbound; ไม่ใช้ LAN IP ใน ingress</li></ul></div>
+      <div><h3>Risks / Next Actions</h3><ul><li>ตรวจ tunnel/domain drift และ deploy parity</li><li>ตรวจ `SNC_API_KEY` ให้ตรงกันทุกชั้น</li><li>ทดสอบ synthetic event, retry และ idempotency</li><li>ยืนยัน uptime alert ของ Pi4 และ Cloud Run ผ่าน Telegram</li></ul></div>
     </div>
     <div class="tech reveal" style="margin-top:36px">
       <span class="chip"><b>Raspberry Pi 4</b></span>
