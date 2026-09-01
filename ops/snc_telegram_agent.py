@@ -267,9 +267,13 @@ def uptime_reply():
 
 
 def logs_reply():
-    result = subprocess.run(
-        ["journalctl", "-u", "snc-backend", "-u", "snc-pbx-listener", "-n", "20", "--no-pager"],
-        capture_output=True, text=True, timeout=10)
+    try:
+        result = subprocess.run(
+            ["journalctl", "-u", "snc-backend", "-u", "snc-pbx-listener", "-n", "20", "--no-pager"],
+            capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return (f"📜 <b>Logs ล่าสุด</b>\nอ่าน journalctl ไม่ได้ ({html_escape(type(exc).__name__)})\n"
+                "ใช้ได้เฉพาะบน Pi (systemd)\n\nเมนูถัดไป: /health")
     output = (result.stdout or result.stderr).strip()
     if not output:
         return "📜 <b>Logs ล่าสุด</b>\nไม่พบข้อมูลจาก systemd\n\nเมนูถัดไป: /health"

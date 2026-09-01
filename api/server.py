@@ -8,6 +8,7 @@ import time
 import urllib.request
 import urllib.error
 import smtplib
+import subprocess
 from email.message import EmailMessage
 from collections import defaultdict
 from datetime import datetime
@@ -676,24 +677,58 @@ def sitemap_xml():
     )
     return Response(content=xml, media_type="application/xml; charset=utf-8")
 
+def _systemd_service_status(service_name: str):
+    """Read a local systemd unit without failing health checks on Windows/containers."""
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", service_name],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except FileNotFoundError:
+        return "unknown", "ไม่มี systemd (สภาพแวดล้อม dev/Windows)"
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return "unknown", f"ตรวจสอบ systemd ไม่ได้ ({type(exc).__name__})"
+
+    state = (result.stdout or result.stderr).strip().splitlines()[0] if (result.stdout or result.stderr) else "unknown"
+    if state == "active":
+        return "active", "systemd active"
+    if state in {"activating", "deactivating", "reloading"}:
+        return "degraded", f"systemd {state}"
+    if state in {"inactive", "failed", "dead"}:
+        return "down", f"systemd {state}"
+    return "unknown", f"systemd {state}"
+
+
 @app.get("/health")
 def health_check():
     """Return an explicit, operator-friendly health summary for monitoring."""
     checked_at = datetime.now().isoformat()
+    listener_status, listener_message = _systemd_service_status("snc-pbx-listener.service")
     checks = {
         "backend": {"status": "healthy", "message": "ตอบสนองปกติ"},
         "database": {"status": "healthy", "message": f"เชื่อมต่อได้ ({store.backend_name})"},
-        "pbx_listener": {"status": "unknown", "message": "ตรวจจาก service monitor"},
+        "pbx_listener": {"status": listener_status, "message": listener_message},
         "websocket": {"status": "healthy", "message": "พร้อมรับการเชื่อมต่อ"},
         "cloud_run": {"status": "ready", "message": "พร้อมให้บริการ"},
     }
+    failed = [name for name, check in checks.items() if check["status"] in {"down", "failed"}]
+    degraded = [name for name, check in checks.items() if check["status"] in {"degraded", "unknown"}]
+    overall = "down" if failed else ("degraded" if degraded else "healthy")
+    reason = (
+        f"ตรวจพบ Service ผิดปกติ: {', '.join(failed)}" if failed else
+        f"ต้องตรวจสอบเพิ่มเติม: {', '.join(degraded)}" if degraded else
+        "ไม่พบความผิดปกติจาก Backend health check"
+    )
     return {
-        "status": "healthy",
+        "status": overall,
         "service": "snc-backend",
         "db": store.backend_name,
         "timestamp": checked_at,
         "checked_at": checked_at,
-        "reason": "ไม่พบความผิดปกติจาก Backend health check",
+        "reason": reason,
         "checks": checks,
     }
 
