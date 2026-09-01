@@ -7,6 +7,8 @@ import logging
 import time
 import urllib.request
 import urllib.error
+import smtplib
+from email.message import EmailMessage
 from collections import defaultdict
 from datetime import datetime
 from typing import List, Optional, Dict
@@ -528,6 +530,37 @@ def _rate_limited(client_ip: str, store: dict = None, limit: int = 5, window: in
     store[client_ip] = hits
     return False
 
+def _send_email(name: str, sender_email: str, message: str) -> bool:
+    """ส่งอีเมลแจ้งเตือนจากฟอร์มติดต่อผ่าน SMTP (ไม่ทำให้ request ล้มเหลว)"""
+    host = os.getenv("SNC_SMTP_HOST", "").strip()
+    port = int(os.getenv("SNC_SMTP_PORT", "587"))
+    username = os.getenv("SNC_SMTP_USERNAME", "").strip()
+    password = os.getenv("SNC_SMTP_PASSWORD", "")
+    recipient = os.getenv("SNC_CONTACT_EMAIL", "").strip()
+    sender = os.getenv("SNC_SMTP_FROM", username).strip()
+    if not all((host, username, password, recipient, sender)):
+        return False
+    email = EmailMessage()
+    email["Subject"] = f"SNC contact form: {name}"
+    email["From"] = sender
+    email["To"] = recipient
+    if sender_email:
+        email["Reply-To"] = sender_email
+    email.set_content(
+        f"New SNC contact form submission\\n\\nName: {name}\\n"
+        f"Email: {sender_email or '-'}\\n\\nMessage:\\n{message}\\n"
+    )
+    try:
+        with smtplib.SMTP(host, port, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(username, password)
+            smtp.send_message(email)
+        return True
+    except Exception as exc:
+        logging.error("SMTP contact notification failed: %s", exc)
+        return False
+
+
 def _send_telegram(text: str) -> bool:
     """แจ้งเตือนทีมงานผ่าน Telegram (graceful หากไม่ได้ตั้ง Token/Chat ID)"""
     token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -571,13 +604,20 @@ async def contact_submit(req: ContactRequest, request: Request):
     except Exception as e:
         logging.error(f"_contact log write failed: {e}")
 
-    notified = _send_telegram(
+    telegram_notified = _send_telegram(
         f"📩 <b>ข้อความติดต่อใหม่จาก snc.nithep.com</b>\n"
         f"👤 ชื่อ: {name}\n"
         f"✉️ อีเมล: {email or '-'}\n"
         f"💬 ข้อความ: {message}"
     )
-    return {"status": "success", "notified": notified, "message": "ส่งข้อความถึงทีมงานเรียบร้อยแล้ว"}
+    email_notified = _send_email(name, email, message)
+    return {
+        "status": "success",
+        "notified": telegram_notified or email_notified,
+        "telegram_notified": telegram_notified,
+        "email_notified": email_notified,
+        "message": "ส่งข้อความถึงทีมงานเรียบร้อยแล้ว",
+    }
 
 @app.post("/api/admin/reset-kpi")
 def reset_kpi_stats(request: Request):

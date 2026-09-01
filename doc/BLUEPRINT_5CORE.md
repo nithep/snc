@@ -99,6 +99,14 @@ TELEGRAM_BOT_TOKEN=<token>
 TELEGRAM_CHAT_ID=<id>
 GOOGLE_CHAT_WEBHOOK_URL=<url>
 
+# Contact email notifications (SMTP)
+SNC_SMTP_HOST=smtp.example.com
+SNC_SMTP_PORT=587
+SNC_SMTP_USERNAME=alerts@example.com
+SNC_SMTP_PASSWORD=<smtp-password>
+SNC_SMTP_FROM=alerts@example.com
+SNC_CONTACT_EMAIL=team@example.com
+
 # PBX Connection
 PBX_HOST=192.168.1.91
 PBX_PORT=23

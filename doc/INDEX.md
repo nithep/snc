@@ -34,6 +34,7 @@ tags: [index, snc, toc]
 - **API Key / Secrets**: [[SNC_API_KEY_SETUP_GUIDE]] · [[SNC_API_KEY_ROTATION_GUIDE]]
 - **Cloud Run Incident (data loss)**: [[SNC_CLOUDRUN_DATALOSS_INCIDENT_2026-08-25]]
 - **Telegram Alerts**: [[SNC_TELEGRAM_ALERTS]]
+- **Email / SMTP Contact Alerts**: [[SNC_SMTP_EMAIL_SETUP]]
 
 ### 📡 PBX / Listener
 - **แก้ปัญหาเชื่อมต่อ PBX**: [[SNC_PBX_CONNECTIVITY_TROUBLESHOOTING]]
