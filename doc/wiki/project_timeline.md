@@ -890,4 +890,32 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **สถานะ**: ✅ ทั้ง 3 ฝั่ง (D:\snc, Pi4, GCP Cloud Run) ทำงานปกติ — ดู [[SESSION_HANDOVER_2026-09-01]] สำหรับรายละเอียดครบถ้วน
 
 
+## [2026-09-02] SNC Intelligence Module Deployment (Phase 1–3) — Pluggable Multi-Agent Framework
+
+**ผู้ดำเนินการ:** Senior Software Engineer (Antigravity Agent)
+
+**รายละเอียด:**
+- **ออกแบบสถาปัตยกรรมและกฎความปลอดภัย ([ADR 0011](doc/adr/0011-snc-intelligence-module.md)):**
+  - พัฒนาโมดูลอัจฉริยะ **SNC Intelligence Module** แยกออกจาก Critical Alerting Path โดยเด็ดขาด 
+  - ออกแบบสถาปัตยกรรมแบบ **Pluggable Plugin (เปิด-ปิดสวิตช์ได้แบบ Zero-Downtime)** สลับสถานะผ่าน `SNC_INTELLIGENCE_ENABLED`
+  - กำหนด Safe Execution Gate: ห้ามใช้ LLM ใน Critical Path, ห้ามสั่ง restart service, ห้ามแก้ไข/ลบ Nurse Call Alert และผลลัพธ์การวิเคราะห์เป็นแบบ Read-Only Draft สังเกตการณ์โดยมนุษย์เท่านั้น (`requires_human_review: true`)
+- **พัฒนา Intelligence Agents 3 ด้าน (`api/services/intelligence/`):**
+  1. `OpsSelfHealingAgent`: ตรวจสอบสถานะ PBX TCP `:23`, Proxy `:2323`, Backend `/health`, SQLite WAL Size และ Disk usage พร้อมรองรับ Bounded Reconnect ขอให้ PBX Listener ปิด socket ตัวเองผ่าน Hand-off File (`.snc-reconnect-request.json`)
+  2. `ClinicalAnalyticsAgent`: ตรวจจับ Frequent Callers (ห้องกดเรียกซ้ำใน 4 ชั่วโมง) และคำนวณ SLA Response Time Drift เปรียบเทียบกับ Baseline 7 วัน
+  3. `ShiftHandoverAgent`: รวบรวมสถิติสร้างร่างรายงานส่งกะ (เช้า 07:00-15:00, บ่าย 15:00-23:00, ดึก 23:00-07:00)
+- **การเชื่อมต่อหน้าจอ Dashboard (`app/index.html`):**
+  - เพิ่ม **Smart Insight Panel** ดึงสถิติ `GET /api/intelligence/clinical` แบบ Asynchronous
+  - เพิ่ม **Shift Handover Modal** แสดงร่างรายงานส่งกะ พร้อมปุ่ม **Copy summary text**
+- **ผลการทดสอบบนระบบพัฒนา (Local Tests):**
+  - ผ่านการทดสอบทั้งหมด **68/68 Passed** (Dashboard Phase 3, Intelligence Ops/Clinical/Handover, PBX Parser, Outbox)
+- **การปรับใช้บน Production (Raspberry Pi 4 - `hotel-gateway`):**
+  - Commit: `1156f59 feat(intelligence): add optional SNC intelligence plugin`
+  - เปิดใช้งาน API Routes ในสภาพแวดล้อมระบบผ่าน `SNC_INTELLIGENCE_ENABLED=true`
+  - ยืนยัน Endpoint `GET /api/intelligence/clinical` และ `GET /api/intelligence/handover` ตอบกลับ HTTP 200 OK
+  - ปิด `OpsSelfHealingAgent` ไว้ก่อนแบบ Staged Rollout เพื่อติดตามผลเบื้องต้น
+  - Core PBX Listener และ Real-time Alerting Engine ยังคงทำงานสมบูรณ์ 100% โดยไม่หยุดชะงัก
+- **สถานะ:** ✅ เสร็จสิ้นกระบวนการ Staged Deployment พร้อมใช้งาน API & Dashboard Insights บน Production
+
+
+
 
