@@ -203,7 +203,7 @@ async def serve_dashboard():
     """Serve the main nurse call dashboard (index.html)."""
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(index_path, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return RedirectResponse(url="/")
 
 @app.get("/{page}.html")
