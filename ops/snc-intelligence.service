@@ -1,0 +1,36 @@
+[Unit]
+Description=SNC Intelligence Ops Self-Healing Agent (non-critical path)
+After=network-online.target snc-backend.service snc-pbx-listener.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ecs-agent
+Group=ecs-agent
+WorkingDirectory=/home/ecs-agent/snc/api
+ExecStart=/usr/bin/python3 -u /home/ecs-agent/snc/api/services/intelligence/ops_agent.py
+Restart=always
+RestartSec=10
+TimeoutStopSec=10
+
+# Phase 1 safety gate: read-only checks; reconnect requires explicit opt-in.
+Environment=SNC_OPS_AUTO_RECONNECT=false
+Environment=SNC_OPS_ALERT_ENABLED=false
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/home/ecs-agent/snc/api
+NoNewPrivileges=true
+ProtectHome=false
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+# Resource limits (Pi4: lightweight non-critical worker)
+MemoryMax=64M
+CPUQuota=20%
+
+SyslogIdentifier=snc-intelligence
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

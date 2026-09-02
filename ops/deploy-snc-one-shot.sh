@@ -38,6 +38,11 @@ SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 FILES=(
   "api/server.py:api/server.py"
   "api/services/gemini_direct_service.py:api/services/gemini_direct_service.py"
+  "api/services/intelligence/__init__.py:api/services/intelligence/__init__.py"
+  "api/services/intelligence/ops_agent.py:api/services/intelligence/ops_agent.py"
+  "api/services/intelligence/clinical.py:api/services/intelligence/clinical.py"
+  "api/services/intelligence/handover.py:api/services/intelligence/handover.py"
+  "api/services/intelligence/routes.py:api/services/intelligence/routes.py"
   "app/index.html:app/index.html"
   "app/demo.html:app/demo.html"
   "app/landing.html:app/landing.html"
@@ -52,6 +57,7 @@ FILES=(
   "ops/alerting.py:ops/alerting.py"
   "ops/snc_telegram_agent.py:ops/snc_telegram_agent.py"
   "ops/snc-tg-agent.service:ops/snc-tg-agent.service"
+  "ops/snc-intelligence.service:ops/snc-intelligence.service"
 )
 
 # --- 5-Core structure check (Blueprint: doc/BLUEPRINT_5CORE.md) ------------
@@ -185,6 +191,14 @@ fi
 # 4) scp ไฟล์ขึ้น Pi
 # ============================================================================
 step "4/8 ถ่ายโอนไฟล์ (scp)"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  info "(dry-run) mkdir -p $REMOTE_ROOT/api/services/intelligence $REMOTE_ROOT/ops"
+else
+  ssh "${SSH_OPTS[@]}" "$PI_HOST" "mkdir -p '$REMOTE_ROOT/api/services/intelligence' '$REMOTE_ROOT/ops'" \
+    || die "สร้างไดเรกทอรีปลายทางบน Pi ไม่สำเร็จ"
+  ok "เตรียมไดเรกทอรีปลายทางสำหรับ Intelligence plugin แล้ว"
+fi
 
 for spec in "${FILES[@]}"; do
   local_path="$REPO_ROOT/${spec%%:*}"

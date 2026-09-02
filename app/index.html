@@ -192,6 +192,30 @@ section.glass {
 .type-chip { font-size: 0.72rem; font-weight: 600; padding: 0.28rem 0.65rem; border-radius: 999px; border: 1px solid var(--stroke); background: var(--card-strong); color: var(--text-dim); }
 .type-chip b { color: var(--text); }
 
+/* ═══════════════ Smart Insight ═══════════════ */
+.insight-panel { border-color: rgba(99,102,241,.24); }
+.insight-panel .section-head { margin-bottom: .75rem; }
+.insight-state { color: var(--text-faint); font-size: .78rem; }
+.insight-state.loading { color: var(--blue); }
+.insight-state.warn { color: var(--amber); }
+.insight-grid { display: grid; grid-template-columns: minmax(150px, .75fr) minmax(240px, 1.25fr); gap: .75rem; }
+.insight-badge, .insight-callers {
+  min-height: 70px; padding: .78rem .9rem; border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke); background: rgba(99,102,241,.07);
+}
+.insight-badge { display: flex; align-items: center; gap: .65rem; }
+.insight-badge .insight-icon { font-size: 1.35rem; }
+.insight-badge strong { display: block; font-size: .9rem; }
+.insight-badge small { display: block; color: var(--text-faint); font-size: .7rem; margin-top: .15rem; }
+.insight-badge.good { border-color: rgba(16,185,129,.35); background: var(--green-soft); }
+.insight-badge.warn { border-color: rgba(245,158,11,.38); background: var(--amber-soft); }
+.insight-badge.bad { border-color: rgba(239,68,68,.38); background: var(--red-soft); }
+.insight-callers { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.insight-callers .label { color: var(--text-dim); font-size: .74rem; margin-right: .2rem; }
+.insight-caller-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .55rem; border-radius: 8px; background: rgba(148,163,184,.1); color: var(--text); font-size: .72rem; }
+.insight-caller-chip strong { color: #c4b5fd; }
+.insight-empty { color: var(--text-faint); font-size: .76rem; }
+
 /* ═══════════════ Status Strip (สถานะห้องปัจจุบัน) ═══════════════ */
 .status-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 .stat-chip { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--stroke); background: var(--card-strong); }
@@ -361,6 +385,24 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 .check-row input { accent-color: var(--blue); width: 17px; height: 17px; cursor: pointer; }
 .check-row span { font-size: 0.86rem; }
 .modal-actions { display: flex; gap: 0.6rem; margin-top: 1.2rem; }
+.handover-modal { max-width: 680px; }
+.handover-modal .sub { margin-bottom: .9rem; }
+.handover-toolbar { display: flex; align-items: center; gap: .65rem; margin-bottom: .8rem; }
+.handover-toolbar label { color: var(--text-dim); font-size: .8rem; font-weight: 600; }
+.handover-toolbar select { flex: 1; }
+.handover-status { min-height: 1.1rem; color: var(--text-faint); font-size: .72rem; }
+.handover-draft {
+  width: 100%; min-height: 260px; max-height: 46vh; resize: vertical;
+  padding: .9rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--stroke);
+  background: rgba(6,10,19,.7); color: #dbe4f0; font-family: var(--font); font-size: .82rem;
+  line-height: 1.65; white-space: pre-wrap;
+}
+.handover-draft:focus { border-color: rgba(99,102,241,.55); outline: 2px solid rgba(99,102,241,.18); outline-offset: 1px; }
+.btn-copy { flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .insight-grid { grid-template-columns: 1fr; }
+  .handover-toolbar { align-items: stretch; flex-direction: column; }
+}
 .btn-primary { flex: 1; padding: 0.65rem; border: none; border-radius: 11px; background: var(--grad); color: #fff; font-family: var(--font); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: opacity .15s ease, transform .15s ease; }
 .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
 .btn-secondary { flex: 1; padding: 0.65rem; border-radius: 11px; border: 1px solid var(--stroke); background: transparent; color: var(--text-dim); font-family: var(--font); font-weight: 600; font-size: 0.9rem; cursor: pointer; }
@@ -410,6 +452,7 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <button class="icon-btn" id="soundBtn" title="เสียงเตือน" aria-label="Toggle alarm sound">🔊</button>
     <button class="icon-btn" id="langBtn" title="ภาษา / Language" aria-label="Switch language">EN</button>
     <!-- demoTestBtn: ลบออกเพื่อความปลอดภัยของระบบจริง -->
+    <button class="btn-ghost" id="handoverBtn" title="Shift Handover" aria-haspopup="dialog">📝 <span data-i18n-key="handoverBtn">สรุปรายงานส่งกะ</span></button>
     <button class="icon-btn" id="settingsBtn" title="การตั้งค่า" aria-label="Open settings" style="font-size:1.1rem">⚙️</button>
   </div>
 </header>
@@ -444,7 +487,17 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
     <div class="type-chips" id="typeChips"></div>
   </section>
 
-  <!-- Trend chart: ถอดออกตาม feedback — แทนที่ด้วยตัวเลือกมุมมอง KPI ใน section เดิม -->
+  <!-- Smart Insight: asynchronous, read-only analytics outside the emergency path -->
+  <section class="glass insight-panel" aria-labelledby="insightTitle">
+    <div class="section-head">
+      <div class="section-title" id="insightTitle">✨ <span data-i18n-key="insightTitle">Smart Insight</span></div>
+      <div class="insight-state" id="insightState" role="status" aria-live="polite" data-i18n-key="insightLoading">กำลังวิเคราะห์ข้อมูล...</div>
+    </div>
+    <div class="insight-grid" id="insightContent">
+      <div class="insight-badge"><span class="insight-icon">⏳</span><div><strong data-i18n-key="insightLoading">กำลังวิเคราะห์ข้อมูล...</strong><small data-i18n-key="insightReadOnly">ข้อมูลอ่านอย่างเดียว</small></div></div>
+      <div class="insight-callers"><span class="label" data-i18n-key="frequentCallers">ห้องที่เรียกบ่อย</span><span class="insight-empty" data-i18n-key="insightLoading">กำลังโหลด...</span></div>
+    </div>
+  </section>
 
   <!-- Room status -->
   <section class="glass" aria-labelledby="roomsTitle">
@@ -534,6 +587,28 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
   </div>
 </div>
 
+<!-- ═══════════ Shift Handover Modal ═══════════ -->
+<div class="modal-backdrop" id="handoverModal" role="dialog" aria-modal="true" aria-labelledby="handoverTitle">
+  <div class="modal handover-modal">
+    <h2 id="handoverTitle">📝 <span data-i18n-key="handoverTitle">ร่างรายงานส่งกะ</span></h2>
+    <p class="sub" data-i18n-key="handoverSub">ตรวจทานร่างสรุปก่อนนำไปใช้งาน — ระบบจะไม่บันทึกหรือส่งรายงานอัตโนมัติ</p>
+    <div class="handover-toolbar">
+      <label for="handoverShift" data-i18n-key="handoverShiftLabel">เลือกกะ</label>
+      <select id="handoverShift">
+        <option value="morning" data-i18n-key="shiftMorning">กะเช้า (07:00–15:00)</option>
+        <option value="afternoon" data-i18n-key="shiftAfternoon">กะบ่าย (15:00–23:00)</option>
+        <option value="night" data-i18n-key="shiftNight">กะดึก (23:00–07:00)</option>
+      </select>
+      <button class="btn-ghost btn-copy" id="copyHandoverBtn" disabled>📋 <span data-i18n-key="copyHandover">คัดลอกข้อความสรุป</span></button>
+    </div>
+    <div class="handover-status" id="handoverStatus" role="status" aria-live="polite"></div>
+    <textarea class="handover-draft" id="handoverDraft" readonly spellcheck="false" aria-label="Shift handover draft"></textarea>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="closeHandoverBtn" data-i18n-key="closeBtn">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div id="toastWrap" aria-live="polite"></div>
 
 <noscript><p style="text-align:center;padding:2rem;color:#ef4444">JavaScript is required for this dashboard.</p></noscript>
@@ -582,7 +657,21 @@ const I18N = {
     footerNote: 'เซิร์ฟเวอร์หลัก Raspberry Pi 4', liveFeed: 'ฟีดสด WebSocket',
     eventsByType: 'จำนวนเหตุการณ์แยกตามประเภท',
     modeDemo: 'โหมดสาธิตจำลอง',
-    modeReal: 'ระบบจริง (Production)'
+    modeReal: 'ระบบจริง (Production)',
+    insightTitle: 'Smart Insight', insightLoading: 'กำลังวิเคราะห์ข้อมูล...', insightReadOnly: 'ข้อมูลอ่านอย่างเดียว',
+    insightUnavailable: 'ไม่สามารถโหลด Smart Insight ได้', insightStable: 'แนวโน้ม SLA ปกติ', insightImproved: 'แนวโน้ม SLA ดีขึ้น',
+    insightDegraded: 'แนวโน้ม SLA ต้องเฝ้าระวัง', insightInsufficient: 'ข้อมูลยังไม่เพียงพอสำหรับเทียบแนวโน้ม',
+    frequentCallers: 'ห้องที่เรียกบ่อย', noFrequentCallers: 'ยังไม่พบห้องที่เรียกซ้ำเกินเกณฑ์',
+    callsInWindow: 'ครั้งในช่วงวิเคราะห์', handoverBtn: 'สรุปรายงานส่งกะ', handoverTitle: 'ร่างรายงานส่งกะ',
+    handoverSub: 'ตรวจทานร่างสรุปก่อนนำไปใช้งาน — ระบบจะไม่บันทึกหรือส่งรายงานอัตโนมัติ',
+    handoverShiftLabel: 'เลือกกะ', shiftMorning: 'กะเช้า (07:00–15:00)', shiftAfternoon: 'กะบ่าย (15:00–23:00)',
+    shiftNight: 'กะดึก (23:00–07:00)', copyHandover: 'คัดลอกข้อความสรุป', closeBtn: 'ปิด',
+    handoverLoading: 'กำลังสร้างร่างรายงาน...', handoverUnavailable: 'ไม่สามารถสร้างร่างรายงานได้',
+    handoverCopied: 'คัดลอกร่างรายงานแล้ว', handoverCopyFailed: 'คัดลอกไม่สำเร็จ — กรุณาเลือกข้อความแล้วคัดลอกเอง',
+    draftStatus: 'สถานะร่าง', totalCases: 'เคสทั้งหมด', completedCases: 'เคสเสร็จสิ้น', openCases: 'เคสที่ยังเปิด',
+    emergencyCases: 'เคสฉุกเฉิน', avgAckShort: 'รับเรื่องเฉลี่ย', avgResShort: 'เคลียร์เฉลี่ย',
+    slaBreachesShort: 'เกิน SLA', roomsToWatch: 'ห้องที่ควรเฝ้าระวัง',
+    noOpenCases: 'ไม่มีเคสค้างในกะนี้', noRoomsToWatch: 'ไม่มีห้องที่ต้องเฝ้าระวังเป็นพิเศษ'
   },
   en: {
     appTitle: 'Smart Nurse Call (SNC)', appSubtitle: 'Nurse Station Live Monitor',
@@ -624,7 +713,21 @@ const I18N = {
     footerNote: 'Primary server: Raspberry Pi 4', liveFeed: 'WebSocket Live Feed',
     eventsByType: 'Events by type',
     modeDemo: 'Demo Simulation Mode',
-    modeReal: 'Production Active'
+    modeReal: 'Production Active',
+    insightTitle: 'Smart Insight', insightLoading: 'Analyzing data...', insightReadOnly: 'Read-only operational data',
+    insightUnavailable: 'Smart Insight unavailable', insightStable: 'SLA trend is stable', insightImproved: 'SLA trend is improving',
+    insightDegraded: 'SLA trend needs attention', insightInsufficient: 'Not enough data for trend comparison',
+    frequentCallers: 'Frequent callers', noFrequentCallers: 'No room exceeded the repeat-call threshold',
+    callsInWindow: 'calls in analysis window', handoverBtn: 'Shift handover', handoverTitle: 'Shift Handover Draft',
+    handoverSub: 'Review this draft before use — SNC never files or sends it automatically',
+    handoverShiftLabel: 'Shift', shiftMorning: 'Morning (07:00–15:00)', shiftAfternoon: 'Afternoon (15:00–23:00)',
+    shiftNight: 'Night (23:00–07:00)', copyHandover: 'Copy summary text', closeBtn: 'Close',
+    handoverLoading: 'Building handover draft...', handoverUnavailable: 'Unable to build handover draft',
+    handoverCopied: 'Handover draft copied', handoverCopyFailed: 'Copy failed — select the text and copy it manually',
+    draftStatus: 'Draft status', totalCases: 'Total cases', completedCases: 'Completed', openCases: 'Open cases',
+    emergencyCases: 'Emergency cases', avgAckShort: 'Avg Ack', avgResShort: 'Avg Resolution',
+    slaBreachesShort: 'SLA breaches', roomsToWatch: 'Rooms to watch',
+    noOpenCases: 'No open cases in this shift', noRoomsToWatch: 'No rooms require special attention'
   }
 };
 let LANG = (localStorage.getItem('snc_lang') || 'th');
@@ -809,6 +912,44 @@ async function loadKpi() {
     kpiData = await apiGet('/api/analytics/kpi?source=' + cfg.sourceMode);
     renderKpi();
   } catch (err) { console.warn('loadKpi failed:', err); }
+}
+
+/* ═══════════════════════════ Smart Insight (read-only, non-blocking) ═══════════════════════════ */
+let clinicalInsight = null;
+async function loadClinicalInsights() {
+  const state = document.getElementById('insightState');
+  if (state) { state.textContent = t('insightLoading'); state.className = 'insight-state loading'; }
+  try {
+    clinicalInsight = await apiGet('/api/intelligence/clinical?window_hours=24');
+    renderClinicalInsights();
+  } catch (err) {
+    console.warn('loadClinicalInsights failed:', err);
+    clinicalInsight = null;
+    const content = document.getElementById('insightContent');
+    if (content) content.innerHTML = '<div class="insight-badge warn"><span class="insight-icon">⚠️</span><div><strong>' + escapeHtml(t('insightUnavailable')) + '</strong><small>' + escapeHtml(t('insightReadOnly')) + '</small></div></div><div class="insight-callers"><span class="insight-empty">' + escapeHtml(t('insightUnavailable')) + '</span></div>';
+    if (state) { state.textContent = t('insightUnavailable'); state.className = 'insight-state warn'; }
+  }
+}
+function renderClinicalInsights() {
+  if (!clinicalInsight) return;
+  const state = document.getElementById('insightState');
+  const content = document.getElementById('insightContent');
+  const drift = clinicalInsight.sla_drift || {};
+  const trendKey = drift.status === 'degraded' ? 'insightDegraded'
+    : (drift.status === 'improved' ? 'insightImproved'
+      : (drift.status === 'stable' ? 'insightStable' : 'insightInsufficient'));
+  const trendClass = drift.status === 'degraded' ? 'bad' : (drift.status === 'improved' || drift.status === 'stable' ? 'good' : 'warn');
+  const trendIcon = drift.status === 'degraded' ? '⚠️' : (drift.status === 'improved' ? '↗️' : (drift.status === 'stable' ? '✓' : 'ℹ️'));
+  const callers = clinicalInsight.frequent_callers || [];
+  const callerHtml = callers.length
+    ? callers.slice(0, 4).map(item => '<span class="insight-caller-chip">' +
+        '<strong>' + escapeHtml(roomDisplayName(item.room_id)) + '</strong> ' +
+        escapeHtml(String(item.call_count)) + ' ' + escapeHtml(t('callsInWindow')) + '</span>').join('')
+    : '<span class="insight-empty">' + escapeHtml(t('noFrequentCallers')) + '</span>';
+  if (state) { state.textContent = t('insightReadOnly'); state.className = 'insight-state'; }
+  if (content) content.innerHTML =
+    '<div class="insight-badge ' + trendClass + '"><span class="insight-icon">' + trendIcon + '</span><div><strong>' + escapeHtml(t(trendKey)) + '</strong><small>' + escapeHtml(t('insightReadOnly')) + '</small></div></div>' +
+    '<div class="insight-callers"><span class="label">' + escapeHtml(t('frequentCallers')) + '</span>' + callerHtml + '</div>';
 }
 
 /* ═══════════════════════════ KPI View (รวม / รายห้อง / รายประเภท) ═══════════════════════════ */
@@ -1299,6 +1440,78 @@ async function loadAiSummary() {
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+/* ═══════════════════════════ Shift Handover ═══════════════════════════ */
+let handoverDraftData = null;
+function shiftLabel(shift) {
+  return shift === 'afternoon' ? t('shiftAfternoon') : (shift === 'night' ? t('shiftNight') : t('shiftMorning'));
+}
+function formatHandoverDraft(data) {
+  const summary = data.summary || {};
+  const lines = [
+    'SNC — ' + t('handoverTitle'),
+    t('draftStatus') + ': ' + data.status,
+    t('handoverShiftLabel') + ': ' + shiftLabel(data.shift && data.shift.name),
+    (data.shift && data.shift.start ? formatDT(data.shift.start) : '—') + ' → ' + (data.shift && data.shift.end ? formatDT(data.shift.end) : '—'),
+    '',
+    t('totalCases') + ': ' + (summary.total_cases || 0),
+    t('completedCases') + ': ' + (summary.completed_cases || 0),
+    t('openCases') + ': ' + (summary.open_cases || 0),
+    t('emergencyCases') + ': ' + (summary.emergency_cases || 0),
+    t('avgAckShort') + ': ' + (summary.avg_ack_time_seconds == null ? '—' : summary.avg_ack_time_seconds + 's'),
+    t('avgResShort') + ': ' + (summary.avg_resolution_time_seconds == null ? '—' : summary.avg_resolution_time_seconds + 's'),
+    t('slaBreachesShort') + ': ' + (summary.sla_breached_cases || 0),
+    '',
+    t('roomsToWatch') + ':'
+  ];
+  const rooms = data.rooms_to_watch || [];
+  if (rooms.length) rooms.forEach(room => lines.push('• ' + roomDisplayName(room.room_id) + ' — ' + room.call_count + ' calls'));
+  else lines.push('• ' + t('noRoomsToWatch'));
+  lines.push('', t('openCases') + ':');
+  const openCases = data.open_cases || [];
+  if (openCases.length) openCases.forEach(item => lines.push('• ' + roomDisplayName(item.room_id) + ' — ' + (item.event_type || '—') + ' (' + (item.status || '—') + ')'));
+  else lines.push('• ' + t('noOpenCases'));
+  lines.push('', '— SNC ' + t('handoverSub'));
+  return lines.join('\n');
+}
+async function loadHandoverDraft() {
+  const shift = document.getElementById('handoverShift').value;
+  const status = document.getElementById('handoverStatus');
+  const draft = document.getElementById('handoverDraft');
+  const copyBtn = document.getElementById('copyHandoverBtn');
+  status.textContent = t('handoverLoading');
+  draft.value = '';
+  copyBtn.disabled = true;
+  try {
+    handoverDraftData = await apiGet('/api/intelligence/handover?shift=' + encodeURIComponent(shift));
+    draft.value = formatHandoverDraft(handoverDraftData);
+    status.textContent = t('draftStatus') + ': ' + handoverDraftData.status;
+    copyBtn.disabled = false;
+  } catch (err) {
+    console.warn('loadHandoverDraft failed:', err);
+    handoverDraftData = null;
+    status.textContent = t('handoverUnavailable');
+  }
+}
+function openHandover() {
+  document.getElementById('handoverModal').classList.add('show');
+  loadHandoverDraft();
+}
+function closeHandover() {
+  document.getElementById('handoverModal').classList.remove('show');
+}
+async function copyHandoverDraft() {
+  const draft = document.getElementById('handoverDraft');
+  if (!draft.value) return;
+  try {
+    await navigator.clipboard.writeText(draft.value);
+    toast(t('handoverCopied'), 'ok');
+  } catch (err) {
+    draft.focus();
+    draft.select();
+    toast(t('handoverCopyFailed'), 'err');
+  }
+}
+
 /* ═══════════════════════════ CSV Export ═══════════════════════════ */
 function exportCsv() {
   const rows = [['timestamp', 'room_id', 'event_type', 'status', 'ack_time_seconds', 'resolution_time_seconds', 'sla_breached']];
@@ -1347,6 +1560,9 @@ function applyI18n() {
     '<option value="active">' + t('filterActive') + '</option>' +
     '<option value="ack">' + t('filterAck') + '</option>' +
     '<option value="resolved">' + t('filterResolved') + '</option>';
+  document.getElementById('handoverShift').querySelector('option[value="morning"]').textContent = t('shiftMorning');
+  document.getElementById('handoverShift').querySelector('option[value="afternoon"]').textContent = t('shiftAfternoon');
+  document.getElementById('handoverShift').querySelector('option[value="night"]').textContent = t('shiftNight');
   document.getElementById('langBtn').textContent = LANG === 'th' ? 'EN' : 'ไทย';
   renderRooms(); renderKpi(); renderHistory();
 }
@@ -1385,6 +1601,11 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScree
 setInterval(() => { document.getElementById('clock').textContent = formatClock(new Date()); }, 1000);
 
 /* ═══════════════════════════ Wire up events ═══════════════════════════ */
+document.getElementById('handoverBtn').addEventListener('click', openHandover);
+document.getElementById('closeHandoverBtn').addEventListener('click', closeHandover);
+document.getElementById('copyHandoverBtn').addEventListener('click', copyHandoverDraft);
+document.getElementById('handoverShift').addEventListener('change', loadHandoverDraft);
+document.getElementById('handoverModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeHandover(); });
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
 document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettings);
@@ -1406,7 +1627,7 @@ document.getElementById('kpiView').addEventListener('change', () => {
   renderKpi();
 });
 document.getElementById('aiPanel').addEventListener('toggle', () => { if (document.getElementById('aiPanel').open) loadAiSummary(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSettings(); closeHandover(); } });
 document.addEventListener('pointerdown', ensureAudio, { once: true });
 
 /* ═══════════════════════════ Boot ═══════════════════════════ */
@@ -1419,9 +1640,11 @@ initWebSocket();
 loadEvents();
 loadKpi();
 loadHealth();
+loadClinicalInsights();
 setInterval(loadEvents, 10000);
 setInterval(loadKpi, 30000);
 setInterval(loadHealth, 30000);
+setInterval(loadClinicalInsights, 60000);
 // Heartbeat WS: ส่ง ping ทุก 15 วิ + บังคับ reconnect ถ้าเงียบเกิน 60 วิ (สายค้างที่ onclose ไม่ fire)
 setInterval(() => {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;

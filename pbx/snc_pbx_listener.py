@@ -175,6 +175,11 @@ class PhonikSNCListener:
         self._last_data_time = 0.0
         # Flag: watchdog เป็นคนตัด connection (เพื่อ log/backoff ที่แม่นยำ)
         self._watchdog_triggered = False
+        # Ops Agent เขียนคำขอไว้ที่ไฟล์นี้เท่านั้น; listener เป็นเจ้าของ socket lifecycle
+        self.reconnect_request_file = os.getenv(
+            "SNC_RECONNECT_REQUEST_FILE",
+            str(pathlib.Path(__file__).resolve().parent.parent / "api" / ".snc-reconnect-request.json"),
+        )
 
     def parse_smdr_line(self, line: str):
         """Parse raw SMDR line into structured FHIR-like JSON event."""
@@ -682,6 +687,36 @@ class PhonikSNCListener:
         except Exception as e:
             logging.warning(f"Error in watchdog loop: {e}")
 
+    async def _reconnect_request_loop(self, writer):
+        """รับคำขอ reconnect จาก Ops Agent โดยไม่ให้ Agent จัดการ socket โดยตรง"""
+        request_path = pathlib.Path(self.reconnect_request_file)
+        try:
+            while self.is_running and writer and not writer.is_closing():
+                await asyncio.sleep(1)
+                if not request_path.is_file():
+                    continue
+                try:
+                    request = json.loads(request_path.read_text(encoding="utf-8"))
+                    request_path.unlink()
+                except (OSError, json.JSONDecodeError) as exc:
+                    logging.warning("Invalid reconnect request ignored: %s", exc)
+                    try:
+                        request_path.unlink()
+                    except OSError:
+                        pass
+                    continue
+                reason = str(request.get("reason", "ops agent request"))[:200]
+                logging.warning("Ops Agent requested PBX reconnect: %s", reason)
+                self._watchdog_triggered = True
+                writer.close()
+                try:
+                    await writer.wait_closed()
+                except Exception:
+                    pass
+                break
+        except asyncio.CancelledError:
+            logging.info("Reconnect request loop cancelled")
+
     async def _outbox_retry_loop(self):
         """Retry event ที่ยัง pending ใน outbox เป็นระยะ (กัน event หายเมื่อ backend down นาน)"""
         logging.info(f"Outbox retry loop started (interval={self._outbox_retry_interval:.0f}s)")
@@ -730,6 +765,7 @@ class PhonikSNCListener:
             heartbeat_task = None
             rdss_poll_task = None
             watchdog_task = None
+            reconnect_request_task = None
             try:
                 logging.info(f"Connecting to Phonik PBX Telnet at {self.host}:{self.port}...")
                 reader, writer = await asyncio.open_connection(self.host, self.port)
@@ -758,6 +794,7 @@ class PhonikSNCListener:
                 heartbeat_task = asyncio.create_task(self._heartbeat_loop(writer))
                 rdss_poll_task = asyncio.create_task(self._rdss_poll_loop(writer))
                 watchdog_task = asyncio.create_task(self._watchdog_loop(writer))
+                reconnect_request_task = asyncio.create_task(self._reconnect_request_loop(writer))
 
                 while self.is_running:
                     chunk = await reader.read(4096)
@@ -784,7 +821,7 @@ class PhonikSNCListener:
                 await asyncio.sleep(5)
             finally:
                 # ยกเลิกและเคลียร์ Background Tasks ให้เรียบร้อย
-                for task in (heartbeat_task, rdss_poll_task, watchdog_task):
+                for task in (heartbeat_task, rdss_poll_task, watchdog_task, reconnect_request_task):
                     if task and not task.done():
                         task.cancel()
                         try:

@@ -125,6 +125,7 @@ curl -s http://localhost:8000/health
 - 💾 **SQLite WAL** + auto-backup (cron) + offsite backup
 - 🔐 **Secret Manager** บน GCP (ไม่ใช้ plaintext env) — ADR 0005
 - 🔄 **Token/Key Rotation Guide** — [`SNC_API_KEY_ROTATION_GUIDE.md`](doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md) · [`SNC_TELEGRAM_ROTATION_GUIDE.md`](doc/wiki/SNC_TELEGRAM_ROTATION_GUIDE.md)
+- 🧩 **Optional Intelligence Plugin** — เปิด routes ด้วย `SNC_INTELLIGENCE_ENABLED=true`; ค่าเริ่มต้นปิดเพื่อรักษา Core-only mode
 
 ---
 
@@ -140,6 +141,7 @@ curl -s http://localhost:8000/health
 | [0006](doc/adr/0006-broker-dual-pi.md) | (อนาคต) Broker + Dual Pi |
 | [0007](doc/adr/0007-nomenclature-separation.md) | แยกชื่อ SNC ออกจาก Hotel-ECS |
 | [0008](doc/adr/0008-system-topology-interconnection.md) | โครงสร้างความเชื่อมโยงทั้งระบบ |
+| [0011](doc/adr/0011-snc-intelligence-module.md) | SNC Intelligence Module — Ops Self-Healing นอก Critical Path |
 
 ---
 
@@ -149,6 +151,7 @@ curl -s http://localhost:8000/health
 - 🚀 [**DEPLOYMENT_PI4.md**](doc/DEPLOYMENT_PI4.md) — คู่มือ Deploy บน Pi 4
 - 📐 [**ARCHITECTURE_FLOW.md**](doc/ARCHITECTURE_FLOW.md) — ผังสถาปัตยกรรม (Mermaid)
 - 📖 [**doc/INDEX.md**](doc/INDEX.md) — สารบัญความรู้ทั้งหมด
+- 🤖 [**SNC_INTELLIGENCE_MODULE_GUIDE.md**](doc/wiki/SNC_INTELLIGENCE_MODULE_GUIDE.md) — คู่มือ SNC Intelligence Module เฟสที่ 1–3
 
 ---
 

@@ -35,6 +35,7 @@ tags: [index, snc, toc]
 - **Cloud Run Incident (data loss)**: [[SNC_CLOUDRUN_DATALOSS_INCIDENT_2026-08-25]]
 - **Telegram Alerts**: [[SNC_TELEGRAM_ALERTS]]
 - **Health & Monitoring (3 ชั้น)**: [[SNC_HEALTH_MONITORING]] — /health schema + เมนูตรวจระบบ + alert/dedupe/recovery
+- **SNC Intelligence Module**: [[SNC_INTELLIGENCE_MODULE_GUIDE]] — Ops Self-Healing เฟสที่ 1 และ Safe Execution Gate
 - **Email / SMTP Contact Alerts**: [[SNC_SMTP_EMAIL_SETUP]]
 
 ### 📡 PBX / Listener
@@ -73,6 +74,7 @@ tags: [index, snc, toc]
 | [[0008-system-topology-interconnection|0008]] | โครงสร้างความเชื่อมโยงทั้งระบบ (topology) |
 | [[0009-opencode-agent-tunnel|0009]] | แยก OpenCode agent + tunnel เฉพาะกิจ |
 | [[0010-websocket-heartbeat|0010]] | WebSocket heartbeat (ping/pong) ตรวจจับสายค้าง |
+| [[0011-snc-intelligence-module|0011]] | SNC Intelligence Module — Non-Critical Autonomous Operations |
 
 ---
 

@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import os
 import pathlib
 import sys
@@ -53,6 +54,29 @@ _route_registry = RouteRegistry()
 gemini_service = GeminiDirectService()
 store = get_store()
 app = FastAPI(title="Smart Nurse Call (SNC) Backend API", version="1.0.0")
+
+# Optional plugin loader: the deterministic Core must not import Intelligence by default.
+SNC_INTELLIGENCE_ENABLED = os.getenv("SNC_INTELLIGENCE_ENABLED", "false").strip().lower() in {
+    "1", "true", "yes", "on"
+}
+
+
+def _load_intelligence_plugin() -> bool:
+    """Register Intelligence routes only when explicitly enabled."""
+    if not SNC_INTELLIGENCE_ENABLED:
+        logging.info("SNC Intelligence Module disabled (SNC_INTELLIGENCE_ENABLED=false)")
+        return False
+    try:
+        plugin = importlib.import_module("services.intelligence.routes")
+        app.include_router(plugin.create_router(store))
+        logging.info("SNC Intelligence Module routes enabled")
+        return True
+    except (ImportError, AttributeError, ValueError) as exc:
+        logging.warning("SNC Intelligence Module unavailable; Core continues: %s", exc)
+        return False
+
+
+_intelligence_loaded = _load_intelligence_plugin()
 
 # ป้องกันเบราว์เซอร์/Cloudflare แคชหน้า HTML (ให้แก้บทความเห็นผลทันที)
 @app.middleware("http")
