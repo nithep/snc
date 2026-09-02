@@ -269,10 +269,10 @@ systemctl is-active snc-backend.service snc-pbx-listener.service || true
 echo "--- health ---"
 curl -s --max-time 5 http://localhost:8000/health; echo
 echo "--- dashboard markers ---"
-FTS_V2=$(grep -cE "Math\.min\(1\.3|usableHf|--scale-origin" "${REMOTE_ROOT}/app/index.html" 2>/dev/null || true)
-echo "fitToScreen v2 markers: ${FTS_V2:-0} (คาดหวัง >= 3)"
-if [ "${FTS_V2:-0}" -eq 0 ]; then
-  echo "WARN: ไม่พบ marker fitToScreen v2 — app/index.html บน Pi อาจยังเป็นเวอร์ชันเก่า"
+FTS_STABLE=$(grep -cE "Math\.min\(2, vw / natW, vh / natH" "${REMOTE_ROOT}/app/index.html" 2>/dev/null || true)
+echo "fitToScreen stable markers: ${FTS_STABLE:-0} (คาดหวัง >= 1)"
+if [ "${FTS_STABLE:-0}" -eq 0 ]; then
+  echo "WARN: ไม่พบ marker fitToScreen stable — app/index.html บน Pi อาจยังเป็นเวอร์ชันเก่า (kiosk v2)"
 fi
 curl -s --max-time 5 http://localhost:8000/ | grep -o "<title>[^<]*</title>" || true
 echo "--- recent backend errors ---"

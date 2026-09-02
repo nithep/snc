@@ -1610,13 +1610,9 @@ function fitToScreen() {
   if (!natW || !natH) return;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const wvH = window.visualViewport && window.visualViewport.height || vh;
   // scale ลงเพื่อให้พอดีจอเสมอ (scale > 1 อนุญาตเฉพาะจอใหญ่ เช่น TV 4K แต่จำกัดไม่ให้เบลอเกินไป)
-  const usableHf = Math.min(wvH, vh - 48);
-  const compositeScale = Math.min(1.3, vw / natW, usableHf / natH);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  el.style.transform = 'scale(' + compositeScale + ')';
-  el.style.transformOrigin = 'var(--scale-origin, top center)';
+  const scale = Math.min(2, vw / natW, vh / natH);
+  el.style.transform = 'scale(' + scale + ')';
 }
 // เนื้อหาเปลี่ยนขนาด (โหลดห้อง/Banner/AI panel) หรือ viewport เปลี่ยน → ปรับ scale ใหม่
 if (typeof ResizeObserver !== 'undefined') {
