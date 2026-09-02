@@ -5,7 +5,7 @@
 # สคริปต์นี้ deploy ไฟล์ SNC Backend ขึ้น Pi 4 แบบจบครบในคำสั่งเดียว:
 #   1) Preflight ตรวจความพร้อม (ไฟล์ local, SSH ถึง Pi)
 #   2) Drift check — เตือนหากไฟล์บน Pi มีการแก้ไขหน้างาน (กันทับของ)
-#   3) Backup ไฟล์เดิมบน Pi (timestamp) ไว้ย้อนกลับ
+#   3) Backup ไฟล์เดิมบน Pi (timestamp) + retention เก็บล่าสุด 2 ไฟล์ต่อไฟล์ ไว้ย้อนกลับ
 #   4) scp ไฟล์ขึ้น Pi
 #   5) ตรวจสอบ md5 ตรงกัน (รับประกัน integrity ของไฟล์ที่ส่ง)
 #   6) Restart snc-backend.service (systemd)
@@ -176,15 +176,20 @@ BACKUP_PREFIX="$$REMOTE_BASE/server.py.bak.$TS"
 
 if [ "$DRY_RUN" -eq 1 ]; then
   info "(dry-run) ssh $PI_HOST cp server.py server.py.bak.$TS + index.html.bak.$TS"
+  info "(dry-run) prune *.bak.* เก่าเกิน 2 ไฟล์ต่อไฟล์"
   ok "Backup ชื่อ: *.bak.$TS"
 else
   ssh "${SSH_OPTS[@]}" "$PI_HOST" "set -e
 for f in server.py ../app/index.html ../pbx/snc_pbx_listener.py; do
   [ -f \"$REMOTE_BASE/\$f\" ] && cp \"$REMOTE_BASE/\$f\" \"$REMOTE_BASE/\$f.bak.$TS\"
 done
+# retention: เก็บ backup ล่าสุด 2 ไฟล์ต่อไฟล์ (ไฟล์ใหม่ที่เพิ่ง copy ถูกนับรวม)
+for p in \"$REMOTE_BASE/server.py\" \"$REMOTE_BASE/../app/index.html\" \"$REMOTE_BASE/../pbx/snc_pbx_listener.py\"; do
+  ls -t \"\$p\".bak.* 2>/dev/null | tail -n +3 | xargs -r rm -f
+done
 ls -la $REMOTE_BASE/*.bak.$TS 2>/dev/null || echo '(no backup files found)'" \
     || die "Backup บน Pi ล้มเหลว"
-  ok "Backup สำเร็จ: *.bak.$TS"
+  ok "Backup สำเร็จ: *.bak.$TS (retention: เก็บล่าสุด 2 ไฟล์ต่อไฟล์)"
 fi
 
 # ============================================================================
