@@ -916,6 +916,24 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
   - Core PBX Listener และ Real-time Alerting Engine ยังคงทำงานสมบูรณ์ 100% โดยไม่หยุดชะงัก
 - **สถานะ:** ✅ เสร็จสิ้นกระบวนการ Staged Deployment พร้อมใช้งาน API & Dashboard Insights บน Production
 
+## [2026-09-03] Kiosk Fit-to-Screen v2 + Deploy Script Hardening (Verify Markers + Backup Retention)
+
+**ผู้ดำเนินการ:** Senior Software Engineer (Buffy — Freebuff Agent)
+
+**รายละเอียด:**
+- **Fit-to-Screen v2 บน Dashboard (`app/index.html`):**
+  - รวม kiosk layout เข้า `body` (`100dvh` + `overflow: hidden`) แทน `#appScale` CSS แยก (ลบ duplicate block) — พร้อม media queries ใหม่ 1360px/640px/480px และ max-height 760px
+  - `fitToScreen()` ใช้ `visualViewport.height` + cap composite scale ที่ 1.3 (กัน blur บนจอใหญ่) + `transform-origin` อ่านจาก CSS var `--scale-origin`
+  - Smart Insight Panel แสดง HTTP status/message เมื่อโหลด `/api/intelligence/clinical` ล้มเหลว (debug ง่ายขึ้น)
+  - Deploy ขึ้น Pi4 สำเร็จ (commit `3c4463f`) — ตรวจสอบ live ด้วย headless Chrome: 31 room cards render ครบ, `scale(0.37465)` ที่ 1920×1080 (พอดิบพอดี 1 หน้าจอ ไม่ต้อง scroll)
+- **Deploy Script Hardening (`ops/deploy-snc-one-shot.sh`):**
+  - Step 7 verify: เปลี่ยน grep `"SNC v2.0"` (หมดอายุ — นับ 0 เสมอ) เป็น marker fitToScreen v2 (`Math.min(1.3` / `usableHf` / `--scale-origin`) พร้อม WARN เมื่อไม่พบ → จับกรณีไฟล์บน Pi เป็นเวอร์ชันเก่า (commit `7c5c696`)
+  - Step 3 backup: เพิ่ม **retention เก็บล่าสุด 2 ไฟล์ต่อไฟล์** (`ls -t | tail -n +3 | rm`) — เดิม deploy แต่ละครั้งสะสม backup ใหม่เรื่อย ๆ (พบจริง 27 ไฟล์) — ไฟล์อื่น เช่น `storage.py.bak`, `.env.bak` ไม่ถูกแตะ (commit `13d2532`)
+  - ทำ general cleanup บน Pi ก่อนติดตั้ง retention: prune `*.bak.*` 27 → 9 ไฟล์
+- **การซิงค์:** push ครบทั้ง 3 commits ขึ้น GitHub (`origin/main`) — รวม `1156f59` (Intelligence) ที่ค้างบนเครื่อง; ตรวจ e2e deploy รอบสุดท้าย: md5 ตรงกัน, markers 3/3, services `active,active`, tunnel `/health` healthy
+- **เอกสาร:** [ADR 0012](doc/adr/0012-deploy-verify-markers-backup-retention.md) + [[SESSION_HANDOVER_2026-09-03]]
+- **สถานะ:** ✅ Live บน snc.nithep.com = local = GitHub — พร้อมกลไกกัน drift ในอนาคต
+
 
 
 

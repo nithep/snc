@@ -57,7 +57,7 @@ tags: [index, snc, toc]
 ### 📅 Timeline & Handover
 - **ไทม์ไลน์เต็ม**: [[project_timeline]]
 - **Index Timeline (ย่อ)**: [[INDEX_TIMELINE]]
-- **Handover ล่าสุด**: [[SESSION_HANDOVER_2026-08-16]] · [[SESSION_HANDOVER_2026-08-15]] · [[SESSION_HANDOVER_2026-08-13]]
+- **Handover ล่าสุด**: [[SESSION_HANDOVER_2026-09-03]] · [[SESSION_HANDOVER_2026-09-02]] · [[SESSION_HANDOVER_2026-09-01]]
 
 ---
 
@@ -75,6 +75,7 @@ tags: [index, snc, toc]
 | [[0009-opencode-agent-tunnel|0009]] | แยก OpenCode agent + tunnel เฉพาะกิจ |
 | [[0010-websocket-heartbeat|0010]] | WebSocket heartbeat (ping/pong) ตรวจจับสายค้าง |
 | [[0011-snc-intelligence-module|0011]] | SNC Intelligence Module — Non-Critical Autonomous Operations |
+| [[0012-deploy-verify-markers-backup-retention|0012]] | Deploy Verify Markers + Backup Retention |
 
 ---
 

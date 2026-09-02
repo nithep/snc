@@ -56,12 +56,16 @@ tags: [knowledge]
 - **26 ส.ค.** — คู่มือ Workflow 5 ขั้น (สร้าง→จำลอง→ดู→Commit→Deploy) + Source Tagging `demo|real` → [[SNC_DEVELOPMENT_WORKFLOW_GUIDE|Workflow Guide]]
 - **26 ส.ค.** — **Mode Isolation ฉบับ File-based**: `app/demo.html` (Simulation Bar: STA/ห้องน้ำ/Ack/Clear + Fast SLA Test ลูปอัตโนมัติ) แยกจาก `index.html` (Production ถาวร), CTA Landing/ROI ชี้ `demo.html`, ผ่าน smoke test วงจร SLA + isolation + WS filter
 
+### 🖥️ Kiosk v2 & Deploy Hardening (2–3 ก.ย. 2569)
+- **2 ก.ย.** — SNC Intelligence Module (Phase 1–3) deploy แบบ Staged Rollout + Monitoring ใหม่ (`/health` ราย service + Telegram dedupe/recovery) → [[SESSION_HANDOVER_2026-09-02|Handover 2 ก.ย.]]
+- **3 ก.ย.** — **Kiosk Fit-to-Screen v2** (visualViewport + cap scale 1.3 + media queries) ขึ้น Production พร้อม deploy script hardening: verify markers v2 (จับไฟล์เก่าบน Pi) + backup retention 2 ไฟล์ต่อไฟล์ (เดิมสะสม 27 ไฟล์) → [[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]] · [[0012-deploy-verify-markers-backup-retention|ADR 0012]]
+
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
-- **[[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]]** — ล่าสุด: Dashboard Overhaul + Real/Demo Separation + As-built PBX Mapping
-- **[[SESSION_HANDOVER_2026-08-23|Handover 23 ส.ค.]]** — Pi4 Cleanup + SHC/SNC Separation
-- **[[SESSION_HANDOVER_2026-08-16|Handover 16 ส.ค.]]** — Cloud Run + Firestore + Monitoring
+- **[[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]]** — ล่าสุด: Kiosk Fit-to-Screen v2 + Deploy Script Hardening
+- **[[SESSION_HANDOVER_2026-09-02|Handover 2 ก.ย.]]** — Monitoring ใหม่: /health ราย service + Telegram Menu + Dedupe/Recovery
+- **[[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]]** — Dashboard Overhaul + Real/Demo Separation + As-built PBX Mapping
 
 > ⚠️ **อ่านเฉพาะ handover ล่าสุด** สำหรับงาน Ops/Deploy — handover เก่าครอบคลุมหัวข้ออื่น ให้ดูเฉพาะเมื่อต้องการย้อนประวัติ
 
