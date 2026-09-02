@@ -52,13 +52,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-/* ขนาดพอดี 1 หน้าจอ (kiosk mode) — เนื้อหาทั้งหมดถูก scale ให้อยู่ใน viewport โดยไม่ต้อง scroll */
-#appScale {
-  display: flex;
-  flex-direction: column;
-  transform-origin: top center;
-  will-change: transform;
+  /* ขนาดพอดี 1 หน้าจอ (kiosk mode) — เนื้อหาทั้งหมดถูก scale ให้อยู่ใน viewport โดยไม่ต้อง scroll */
 }
 body.has-emergency { background: radial-gradient(1200px 600px at 85% -10%, rgba(239,68,68,.16), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,.10), transparent 55%), linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2)); }
 a { color: var(--blue); }
@@ -423,11 +417,38 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-@media (max-width: 640px) {
+@media (max-width: 1360px) {
   main { padding: 1rem; }
   .brand h1 { font-size: 0.98rem; }
   .header-clock { display: none; }
   .section-head { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 640px) {
+  main { padding: 0.85rem; }
+  .brand h1 { font-size: 0.92rem; }
+  .brand p { font-size: 0.7rem; }
+  .section-title { font-size: 0.95rem; }
+  .kpi-card { padding: 0.8rem; }
+  .kpi-value { font-size: 1.35rem; }
+  .room-card { padding: 0.95rem; }
+  .room-no { font-size: 1.3rem; }
+  .room-timer .t { font-size: 1.2rem; }
+  .btn { font-size: 0.8rem; padding: 0.5rem; }
+}
+@media (max-width: 480px) {
+  #emergencyBanner { padding: 0.7rem 1rem; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .kpi-card { padding: 0.7rem; }
+  .kpi-value { font-size: 1.2rem; }
+  .room-grid { grid-template-columns: 1fr; }
+}
+@media (max-height: 760px) {
+  main { gap: 0.8rem; padding: 0.8rem; }
+  section.glass { padding: 0.85rem 1rem; }
+  .room-card { padding: 0.9rem; }
+  .kpi-card { padding: 0.7rem; }
+  .kpi-value { font-size: 1.3rem; }
+  #emergencyBanner { padding: 0.6rem 1rem; }
 }
 </style>
 </head>
@@ -918,6 +939,7 @@ async function loadKpi() {
 let clinicalInsight = null;
 async function loadClinicalInsights() {
   const state = document.getElementById('insightState');
+  const content = document.getElementById('insightContent');
   if (state) { state.textContent = t('insightLoading'); state.className = 'insight-state loading'; }
   try {
     clinicalInsight = await apiGet('/api/intelligence/clinical?window_hours=24');
@@ -925,8 +947,11 @@ async function loadClinicalInsights() {
   } catch (err) {
     console.warn('loadClinicalInsights failed:', err);
     clinicalInsight = null;
-    const content = document.getElementById('insightContent');
-    if (content) content.innerHTML = '<div class="insight-badge warn"><span class="insight-icon">⚠️</span><div><strong>' + escapeHtml(t('insightUnavailable')) + '</strong><small>' + escapeHtml(t('insightReadOnly')) + '</small></div></div><div class="insight-callers"><span class="insight-empty">' + escapeHtml(t('insightUnavailable')) + '</span></div>';
+    if (content) {
+      const code = err && err.response && err.response.status ? err.response.status : 'NETWORK/CONFIG';
+      const msg = err && err.message ? err.message : 'unknown';
+      content.innerHTML = '<div class="insight-badge warn"><span class="insight-icon">⚠️</span><div><strong>' + escapeHtml(t('insightUnavailable')) + '</strong><small>' + escapeHtml(t('insightReadOnly')) + ' · ' + escapeHtml(code + ' / ' + msg) + '</small></div></div><div class="insight-callers"><span class="insight-empty">' + escapeHtml(t('insightUnavailable')) + '</span></div>';
+    }
     if (state) { state.textContent = t('insightUnavailable'); state.className = 'insight-state warn'; }
   }
 }
@@ -1585,9 +1610,13 @@ function fitToScreen() {
   if (!natW || !natH) return;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const wvH = window.visualViewport && window.visualViewport.height || vh;
   // scale ลงเพื่อให้พอดีจอเสมอ (scale > 1 อนุญาตเฉพาะจอใหญ่ เช่น TV 4K แต่จำกัดไม่ให้เบลอเกินไป)
-  const scale = Math.min(2, vw / natW, vh / natH);
-  el.style.transform = 'scale(' + scale + ')';
+  const usableHf = Math.min(wvH, vh - 48);
+  const compositeScale = Math.min(1.3, vw / natW, usableHf / natH);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  el.style.transform = 'scale(' + compositeScale + ')';
+  el.style.transformOrigin = 'var(--scale-origin, top center)';
 }
 // เนื้อหาเปลี่ยนขนาด (โหลดห้อง/Banner/AI panel) หรือ viewport เปลี่ยน → ปรับ scale ใหม่
 if (typeof ResizeObserver !== 'undefined') {
@@ -1597,7 +1626,6 @@ window.addEventListener('resize', fitToScreen);
 window.addEventListener('orientationchange', fitToScreen);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen);
 
-/* ═══════════════════════════ Clock ═══════════════════════════ */
 setInterval(() => { document.getElementById('clock').textContent = formatClock(new Date()); }, 1000);
 
 /* ═══════════════════════════ Wire up events ═══════════════════════════ */
