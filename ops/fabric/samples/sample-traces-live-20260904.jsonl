@@ -1,0 +1,8 @@
+{"ts": "2026-08-24T23:26:37.404501", "event_type": "CALL_BEDSIDE", "room_id": "0400", "status": "resolved", "ack_seconds": 9, "resolution_seconds": 14, "sla_breached": false, "source": "real"}
+{"ts": "2026-08-25T00:02:32.427643", "event_type": "CALL_BEDSIDE", "room_id": "0400", "status": "resolved", "ack_seconds": 146, "resolution_seconds": 146, "sla_breached": false, "source": "demo"}
+{"ts": "2026-08-25T15:44:24.328359", "event_type": "CALL_BEDSIDE", "room_id": "0400", "status": "resolved", "ack_seconds": 221, "resolution_seconds": 259, "sla_breached": true, "source": "demo"}
+{"ts": "2026-08-25T15:44:26.889490", "event_type": "CALL_BATHROOM_EMERGENCY", "room_id": "0400", "status": "resolved", "ack_seconds": 221, "resolution_seconds": 259, "sla_breached": true, "source": "demo"}
+{"ts": "2026-08-26T18:33:53.573745", "event_type": "CALL_BEDSIDE", "room_id": "1105", "status": "resolved", "ack_seconds": null, "resolution_seconds": 47, "sla_breached": false, "source": "real"}
+{"ts": "2026-08-26T18:33:54.124545", "event_type": "CALL_BEDSIDE", "room_id": "1100", "status": "resolved", "ack_seconds": null, "resolution_seconds": 11, "sla_breached": false, "source": "real"}
+{"ts": "2026-08-30T17:57:58.626941", "event_type": "CALL_BEDSIDE", "room_id": "1106", "status": "resolved", "ack_seconds": 598, "resolution_seconds": 600, "sla_breached": true, "source": "real"}
+{"ts": "2026-08-30T17:58:19.249723", "event_type": "CALL_BEDSIDE", "room_id": "1107", "status": "resolved", "ack_seconds": 1, "resolution_seconds": 183414, "sla_breached": true, "source": "demo"}

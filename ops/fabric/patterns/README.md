@@ -65,6 +65,7 @@ cat sample.jsonl | fabric --dry-run -p snc-trace-summary
 ## 📄 ไฟล์ตัวอย่าง
 
 - `../samples/sample-traces-20260903.jsonl` — traces สังเคราะห์ Non-PHI สำหรับทดสอบ pattern (dry-run / smoke test)
+- `../samples/sample-traces-live-20260904.jsonl` — ตัวอย่าง traces จริง (Non-PHI whitelist) จาก DB บน Pi 2026-08-24 → 08-30 (8 rows: breach + non-breach, CALL_BEDSIDE + CALL_BATHROOM_EMERGENCY, source real/demo) — อ้างอิงการทำงานจริง ใช้แทน synthetic ได้
 
 ## Conventions
 

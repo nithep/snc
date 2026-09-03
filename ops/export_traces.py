@@ -94,7 +94,12 @@ def compute_stats(records: list) -> dict:
     acks = [r["ack_seconds"] for r in records if r.get("ack_seconds") is not None]
     res = [r["resolution_seconds"] for r in records if r.get("resolution_seconds") is not None]
 
+    period = None
+    if records:
+        period = {"first": records[0]["ts"], "last": records[-1]["ts"]}
+
     return {
+        "period": period,
         "total_events": len(records),
         "events_by_type": dict(by_type),
         "sla_breach_count": len(breaches),
