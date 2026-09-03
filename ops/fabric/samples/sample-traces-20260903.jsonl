@@ -1,0 +1,12 @@
+{"ts":"2026-09-03T07:58:12Z","event_type":"CALL_BEDSIDE","room_id":"0401","room_group":"Ward-A","ack_seconds":45,"resolution_seconds":190,"sla_breached":true}
+{"ts":"2026-09-03T08:02:40Z","event_type":"CALL_CLEARED","room_id":"0401","room_group":"Ward-A","ack_seconds":null,"resolution_seconds":null,"sla_breached":false}
+{"ts":"2026-09-03T08:15:03Z","event_type":"CALL_BEDSIDE","room_id":"0312","room_group":"Ward-A","ack_seconds":12,"resolution_seconds":88,"sla_breached":false}
+{"ts":"2026-09-03T08:15:22Z","event_type":"CALL_BATHROOM_EMERGENCY","room_id":"0312","room_group":"Ward-A","ack_seconds":8,"resolution_seconds":45,"sla_breached":false}
+{"ts":"2026-09-03T08:31:55Z","event_type":"CALL_BEDSIDE","room_id":"0401","room_group":"Ward-A","ack_seconds":38,"resolution_seconds":201,"sla_breached":true}
+{"ts":"2026-09-03T09:04:11Z","event_type":"CALL_BEDSIDE","room_id":"0522","room_group":"Ward-B","ack_seconds":9,"resolution_seconds":64,"sla_breached":false}
+{"ts":"2026-09-03T09:04:30Z","event_type":"CALL_BATHROOM_EMERGENCY","room_id":"0522","room_group":"Ward-B","ack_seconds":6,"resolution_seconds":39,"sla_breached":false}
+{"ts":"2026-09-03T10:22:48Z","event_type":"CALL_BEDSIDE","room_id":"0522","room_group":"Ward-B","ack_seconds":52,"resolution_seconds":240,"sla_breached":true}
+{"ts":"2026-09-03T10:40:02Z","event_type":"CALL_BEDSIDE","room_id":"0410","room_group":"Ward-A","ack_seconds":15,"resolution_seconds":102,"sla_breached":false}
+{"ts":"2026-09-03T11:07:33Z","event_type":"CALL_BEDSIDE","room_id":"0312","room_group":"Ward-A","ack_seconds":41,"resolution_seconds":185,"sla_breached":true}
+{"ts":"2026-09-03T11:08:01Z","event_type":"CALL_BATHROOM_EMERGENCY","room_id":"0312","room_group":"Ward-A","ack_seconds":7,"resolution_seconds":52,"sla_breached":false}
+{"ts":"2026-09-03T12:45:19Z","event_type":"CALL_BEDSIDE","room_id":"0522","room_group":"Ward-B","ack_seconds":18,"resolution_seconds":121,"sla_breached":false}

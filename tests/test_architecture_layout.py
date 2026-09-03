@@ -15,10 +15,20 @@ def test_service_portal_has_expected_menu():
     portal = REPO / "surfaces" / "gui" / "service_portal.html"
     assert portal.is_file()
     text = portal.read_text(encoding="utf-8")
+    # Portal เป็น dynamic — รายการโหลด (platform) มาจาก GET /api/downloads
+    # (ดู packaging/download_manifest.json) ไม่ได้ hardcode ใน HTML แล้ว
     assert "Downloads & Service Portal" in text
-    assert "macOS" in text
-    assert "Windows" in text
-    assert "Raspberry Pi OS" in text
+    assert "GET /api/downloads" in text
+    assert "GitHub Releases" in text
+
+
+def test_download_manifest_covers_platforms():
+    import json
+    manifest_path = REPO / "packaging" / "download_manifest.json"
+    assert manifest_path.is_file()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # manifest เป็น source ของ platform ใน portal — ต้องครบทั้ง 3 (macOS/Windows/Pi)
+    assert set(manifest["platforms"].keys()) == {"macOS", "Windows", "Raspberry Pi OS"}
 
 
 def test_packaging_has_dist_manifest():

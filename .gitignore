@@ -46,6 +46,14 @@ contacts.jsonl
 pbx/*.outbox.jsonl
 pbx/outbox*.jsonl
 
+# Non-PHI trace dumps — runtime artifacts สำหรับ Fabric distillation (ADR 0013)
+# เก็บเฉพาะ README.md ในไดเรกทอรี ส่วนเนื้อหา traces ไม่ commit (กัน repo โต)
+ops/raw/*
+!ops/raw/README.md
+
+# Fabric nightly drafts — รอ Human Review (ADR 0013) ห้าม commit อัตโนมัติ
+ops/fabric/drafts/
+
 # Python cache & compiled bytecode
 __pycache__/
 *.py[cod]

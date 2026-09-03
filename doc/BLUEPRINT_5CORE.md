@@ -53,6 +53,8 @@ project-root/
 │   ├── monitor*.sh         # Health monitoring
 │   ├── setup*.sh           # Initial setup / provisioning
 │   ├── *.service           # systemd unit files
+│   ├── fabric/patterns/    # Fabric Patterns — กลั่นความรู้จาก traces (ADR 0013)
+│   ├── raw/                # Non-PHI trace dumps (gitignored, ADR 0013)
 │   └── cron/               # Scheduled tasks
 │
 └── doc/                    # 🟣 Core 5: Documentation
@@ -62,8 +64,9 @@ project-root/
     ├── DEPLOYMENT.md       # Deployment guide
     ├── API.md              # API reference
     ├── USER_GUIDE.md       # End-user manual
-    ├── adr/                # Architecture Decision Records (ADR 0001-0006)
-    └── wiki/               # Knowledge base
+    ├── adr/                # Architecture Decision Records (ADR 0001-0013)
+    ├── wiki/               # Knowledge base
+    └── playbooks/          # Skills Layer — SOPs & Action Guides (human-approved, ADR 0013)
 ```
 
 ---
