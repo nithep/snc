@@ -234,40 +234,42 @@ section.glass {
 .stat-chip.st-ack { color: #fde68a; border-color: rgba(245,158,11,.5); background: var(--amber-soft); }
 
 /* ═══════════════ Room Cards ═══════════════ */
-.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1rem; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.95rem; }
 .room-card {
   position: relative; overflow: hidden;
   background: var(--card);
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
-  padding: 1.1rem 1.15rem 1rem;
-  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-  display: flex; flex-direction: column; gap: 0.65rem;
+  padding: 1rem 1.1rem 0.95rem;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), border-color .2s ease, box-shadow .2s ease;
+  display: flex; flex-direction: column; gap: 0.6rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
-.room-card:hover { transform: translateY(-3px); }
+.room-card:hover { transform: translateY(-3px); border-color: var(--stroke-strong); box-shadow: 0 14px 30px -10px rgba(0,0,0,0.5); }
 .room-card.st-normal { border-left: 3px solid var(--green); }
 .room-card.st-emergency {
   border: 1px solid rgba(239,68,68,.65);
-  background: linear-gradient(160deg, rgba(239,68,68,.14), rgba(239,68,68,.03) 55%, var(--card));
+  background: linear-gradient(160deg, rgba(239,68,68,.16), rgba(239,68,68,.04) 55%, var(--card));
   animation: cardFlash 1.1s ease-in-out infinite;
 }
 .room-card.st-ack {
   border: 1px solid rgba(245,158,11,.55);
-  background: linear-gradient(160deg, rgba(245,158,11,.12), rgba(245,158,11,.02) 55%, var(--card));
+  background: linear-gradient(160deg, rgba(245,158,11,.14), rgba(245,158,11,.03) 55%, var(--card));
 }
 @keyframes cardFlash { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.35);} 50% { box-shadow: 0 0 26px 2px rgba(239,68,68,.45);} }
 .room-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
-.room-no { font-size: 1.55rem; font-weight: 800; letter-spacing: 0.3px; line-height: 1; }
-.room-badge { font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 8px; letter-spacing: .3px; white-space: nowrap; }
-.b-normal { color: var(--green); background: var(--green-soft); }
-.b-emergency { color: #fca5a5; background: var(--red-soft); animation: badgeBlink .8s ease-in-out infinite; }
-.b-ack { color: #fde68a; background: var(--amber-soft); }
+.room-no { font-size: 1.28rem; font-weight: 700; letter-spacing: 0.4px; line-height: 1.1; color: var(--text); }
+.room-badge { font-size: 0.68rem; font-weight: 700; padding: 0.28rem 0.55rem; border-radius: 8px; letter-spacing: .3px; white-space: nowrap; }
+.b-normal { color: var(--green); background: var(--green-soft); border: 1px solid rgba(16,185,129,.25); }
+.b-emergency { color: #fca5a5; background: var(--red-soft); border: 1px solid rgba(239,68,68,.35); animation: badgeBlink .8s ease-in-out infinite; }
+.b-ack { color: #fde68a; background: var(--amber-soft); border: 1px solid rgba(245,158,11,.35); }
 @keyframes badgeBlink { 50% { opacity: .55; } }
-.room-type { display: inline-flex; align-items: center; gap: .35rem; font-size: 0.76rem; color: var(--text-dim); font-weight: 500; }
-.room-timer { display: flex; align-items: baseline; gap: 0.5rem; }
+.room-type { display: inline-flex; align-items: center; gap: .35rem; font-size: 0.74rem; color: var(--text-dim); font-weight: 500; }
+.room-timer { display: flex; align-items: baseline; gap: 0.45rem; }
 .room-timer .t {
-  font-family: var(--mono); font-size: 1.5rem; font-weight: 600;
-  font-variant-numeric: tabular-nums; letter-spacing: 1px;
+  font-family: var(--mono); font-size: 1.38rem; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: 0.5px;
 }
 .room-card.st-emergency .room-timer .t { color: #fca5a5; }
 .room-card.st-ack .room-timer .t { color: #fde68a; }
@@ -342,8 +344,8 @@ tbody tr.row-breach { background: rgba(239,68,68,0.05); }
 .badge-sla.breach { background: var(--red-soft); color: #fca5a5; }
 .badge-room {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 54px; padding: 0.34rem 0.6rem; border-radius: 9px;
-  font-family: var(--mono); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px;
+  min-width: 50px; padding: 0.28rem 0.55rem; border-radius: 8px;
+  font-family: var(--mono); font-size: 0.88rem; font-weight: 700; letter-spacing: 0.4px;
 }
 .badge-room.st-active { background: var(--red-soft); color: #fca5a5; border: 1px solid rgba(239,68,68,.45); }
 .badge-room.st-ack { background: var(--amber-soft); color: #fde68a; border: 1px solid rgba(245,158,11,.45); }
