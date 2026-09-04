@@ -196,6 +196,20 @@ else
 fi
 
 # ── Step 5: Human Review checklist ────────────────────────────────────────────
+# ตรวจ wikilink อัตโนมัติ (deterministic — ไม่ผ่าน LLM) กัน broken link เข้า vault
+# (บทเรียน live run 2026-09-05: [[สัญญา SLA]] / [[SNC_STATUS_LOG]] ไม่มีใน vault)
+WIKI_BROKEN=""
+if [ -n "$WIKI_FILE" ] && [ -n "${VAULT_INVENTORY:-}" ]; then
+  VAULT_BASES="$(printf '%s\n' "$VAULT_INVENTORY" | sed 's/\.md$//')"
+  while IFS= read -r link; do
+    [ -z "$link" ] && continue
+    if ! printf '%s\n' "$VAULT_BASES" | grep -Fqx -- "$link"; then
+      WIKI_BROKEN="$WIKI_BROKEN ${link}"
+    fi
+  done <<WIKILINKS
+$(grep -oE '\[\[[^]]+\]\]' "$WIKI_FILE" | sed 's/^\[\[//;s/\]\]$//' | cut -d'|' -f1 | cut -d'#' -f1 | sort -u)
+WIKILINKS
+fi
 REVIEW_FILE="$DRAFTS_DIR/$STAMP-REVIEW.md"
 {
   echo "# 📋 Human Review — Knowledge Loop ${STAMP}"
@@ -208,6 +222,16 @@ REVIEW_FILE="$DRAFTS_DIR/$STAMP-REVIEW.md"
   echo "- **Summary:** \`${SUMMARY_FILE##*/}\` (ข้อมูลต้นทาง)"
   [ -n "$WIKI_FILE" ] && echo "- **Wiki draft:** \`${WIKI_FILE##*/}\` → review แล้ว copy ไป \`doc/wiki/\`"
   [ -n "$PLAYBOOK_FILE" ] && echo "- **Playbook draft:** \`${PLAYBOOK_FILE##*/}\` → review แล้ว copy ไป \`doc/playbooks/\`"
+  echo ""
+  echo "## ตรวจ wikilink อัตโนมัติ (wiki draft)"
+  if [ -z "$WIKI_FILE" ]; then
+    echo "- (ไม่มี wiki draft รอบนี้)"
+  elif [ -n "$WIKI_BROKEN" ]; then
+    echo "- ⚠ พบลิงก์ที่ไม่มีใน vault:$WIKI_BROKEN"
+    echo "  → ต้องแก้ก่อน merge: เปลี่ยนเป็น path ใน inline code หรือสร้างเอกสารปลายทางจริง (ห้าม merge broken link)"
+  else
+    echo "- ✅ ลิงก์ทั้งหมดชี้เอกสารที่มีจริงใน vault"
+  fi
   echo ""
   echo "## วิธีอนุมัติ (Manual — ยังไม่ automation)"
   echo ""

@@ -108,7 +108,7 @@ Live run แรกบน Pi (6 records, 1–3 ก.ย.) ตัวเลข SLA �
 
 1. อ่าน draft ใน `ops/fabric/drafts/` — ตรวจความถูกต้องกับข้อมูลจริง (ตัวเลข SLA ต้องตรงกับ `--stats`)
    - **ตรวจวันที่/ปีในชื่อเรื่องและเนื้อหา** — ต้องตรงกับ `period` ของ traces (กัน model เดาปี)
-   - **ตรวจ wikilink ทุกตัว** — ต้องมีไฟล์จริงใน vault (กัน broken link)
+   - **ตรวจ wikilink ทุกตัว** — สคริปต์ตรวจอัตโนมัติให้ใน `REVIEW.md` (ดูหัวข้อ "ตรวจ wikilink อัตโนมัติ") แต่ reviewer ควรยืนยันอีกชั้น — ต้องมีไฟล์จริงใน vault (กัน broken link)
 2. ถ้าผ่าน: ย้ายไฟล์ไป `doc/wiki/` (ตั้งชื่อ `SNC_<หัวข้อ>.md`) หรือ `doc/playbooks/` (ตั้งชื่อ `SCREAMING_SNAKE_CASE.md`) ตาม convention
 3. commit + PR → ทีม review อีกชั้น → merge (ไฟล์ใน `doc/playbooks/` เป็นทางการหลัง merge เท่านั้น)
 4. ถ้าไม่ผ่าน: แก้ pattern ใน `ops/fabric/patterns/` หรือทิ้ง draft (drafts/ ไม่ถูก track อยู่แล้ว)
