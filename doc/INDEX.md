@@ -28,6 +28,9 @@ tags: [index, snc, toc]
 
 ## 🔍 หัวข้อที่ควรศึกษา (โดยหมวด)
 
+### 🔄 Knowledge Loop (Vault Distillation)
+- **คู่มือใช้งาน Knowledge Loop**: [[SNC_KNOWLEDGE_LOOP_GUIDE]] — export traces → Fabric 3 patterns → draft → Human Review
+
 ### ⚙️ ระบบ & ปฏิบัติการ
 - **Deploy บน Pi4**: [[DEPLOYMENT_PI4]] · [[DEPLOYMENT_CHECKLIST]]
 - **Systemd Services**: [[SNC_SYSTEMD_SERVICES_SUMMARY]]

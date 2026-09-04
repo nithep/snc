@@ -27,7 +27,6 @@ SNC_ROOT="${SNC_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 EXPORT_DAYS="${EXPORT_DAYS:-1}"
 # FABRIC_VENDOR/FABRIC_MODEL default ตั้งใน block เลือก vendor (หลัง load_env)
 # — กันการ override ด้วยค่าเริ่มต้นก่อนตรวจจับชนิด key
-PYTHON_BIN="${PYTHON_BIN:-python3}"
 DRAFTS_DIR="$SNC_ROOT/ops/fabric/drafts"
 RAW_DIR="$SNC_ROOT/ops/raw"
 LOG_DIR="$SNC_ROOT/logs"
@@ -43,6 +42,23 @@ while [ "$#" -gt 0 ]; do
 done
 
 log() { echo "[nightly-kb-loop] $*"; }
+
+# ── เลือก Python อัตโนมัติ (ถ้าไม่ตั้ง PYTHON_BIN) ──────────────────────────────────
+# Windows/Git Bash: alias python3 มักเป็น Windows Store stub (rc≠0 เมื่อรันจริง)
+# — ทดสอบด้วยการรันจริง ไม่ใช่แค่ command -v กันชน stub
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [ -z "$PYTHON_BIN" ]; then
+  for _cand in python3 python /usr/bin/python3; do
+    if command -v "$_cand" >/dev/null 2>&1 && "$_cand" -c 'import sys' >/dev/null 2>&1; then
+      PYTHON_BIN="$_cand"
+      break
+    fi
+  done
+fi
+if [ -z "$PYTHON_BIN" ]; then
+  log "ERROR: ไม่พบ Python ที่ใช้งานได้ — ตั้ง PYTHON_BIN เช่น: PYTHON_BIN=python3 $0" >&2
+  exit 1
+fi
 
 # ── load env (GEMINI_API_KEY จาก api/.env — ไม่ print ค่า key) ───────────────
 load_env() {
