@@ -18,13 +18,15 @@
 #   ./nightly-kb-loop.sh --days 2         # ข้อมูล 2 วันที่ผ่านมา
 #   ./nightly-kb-loop.sh --dry-run        # ทดสอบเฉพาะขั้น export (ไม่เรียก Fabric)
 #
-# Env ที่ปรับได้: PYTHON_BIN, FABRIC_VENDOR, FABRIC_MODEL, EXPORT_DAYS, SNC_ROOT
+# Env ที่ปรับได้: PYTHON_BIN, FABRIC_VENDOR, FABRIC_MODEL, EXPORT_DAYS, TRACES_RETENTION_DAYS, SNC_ROOT
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SNC_ROOT="${SNC_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 EXPORT_DAYS="${EXPORT_DAYS:-1}"
+# เก็บ trace ไว้กี่วันก่อนลบ (ตามนโยบาย Non-PHI ของ ops/raw/ — ADR 0013)
+TRACES_RETENTION_DAYS="${TRACES_RETENTION_DAYS:-14}"
 # FABRIC_VENDOR/FABRIC_MODEL default ตั้งใน block เลือก vendor (หลัง load_env)
 # — กันการ override ด้วยค่าเริ่มต้นก่อนตรวจจับชนิด key
 DRAFTS_DIR="$SNC_ROOT/ops/fabric/drafts"
@@ -131,6 +133,17 @@ if [ "$EXPORT_RC" -ne 0 ] || [ ! -s "$TRACES_FILE" ]; then
 fi
 log "traces: $TRACES_FILE"
 
+# ── Step 1b: housekeeping — ลบ traces เก่าตาม retention (Non-PHI hygiene) ─────
+# ops/raw/ เก็บ trace dump ชั่วคราว ไม่ใช่ archive — ค่าเริ่มต้นเก็บ 14 วัน
+# ปิดได้ด้วย TRACES_RETENTION_DAYS=0 (ห้าม auto-delete)
+if [ "$TRACES_RETENTION_DAYS" -gt 0 ] 2>/dev/null; then
+  OLD_COUNT=$(find "$RAW_DIR" -name 'traces-*.jsonl' -mtime +"$TRACES_RETENTION_DAYS" 2>/dev/null | wc -l)
+  if [ "$OLD_COUNT" -gt 0 ]; then
+    find "$RAW_DIR" -name 'traces-*.jsonl' -mtime +"$TRACES_RETENTION_DAYS" -delete
+    log "housekeeping: ลบ traces ผ่านการใช้งานเกิน $TRACES_RETENTION_DAYS วันแล้ว $OLD_COUNT ไฟล์"
+  fi
+fi
+
 if [ "$DRY_RUN" -eq 1 ]; then
   log "DRY-RUN: ข้ามขั้น Fabric (จะรัน snc-trace-summary → snc-wiki-distill → snc-playbook-draft)"
   exit 0
@@ -155,7 +168,13 @@ log "summary: $SUMMARY_FILE"
 # ── Step 3: fabric snc-wiki-distill ───────────────────────────────────────────
 log "Step 3: fabric snc-wiki-distill → draft wiki"
 WIKI_FILE="$DRAFTS_DIR/$STAMP-wiki-draft.md"
-if ! cat "$SUMMARY_FILE" | "$FABRIC_BIN" -V "$FABRIC_VENDOR" -m "$FABRIC_MODEL" \
+# ป้อนสถิติอ้างอิง (period) + รายชื่อเอกสาร vault — กัน pattern เดาวันที่/สร้าง wikilink ตาย
+# (บทเรียน live run 2026-09-05: wiki draft ใช้หัวข้อปี 2023 เอง + ลิงก์ [[สัญญา SLA]] ที่ไม่มีจริง)
+VAULT_INVENTORY="$(ls "$SNC_ROOT/doc/wiki/" "$SNC_ROOT/doc/adr/" 2>/dev/null | grep '\.md$' | sort -u)"
+if ! { echo "# สถิติอ้างอิง (คำนวณโดยเครื่อง — ใช้เป็นหลัก ห้ามนับเอง):"; echo "$STATS_BLOCK"; \
+       echo; echo "# เอกสารที่มีอยู่จริงใน vault (wikilink ได้เฉพาะชื่อในรายการนี้):"; echo "$VAULT_INVENTORY"; \
+       echo; echo "# รายงานสรุป (input หลัก):"; cat "$SUMMARY_FILE"; } \
+    | "$FABRIC_BIN" -V "$FABRIC_VENDOR" -m "$FABRIC_MODEL" \
     -p snc-wiki-distill > "$WIKI_FILE" 2>> "$DRAFTS_DIR/$STAMP-fabric.err"; then
   log "WARN: fabric snc-wiki-distill ล้มเหลว — ข้าม (ดู $DRAFTS_DIR/$STAMP-fabric.err)" >&2
   WIKI_FILE=""

@@ -28,7 +28,7 @@ api/nurse_call_events.db (SQLite WAL)
    ▼
 ops/raw/traces-YYYYMMDD.jsonl
    │  ② fabric -p snc-trace-summary   → รายงานสรุป SLA/คอขวด
-   │  ③ fabric -p snc-wiki-distill    → ร่างบทความ wiki (DRAFT)
+   │  ③ fabric -p snc-wiki-distill    → ร่างบทความ wiki (DRAFT) ← ได้ stats + รายชื่อ vault ด้วย
    │  ④ fabric -p snc-playbook-draft  → ร่าง SOP/action guide (DRAFT)
    ▼
 ops/fabric/drafts/<stamp>-*.md + <stamp>-REVIEW.md   (gitignored)
@@ -42,7 +42,7 @@ ops/fabric/drafts/<stamp>-*.md + <stamp>-REVIEW.md   (gitignored)
 | Pattern | บทบาท (persona) | ผลลัพธ์ |
 |---|---|---|
 | `snc-trace-summary` | Data Analyst ศูนย์ควบคุม SNC | ภาพรวม event · ตารางสถิติ SLA (mean/p95/max) · จุดคอขวด · ความเสี่ยง |
-| `snc-wiki-distill` | Librarian (OKF Protocol) | บทความ wiki กระชับ ภาษาไทยทางการ + wikilink เฉพาะเอกสารที่มีจริง |
+| `snc-wiki-distill` | Librarian (OKF Protocol) | บทความ wiki กระชับ ภาษาไทยทางการ — รับสถิติอ้างอิง + **รายชื่อเอกสาร vault** ประกอบ (ห้ามเดาวันที่/ลิงก์ตาย) |
 | `snc-playbook-draft` | Senior Software Engineer | Action guide: สัญญาณ trigger · ขั้นตอน · เกณฑ์ escalate · ผู้รับผิดชอบ |
 
 ## วิธีใช้งาน
@@ -57,7 +57,8 @@ cd ops
 ```
 
 - สคริปต์เลือก vendor/model อัตโนมัติจากชนิด key: `sk-or-*` → **OpenRouter** (`meta-llama/llama-3.3-70b-instruct`), key อื่น → **Gemini** (`gemini-2.0-flash`) — ปรับได้ด้วย env `FABRIC_VENDOR` / `FABRIC_MODEL`
-- สภาพแวดล้อมที่ปรับได้: `PYTHON_BIN`, `EXPORT_DAYS`, `SNC_ROOT`, `FABRIC_BIN`
+- สภาพแวดล้อมที่ปรับได้: `PYTHON_BIN`, `EXPORT_DAYS`, `TRACES_RETENTION_DAYS`, `SNC_ROOT`, `FABRIC_BIN`
+- **Housekeeping อัตโนมัติ**: ลบ `traces-*.jsonl` ใน `ops/raw/` ที่เก่ากว่า `TRACES_RETENTION_DAYS` (ค่าเริ่มต้น 14 วัน) — ตั้ง `0` เพื่อปิด auto-delete
 - ถ้าไม่มี trace ในช่วง สคริปต์จบสถานะ 0 ทันที (ไม่เรียก Fabric) · ถ้ามีจะเขียน draft + `REVIEW.md` และแจ้ง Telegram (ถ้าติดตั้ง `ops/notify-telegram.sh` ไว้)
 - บน Pi ตั้ง cron 02:30 ทุกคืน (ดู [[ROADMAP_ANTIGRAVITY_FABRIC]])
 
@@ -95,9 +96,19 @@ cat ops/fabric/samples/sample-traces-live-20260904.jsonl | fabric --dry-run -p s
 3. **ห้าม fabricate** — pattern ทุกตัวห้ามเดา/สร้างตัวเลข-วันที่ (ต้องอ้าง `period` จากสถิติอ้างอิง) และห้ามเขียนไฟล์เอง
 4. **Human-in-the-loop** — draft ทุกชิ้นลง `ops/fabric/drafts/` (gitignored) ติดป้าย DRAFT · เป็นทางการเมื่อย้ายไป `doc/wiki/`/`doc/playbooks/` และ merge ผ่าน PR เท่านั้น
 
+## บทเรียนจาก live run (2026-09-05) และการ harden
+
+Live run แรกบน Pi (6 records, 1–3 ก.ย.) ตัวเลข SLA ตรง deterministic stats 100% แต่พบจุดอ่อนเชิงรูปแบบใน wiki draft 2 ข้อ จึงปรับ pattern และสคริปต์:
+
+1. **Model เดาปีในชื่อเรื่อง** (`2023-09` ทั้งที่ข้อมูลเป็น 2026-09) → pattern ถูกบังคับให้คัดลอก `YYYY-MM` จาก `period.first` **ตามตัวอักษร** (ค.ศ. เท่านั้น ห้ามแปลง พ.ศ.) และสคริปต์ป้อนสถิติอ้างอิง (มี `period`) เข้าสู่ขั้น wiki-distill ด้วย
+2. **Broken wikilink** (`[[สัญญา SLA]]` ไม่มีใน vault) → สคริปต์สร้าง **รายชื่อเอกสารจริง** จาก `doc/wiki/` + `doc/adr/` แล้วป้อนให้ pattern · กฎใหม่: wikilink ได้เฉพาะชื่อในรายการ นอกนั้นเขียนเป็น path ใน inline code
+3. Reviewer ควรตรวจ 2 จุดนี้เป็นพิเศษทุกรอบ (ดูเช็กลิสต์ด้านล่าง)
+
 ## เช็กลิสต์ Human Review (ต่อรอบ nightly)
 
 1. อ่าน draft ใน `ops/fabric/drafts/` — ตรวจความถูกต้องกับข้อมูลจริง (ตัวเลข SLA ต้องตรงกับ `--stats`)
+   - **ตรวจวันที่/ปีในชื่อเรื่องและเนื้อหา** — ต้องตรงกับ `period` ของ traces (กัน model เดาปี)
+   - **ตรวจ wikilink ทุกตัว** — ต้องมีไฟล์จริงใน vault (กัน broken link)
 2. ถ้าผ่าน: ย้ายไฟล์ไป `doc/wiki/` (ตั้งชื่อ `SNC_<หัวข้อ>.md`) หรือ `doc/playbooks/` (ตั้งชื่อ `SCREAMING_SNAKE_CASE.md`) ตาม convention
 3. commit + PR → ทีม review อีกชั้น → merge (ไฟล์ใน `doc/playbooks/` เป็นทางการหลัง merge เท่านั้น)
 4. ถ้าไม่ผ่าน: แก้ pattern ใน `ops/fabric/patterns/` หรือทิ้ง draft (drafts/ ไม่ถูก track อยู่แล้ว)
