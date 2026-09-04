@@ -60,10 +60,14 @@ tags: [knowledge]
 - **2 ก.ย.** — SNC Intelligence Module (Phase 1–3) deploy แบบ Staged Rollout + Monitoring ใหม่ (`/health` ราย service + Telegram dedupe/recovery) → [[SESSION_HANDOVER_2026-09-02|Handover 2 ก.ย.]]
 - **3 ก.ย.** — **Kiosk Fit-to-Screen v2** (visualViewport + cap scale 1.3 + media queries) ขึ้น Production พร้อม deploy script hardening: verify markers v2 (จับไฟล์เก่าบน Pi) + backup retention 2 ไฟล์ต่อไฟล์ (เดิมสะสม 27 ไฟล์) → [[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]] · [[0012-deploy-verify-markers-backup-retention|ADR 0012]]
 
+### 🔄 Knowledge Loop Live-Run & Pi Sync (5 ก.ย. 2569)
+- **5 ก.ย.** — **Knowledge Loop live run จริงบน Pi** + hardening 3 ชั้น (pattern เดาวันที่/wikilink, traces retention 14 วัน, wikilink checker ใน REVIEW.md) + คู่มือ [[SNC_KNOWLEDGE_LOOP_GUIDE]] + sync repo บน Pi ที่เคย detached HEAD (drift snapshot ไว้ `pi-local-hotfixes-20260905`) → [[SESSION_HANDOVER_2026-09-05|Handover 5 ก.ย.]] · [[0013-antigravity-fabric-wikiskill-loop|ADR 0013]]
+
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
-- **[[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]]** — ล่าสุด: Kiosk Fit-to-Screen v2 + Deploy Script Hardening
+- **[[SESSION_HANDOVER_2026-09-05|Handover 5 ก.ย.]]** — ล่าสุด: Knowledge Loop Live-Run Hardening + Pi Repo Sync
+- **[[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]]** — Kiosk Fit-to-Screen v2 + Deploy Script Hardening
 - **[[SESSION_HANDOVER_2026-09-02|Handover 2 ก.ย.]]** — Monitoring ใหม่: /health ราย service + Telegram Menu + Dedupe/Recovery
 - **[[SESSION_HANDOVER_2026-08-25|Handover 25 ส.ค.]]** — Dashboard Overhaul + Real/Demo Separation + As-built PBX Mapping
 

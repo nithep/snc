@@ -61,7 +61,7 @@ tags: [index, snc, toc]
 ### 📅 Timeline & Handover
 - **ไทม์ไลน์เต็ม**: [[project_timeline]]
 - **Index Timeline (ย่อ)**: [[INDEX_TIMELINE]]
-- **Handover ล่าสุด**: [[SESSION_HANDOVER_2026-09-03]] · [[SESSION_HANDOVER_2026-09-02]] · [[SESSION_HANDOVER_2026-09-01]]
+- **Handover ล่าสุด**: [[SESSION_HANDOVER_2026-09-05]] · [[SESSION_HANDOVER_2026-09-03]] · [[SESSION_HANDOVER_2026-09-02]]
 
 ---
 
