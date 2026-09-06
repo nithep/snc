@@ -199,6 +199,7 @@ async def serve_landing():
 @app.get("/dashboard")
 @app.get("/dashboard/")
 @app.get("/index.html")
+@app.get("/index.htm")
 async def serve_dashboard():
     """Serve the main nurse call dashboard (index.html)."""
     index_path = os.path.join(static_dir, "index.html")

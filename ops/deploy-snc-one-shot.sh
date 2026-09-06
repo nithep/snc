@@ -268,11 +268,11 @@ echo "--- services ---"
 systemctl is-active snc-backend.service snc-pbx-listener.service || true
 echo "--- health ---"
 curl -s --max-time 5 http://localhost:8000/health; echo
-echo "--- dashboard markers ---"
-FTS_STABLE=$(grep -cE "Math\.min\(2, vw / natW, vh / natH" "${REMOTE_ROOT}/app/index.html" 2>/dev/null || true)
-echo "fitToScreen stable markers: ${FTS_STABLE:-0} (คาดหวัง >= 1)"
-if [ "${FTS_STABLE:-0}" -eq 0 ]; then
-  echo "WARN: ไม่พบ marker fitToScreen stable — app/index.html บน Pi อาจยังเป็นเวอร์ชันเก่า (kiosk v2)"
+echo "--- dashboard responsive layout ---"
+KIOSK_REFS=$(grep -ciE "KIOSK_MAX_SCALE|fitToScreen|appScale|[?&]kiosk" "${REMOTE_ROOT}/app/index.html" 2>/dev/null || true)
+echo "kiosk runtime references: ${KIOSK_REFS:-0} (คาดหวัง 0)"
+if [ "${KIOSK_REFS:-0}" -ne 0 ]; then
+  echo "WARN: พบ kiosk reference ใน app/index.html บน Pi — ตรวจสอบไฟล์ที่ deploy"
 fi
 curl -s --max-time 5 http://localhost:8000/ | grep -o "<title>[^<]*</title>" || true
 echo "--- recent backend errors ---"

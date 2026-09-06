@@ -47,12 +47,10 @@ body {
     radial-gradient(900px 500px at -10% 10%, rgba(59, 130, 246, 0.10), transparent 55%),
     linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
   min-height: 100vh;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  /* ขนาดพอดี 1 หน้าจอ (kiosk mode) — เนื้อหาทั้งหมดถูก scale ให้อยู่ใน viewport โดยไม่ต้อง scroll */
 }
 body.has-emergency { background: radial-gradient(1200px 600px at 85% -10%, rgba(239,68,68,.16), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,.10), transparent 55%), linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2)); }
 a { color: var(--blue); }
@@ -472,7 +470,6 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 <body data-i18n>
 
 <!-- ═══════════ Header ═══════════ -->
-<div id="appScale">
 <header>
   <div class="brand">
     <div class="brand-logo" aria-hidden="true">+</div>
@@ -619,7 +616,6 @@ footer { text-align: center; padding: 1.2rem; color: var(--text-faint); font-siz
 <footer>
   SNC v2.1 — Phonik PBX Smart Nurse Call · <span data-i18n-key="footerNote">เซิร์ฟเวอร์หลัก Raspberry Pi 4</span>
 </footer>
-</div>
 
 <!-- ═══════════ Settings Modal ═══════════ -->
 <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -1699,30 +1695,6 @@ function setLang(l) {
   window.location.reload();
 }
 
-/* ═══════════════════════════ Fit-to-Screen (พอดี 1 หน้าจอ) ═══════════════════════════ */
-// Scale เนื้อหาทั้งหมด (header + main + footer) ให้พอดี viewport 1 หน้าโดยไม่ต้อง scroll — ใช้ได้ทุกแพลตฟอร์ม
-// (transform-origin: top center — ยึดบน-กลาง จอ; modal/toast อยู่นอก #appScale จึงไม่ถูก scale)
-function fitToScreen() {
-  const el = document.getElementById('appScale');
-  if (!el) return;
-  el.style.transform = 'none';
-  const natW = el.scrollWidth;
-  const natH = el.scrollHeight;
-  if (!natW || !natH) return;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  // scale ลงเพื่อให้พอดีจอเสมอ (scale > 1 อนุญาตเฉพาะจอใหญ่ เช่น TV 4K แต่จำกัดไม่ให้เบลอเกินไป)
-  const scale = Math.min(2, vw / natW, vh / natH);
-  el.style.transform = 'scale(' + scale + ')';
-}
-// เนื้อหาเปลี่ยนขนาด (โหลดห้อง/Banner/AI panel) หรือ viewport เปลี่ยน → ปรับ scale ใหม่
-if (typeof ResizeObserver !== 'undefined') {
-  new ResizeObserver(fitToScreen).observe(document.getElementById('appScale'));
-}
-window.addEventListener('resize', fitToScreen);
-window.addEventListener('orientationchange', fitToScreen);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen);
-
 setInterval(() => { document.getElementById('clock').textContent = formatClock(new Date()); }, 1000);
 
 /* ═══════════════════════════ Wire up events ═══════════════════════════ */
@@ -1762,7 +1734,6 @@ document.addEventListener('pointerdown', ensureAudio, { once: true });
 
 /* ═══════════════════════════ Boot ═══════════════════════════ */
 applyI18n();
-fitToScreen();
 updateModeIndicator();
 document.getElementById('soundBtn').textContent = cfg.sound ? '🔊' : '🔇';
 document.getElementById('kpiView').value = kpiViewSel;

@@ -38,6 +38,15 @@ class DashboardPhase3Test(unittest.TestCase):
         self.assertIn(".room-card.st-emergency", self.html)
         self.assertIn(".insight-panel", self.html)
 
+    def test_dashboard_uses_natural_responsive_layout(self):
+        """The dashboard must use normal browser sizing on desktop and mobile."""
+        self.assertNotIn("appScale", self.html)
+        self.assertNotIn("fitToScreen", self.html)
+        self.assertNotIn("KIOSK_MAX_SCALE", self.html)
+        self.assertNotIn("ResizeObserver", self.html)
+        self.assertIn("overflow-y: auto", self.html)
+        self.assertIn("@media (max-width: 640px)", self.html)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
