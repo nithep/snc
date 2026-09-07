@@ -210,6 +210,19 @@ if [ -n "$WIKI_FILE" ] && [ -n "${VAULT_INVENTORY:-}" ]; then
 $(grep -oE '\[\[[^]]+\]\]' "$WIKI_FILE" | sed 's/^\[\[//;s/\]\]$//' | cut -d'|' -f1 | cut -d'#' -f1 | sort -u)
 WIKILINKS
 fi
+
+# ── Step 5b: ตรวจ wikilink ทั้ง vault (doc/ ทั้งหมด — ไม่ใช่แค่ draft) ─────────
+# ใช้ ops/check_vault_links.py (deterministic, stdlib เท่านั้น) กัน broken link สะสมในเอกสารจริง
+VAULT_BROKEN=""
+if [ -f "$SCRIPT_DIR/check_vault_links.py" ]; then
+  VAULT_OUT="$("$PYTHON_BIN" "$SCRIPT_DIR/check_vault_links.py" --quiet 2>&1 || true)"
+  if [ -n "$VAULT_OUT" ]; then
+    VAULT_BROKEN="$VAULT_OUT"
+    log "WARN: พบ wikilink แตกใน vault — ดู REVIEW.md"
+  else
+    log "vault wikilink check: ผ่านครบ"
+  fi
+fi
 REVIEW_FILE="$DRAFTS_DIR/$STAMP-REVIEW.md"
 {
   echo "# 📋 Human Review — Knowledge Loop ${STAMP}"
@@ -231,6 +244,15 @@ REVIEW_FILE="$DRAFTS_DIR/$STAMP-REVIEW.md"
     echo "  → ต้องแก้ก่อน merge: เปลี่ยนเป็น path ใน inline code หรือสร้างเอกสารปลายทางจริง (ห้าม merge broken link)"
   else
     echo "- ✅ ลิงก์ทั้งหมดชี้เอกสารที่มีจริงใน vault"
+  fi
+  echo ""
+  echo "## ตรวจ wikilink ทั้ง vault (doc/ — ops/check_vault_links.py)"
+  if [ -n "$VAULT_BROKEN" ]; then
+    echo "- ⚠ พบ wikilink แตกใน vault (นอกเหนือจาก draft):"
+    printf '%s\n' "$VAULT_BROKEN" | sed 's/^/    /'
+    echo "  → แก้ก่อน merge: สร้างเอกสารปลายทางจริง หรือแก้เป็น path ใน inline code"
+  else
+    echo "- ✅ wikilink ใน vault (doc/) resolve ครบทุกจุด"
   fi
   echo ""
   echo "## วิธีอนุมัติ (Manual — ยังไม่ automation)"

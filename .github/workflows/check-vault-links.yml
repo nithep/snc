@@ -1,0 +1,42 @@
+name: Check Vault Wikilinks
+
+# ตรวจ wikilink ใน Obsidian vault (doc/) ทุกครั้งที่มีการแก้ไฟล์เอกสาร —
+# กัน broken link เข้า vault ก่อน merge (ตามนโยบาย ADR 0013 / 0014 และ nightly KB loop)
+on:
+  pull_request:
+    paths:
+      - 'doc/**'
+      - '**/*.md'
+      - 'ops/check_vault_links.py'
+  push:
+    branches:
+      - main
+    paths:
+      - 'doc/**'
+      - '**/*.md'
+      - 'ops/check_vault_links.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vault-links:
+    name: Wikilink resolution check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run vault wikilink check
+        shell: bash
+        run: |
+          set -uo pipefail
+          echo "🔍 ตรวจ wikilink ทั้ง vault (ข้าม inline/fenced code ตามพฤติกรรม Obsidian)..."
+          python ops/check_vault_links.py --quiet
+          echo "✅ Wikilink ครบ — resolve ได้ทุกจุด (ดู ops/check_vault_links.py)"
