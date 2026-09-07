@@ -105,3 +105,9 @@ tags: [knowledge]
 | [[0006-broker-dual-pi|0006]] | Broker บน Dual Pi |
 | [[0007-nomenclature-separation|0007]] | แยกชื่อ SNC ออกจาก Hotel-ECS |
 | [[0008-system-topology-interconnection|0008]] | โครงสร้างความเชื่อมโยงทั้งระบบ (topology) |
+| [[0009-opencode-agent-tunnel|0009]] | แยก OpenCode agent + tunnel เฉพาะกิจ |
+| [[0010-websocket-heartbeat|0010]] | WebSocket heartbeat (ping/pong) ตรวจจับสายค้าง |
+| [[0011-snc-intelligence-module|0011]] | SNC Intelligence Module — Non-Critical Autonomous Operations |
+| [[0012-deploy-verify-markers-backup-retention|0012]] | Deploy Verify Markers + Backup Retention |
+| [[0013-antigravity-fabric-wikiskill-loop|0013]] | Antigravity Orchestrator + Fabric + WikiSkill Knowledge Loop |
+| [[0014-remove-kiosk-scaling|0014]] | Remove Kiosk Scaling — responsive natural flow |
