@@ -937,3 +937,22 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 
 
+
+
+## [2026-09-07] Deploy ADR 0013 (Remove Kiosk Scaling) ขึ้น Production + Visual/Test/Sync Verification
+
+**ผู้ดำเนินการ:** Senior Software Engineer (Buffy — Freebuff Agent)
+
+**รายละเอียด:**
+- **นำ [ADR 0013](doc/adr/0013-remove-kiosk-scaling.md) ขึ้นระบบจริง (commit `cbebdac`)** ผ่าน `ops/deploy-snc-one-shot.sh --check-tunnel` ไปยัง Pi4 (`hotel-gateway` / `192.168.1.94`):
+  - `app/index.html`: ลบ Kiosk Scaling (`#appScale`, `fitToScreen()`, `ResizeObserver`) ออกจาก dashboard — กลับสู่ responsive natural flow (`overflow-y: auto` + scroll แนวตั้ง) ตาม ADR 0013
+  - `api/server.py`: เพิ่ม route alias `/index.htm` (คง Cache-Control no-store เดิม)
+  - Backup อัตโนมัติ `server.py.bak.20260907191824` + retention ล่าสุด 2 ไฟล์ — ตรวจ md5 หลัง scp ตรงกัน 22/22 ไฟล์
+- **ผลการตรวจ Production:**
+  - services `snc-backend` + `snc-pbx-listener` = `active,active` (listener ไม่ถูก restart — สงวน session Telnet กับตู้ PBX) — `/health` healthy ทั้ง LAN และ public tunnel
+  - Live `https://snc.nithep.com/index.html` md5 = repo HEAD = Pi (`6df5931c…`) — kiosk references = 0, `/index.htm` → HTTP 200
+  - Visual check ด้วย Headless Chrome/CDP บน `/dashboard`: **30 room cards** render ครบ — desktop 5 คอลัมน์ (การ์ด 249×190px เต็มความกว้าง 1308px) / mobile emulation 1 คอลัมน์ (การ์ดกว้าง 313px) — หน้า scroll แนวตั้งธรรมชาติ (doc height 2735px / 7004px) **ไม่มีการ scale** — console errors 0
+- **Test suite:** `pytest tests/ pbx/test_smdr_parser.py` → **76 passed + 4 subtests** (รวม `test_dashboard_uses_natural_responsive_layout` ที่ยืนยันว่าไม่มี kiosk marker)
+- **Full repo↔Pi sync audit (223 tracked files):** 206 identical กับ repo HEAD — ส่วนที่ต่าง 17 รายการ = ไฟล์ 11 รายการเป็น CRLF artifact เฉพาะเครื่อง dev Windows (เนื้อหา blob ตรงกัน ยืนยันด้วย `git hash-object`/`rev-parse`) + ไฟล์ doc/ops/tests 6 รายการที่ Pi git ตามหลัง 2 commits (`932d90c`, `cbebdac`) ซึ่งอยู่นอกชุด runtime deploy (22 ไฟล์) → ไม่กระทบหน้าเว็บ รอ `git pull` บน Pi รอบถัดไป
+- **สถานะ:** ✅ Live dashboard = local = GitHub (ชุด runtime ครบ) — ADR 0013 มีผลเต็มรูปแบบบน snc.nithep.com
+
