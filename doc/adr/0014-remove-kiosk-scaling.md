@@ -1,10 +1,10 @@
 ---
-title: "ADR 0013 — Remove Kiosk Scaling from SNC Dashboard"
+title: "ADR 0014 — Remove Kiosk Scaling from SNC Dashboard"
 type: adr
 tags: [architecture, dashboard, responsive, kiosk]
 ---
 
-# ADR 0013 — Remove Kiosk Scaling from SNC Dashboard
+# ADR 0014 — Remove Kiosk Scaling from SNC Dashboard
 
 - สถานะ: **Accepted**
 - วันที่: 2026-09-05

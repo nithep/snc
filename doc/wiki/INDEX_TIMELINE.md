@@ -64,14 +64,14 @@ tags: [knowledge]
 - **5 ก.ย.** — **Knowledge Loop live run จริงบน Pi** + hardening 3 ชั้น (pattern เดาวันที่/wikilink, traces retention 14 วัน, wikilink checker ใน REVIEW.md) + คู่มือ [[SNC_KNOWLEDGE_LOOP_GUIDE]] + sync repo บน Pi ที่เคย detached HEAD (drift snapshot ไว้ `pi-local-hotfixes-20260905`) → [[SESSION_HANDOVER_2026-09-05|Handover 5 ก.ย.]] · [[0013-antigravity-fabric-wikiskill-loop|ADR 0013]]
 
 ### 🖥️ Kiosk Removal & Pi Git Sync (7 ก.ย. 2569)
-- **7 ก.ย.** — **ADR 0013 (Remove Kiosk Scaling) ขึ้น Production**: ลบ `fitToScreen()`/`#appScale` → responsive natural flow + route `/index.htm`, deploy ผ่าน one-shot script พร้อม visual verify (CDP: 30 cards desktop 5-col / mobile 1-col, console errors 0) + test 76 passed → [[SESSION_HANDOVER_2026-09-07|Handover 7 ก.ย.]] · [[0013-remove-kiosk-scaling|ADR 0013]]
+- **7 ก.ย.** — **ADR 0014 (Remove Kiosk Scaling) ขึ้น Production**: ลบ `fitToScreen()`/`#appScale` → responsive natural flow + route `/index.htm`, deploy ผ่าน one-shot script พร้อม visual verify (CDP: 30 cards desktop 5-col / mobile 1-col, console errors 0) + test 76 passed → [[SESSION_HANDOVER_2026-09-07|Handover 7 ก.ย.]] · [[0014-remove-kiosk-scaling|ADR 0013]]
 - **7 ก.ย.** — **Pi git sync `5f6e3da` → `c0df54a`**: แก้ CRLF blob phantom (`OLD_deployed.js`/`app/index.js` เก็บ CRLF ขัด `.gitattributes` eol=lf → merge abort ซ้ำ) ด้วย renormalize commit + re-audit 223/223 content-identical
 
 
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
-- **[[SESSION_HANDOVER_2026-09-07|Handover 7 ก.ย.]]** — ล่าสุด: Deploy ADR 0013 (Remove Kiosk Scaling) + Pi Git Sync + CRLF Fix
+- **[[SESSION_HANDOVER_2026-09-07|Handover 7 ก.ย.]]** — ล่าสุด: Deploy ADR 0014 (Remove Kiosk Scaling) + Pi Git Sync + CRLF Fix
 - **[[SESSION_HANDOVER_2026-09-05|Handover 5 ก.ย.]]** — Knowledge Loop Live-Run Hardening + Pi Repo Sync
 - **[[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]]** — Kiosk Fit-to-Screen v2 + Deploy Script Hardening
 - **[[SESSION_HANDOVER_2026-09-02|Handover 2 ก.ย.]]** — Monitoring ใหม่: /health ราย service + Telegram Menu + Dedupe/Recovery

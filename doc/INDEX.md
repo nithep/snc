@@ -81,6 +81,7 @@ tags: [index, snc, toc]
 | [[0011-snc-intelligence-module|0011]] | SNC Intelligence Module — Non-Critical Autonomous Operations |
 | [[0012-deploy-verify-markers-backup-retention|0012]] | Deploy Verify Markers + Backup Retention |
 | [[0013-antigravity-fabric-wikiskill-loop|0013]] | Antigravity Orchestrator + Fabric + WikiSkill Knowledge Loop |
+| [[0014-remove-kiosk-scaling|0014]] | Remove Kiosk Scaling — responsive natural flow |
 
 ---
 
