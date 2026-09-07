@@ -956,3 +956,5 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **Full repo↔Pi sync audit (223 tracked files):** 206 identical กับ repo HEAD — ส่วนที่ต่าง 17 รายการ = ไฟล์ 11 รายการเป็น CRLF artifact เฉพาะเครื่อง dev Windows (เนื้อหา blob ตรงกัน ยืนยันด้วย `git hash-object`/`rev-parse`) + ไฟล์ doc/ops/tests 6 รายการที่ Pi git ตามหลัง 2 commits (`932d90c`, `cbebdac`) ซึ่งอยู่นอกชุด runtime deploy (22 ไฟล์) → ไม่กระทบหน้าเว็บ รอ `git pull` บน Pi รอบถัดไป
 - **สถานะ:** ✅ Live dashboard = local = GitHub (ชุด runtime ครบ) — ADR 0013 มีผลเต็มรูปแบบบน snc.nithep.com
 
+- **ติดตามผล (วันเดียวกัน):** Pi git fast-forward `5f6e3da` → `c0df54a` (3 commits) + renormalize `OLD_deployed.js` CRLF→LF ตาม `.gitattributes` (จบ phantom-M ที่บล็อก merge) + full re-audit **223/223 content-identical** กับ canonical LF blob (เหลือ CRLF artifact 5 ไฟล์จาก Windows scp — เนื้อหา = blob, git สะอาด) — ดู [[SESSION_HANDOVER_2026-09-07]]
+
