@@ -53,7 +53,13 @@ _route_registry = RouteRegistry()
 
 gemini_service = GeminiDirectService()
 store = get_store()
-app = FastAPI(title="Smart Nurse Call (SNC) Backend API", version="1.0.0")
+app = FastAPI(
+    title="Smart Nurse Call (SNC) Backend API",
+    version="1.0.0",
+    # ย้าย Swagger/Redoc ออกจาก /docs — /docs สงวนให้ Product Docs (Actcast pattern)
+    docs_url="/api-docs",
+    redoc_url="/redoc",
+)
 
 # Optional plugin loader: the deterministic Core must not import Intelligence by default.
 SNC_INTELLIGENCE_ENABLED = os.getenv("SNC_INTELLIGENCE_ENABLED", "false").strip().lower() in {
@@ -206,6 +212,13 @@ async def serve_dashboard():
     if os.path.exists(index_path):
         return FileResponse(index_path, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return RedirectResponse(url="/")
+
+@app.get("/docs")
+@app.get("/docs/")
+async def serve_product_docs():
+    """Product Docs (Actcast pattern) — redirect ไป docs hub จนกว่าจะ build docs static จาก doc/wiki+adr."""
+    docs_url = os.getenv("SNC_DOCS_URL", "https://docs.nithep.com").rstrip("/") or "https://docs.nithep.com"
+    return RedirectResponse(url=docs_url, status_code=302)
 
 @app.get("/{page}.html")
 async def serve_html_page(page: str):
@@ -675,6 +688,8 @@ def robots_txt():
         "User-agent: *\n"
         "Allow: /\n"
         "Disallow: /api/\n"
+        "Disallow: /api-docs\n"
+        "Disallow: /redoc\n"
         f"Sitemap: {_SITE_URL}/sitemap.xml\n"
     )
     return Response(content=body, media_type="text/plain; charset=utf-8")
@@ -684,6 +699,7 @@ def sitemap_xml():
     urls = [
         ("/", "weekly", "1.0"),
         ("/landing.html", "weekly", "0.8"),
+        ("/docs", "weekly", "0.8"),
         ("/roi.html", "monthly", "0.7"),
         ("/snc-vs-imported.html", "monthly", "0.7"),
         ("/how-to-phonik.html", "monthly", "0.7"),
