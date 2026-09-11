@@ -958,7 +958,7 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 - **ติดตามผล (วันเดียวกัน):** Pi git fast-forward `5f6e3da` → `c0df54a` (3 commits) + renormalize `OLD_deployed.js` CRLF→LF ตาม `.gitattributes` (จบ phantom-M ที่บล็อก merge) + full re-audit **223/223 content-identical** กับ canonical LF blob (เหลือ CRLF artifact 5 ไฟล์จาก Windows scp — เนื้อหา = blob, git สะอาด) — ดู [[SESSION_HANDOVER_2026-09-07]]
 
-## [2026-09-11] API Key Rotation + .gitignore Hardening + Pi4 Sync
+## [2026-09-11] API Key Rotation + .gitignore Hardening + Pi4 Sync + ลบ Cloud Run
 
 **ผู้ดำเนินการ:** Senior Software Engineer (opencode)
 
@@ -968,8 +968,8 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 - **Rotate API Key:** สร้าง key ใหม่ `47ad2259...` (openssl rand -hex 32), อัปเดต `api/.env` + `pbx/.env` บน Pi4 (key เดียวกัน), chmod 600, restart services
 - **Auth test:** No key → 401 ✅, New key → 200 ✅
 - **Pi4 health:** healthy (sqlite), services active ทั้งคู่
-- **Cloud Run:** 503 (scale-to-zero หรือ service หยุด) — ต้องตรวจสอบ + อัปเดต Secret Manager จาก Cloud Shell (gcloud re-auth needed)
+- **ลบ Cloud Run (`snc-cloud-backend`):** ตัดสินใจลบเพราะ: (1) Pi4 ทำหน้าที่ครบแล้ว (2) billing ปิดอยู่ (3) เคยมี data loss (4) ไม่มี traffic จริง → ลบสำเร็จ ✅
 - **Commits:** `0aa05b0` chore: add *.bak patterns to .gitignore
 
-- **สถานะ:** ✅ Pi4 + API key ใหม่ทำงานปกติ — Cloud Run Secret Manager ค้างไว้ทำจาก Cloud Shell
+- **สถานะ:** ✅ ระบบทำงานบน Pi4 เท่านั้น — ไม่มี Cloud Run แล้ว
 

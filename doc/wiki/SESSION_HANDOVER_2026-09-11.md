@@ -32,15 +32,11 @@ tags: [status, pi4, security, api-key, rotation, sync]
   - New key → 200 ✅
 - **Backup:** `backups/api.env.*` + `backups/pbx.env.*` บน Pi4
 
-### 4. Cloud Run Secret Manager
+### 4. ลบ Cloud Run (`snc-cloud-backend`)
 
-- **status:** ค้าง — gcloud บน D:\snc ต้อง re-authenticate (`gcloud auth login`)
-- **action ที่ต้องทำ:** รันจาก Cloud Shell:
-  ```bash
-  echo "47ad225955435d48b5ce34f7914e6f99f20b2203e5dec6ab8a543c98bc7f2a92" | \
-    gcloud secrets versions add snc-api-key --data-file=- --project hotel-ecs-nithep
-  ```
-- **Cloud Run status:** 503 (scale-to-zero หรือ service หยุดทำงาน — ตรวจสอบเพิ่มเติม)
+- **เหตุผล:** Cloud Run ไม่จำเป็น — Pi4 ทำหน้าที่ครบแล้ว (FastAPI + SQLite + WebSocket + Dashboard) + billing ปิดอยู่ + เคยมี data loss
+- **ผลลัพธ์:** `snc-cloud-backend` ถูกลบสำเร็จจาก Cloud Run ✅
+- ** service อื่น (`hotel-ecs-backend`, `portal`, `snc-alert-bridge`) ไม่เกี่ยวกับ SNC — ไม่ได้แตะ
 
 ## สถานะปัจจุบัน
 
@@ -51,13 +47,12 @@ tags: [status, pi4, security, api-key, rotation, sync]
 | Pi4 (Edge) | ✅ `0aa05b0` + API key ใหม่ |
 | Pi4 Backend | ✅ healthy (sqlite) |
 | Pi4 Listener | ✅ active |
-| Cloud Run | ⚠️ 503 — ต้องตรวจสอบ + อัปเดต Secret Manager |
+| Cloud Run (`snc-cloud-backend`) | ❌ ถูกลบแล้ว |
 
 ## สิ่งค้าง
 
-1. **Cloud Run Secret Manager** — อัปเดต key ใหม่ผ่าน Cloud Shell (gcloud re-auth needed)
-2. **Cloud Run service** — ตรวจสอบสถานะ 503 (scale-to-zero หรือ service หยุด)
-3. **แจ้งทีม** — key ใหม่ใช้บน Pi4 แล้ว เบราว์เซอร์พยาบาลต้องกรอก key ใหม่ใน ⚙️ ตั้งค่า
+1. **Pi4 ยังเป็นระบบหลัก** — ทำงานปกติบน `snc.nithep.com` ผ่าน Cloudflare Tunnel
+2. **Cloud Run ถูกลบแล้ว** — ไม่ต้อง manage secrets 2 ที่, ไม่ต้องกังวล key ไม่ตรงกัน
 
 ## Key ใหม่ (เก็บในที่ปลอดภัย)
 
