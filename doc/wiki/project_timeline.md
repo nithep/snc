@@ -973,3 +973,17 @@ urse_call_events.db) และสร้าง Compact Payloads (event_*.json ข
 
 - **สถานะ:** ✅ ระบบทำงานบน Pi4 เท่านั้น — ไม่มี Cloud Run แล้ว
 
+## [2026-09-12] Cloud Run Code Cleanup + Vault Update + GCP Project Shutdown
+
+**ผู้ดำเนินการ:** Senior Software Engineer (opencode)
+
+**รายละเอียด:**
+- **Clean Code:** ลบ Cloud Run ออกจาก active code ทั้งหมด — `api/storage.py` (ลบ FirestoreStore), `api/server.py`, `pbx/snc_pbx_listener.py` (ลบ cloud send), `ops/snc_telegram_agent.py` (ลบ /cloudrun)
+- **Clean Docs:** อัปเดต README.md, AGENTS.md, SECURITY.md, SKILL.md, landing.html — ลบ Cloud Run ออกจาก architecture diagrams + references
+- **Mark Deprecated:** `ops/deploy_cloudrun_cloudshell.sh`, `ops/deploy_gcp_cloudrun.ps1` → DEPRECATED header
+- **Commit:** `345ef5a` — 11 files, +56/-340 lines
+- **Pi4 Verify:** healthy, cloud_run=removed, services active
+- **GCP Shutdown:** `hotel-ecs-nithep` project ถูกลบ, Cloud Run services 0 items, Folder `apps-script` ค้าง (Google Workspace-managed, ลบไม่ได้, ไม่มีค่าใช้จ่าย)
+
+- **สถานะ:** ✅ ระบบ SNC ลีนสุดๆ — Pi4 เท่านั้น ไม่พึ่ง Cloud ใดๆ
+
