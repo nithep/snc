@@ -83,9 +83,8 @@ def http_json(path):
 HELP = (
     "🤖 <b>SNC Agent</b> — เมนูตรวจสอบระบบ\n\n"
     "<b>สถานะระบบ</b>\n"
-    "/health — ตรวจ Backend, Database, PBX Listener, WebSocket และ Cloud Run\n"
+    "/health — ตรวจ Backend, Database, PBX Listener, WebSocket\n"
     "/status — สรุปสถานะระบบแบบสั้น\n"
-    "/cloudrun — ตรวจ Cloud Run และ endpoint /health\n"
     "/uptime — ตรวจ Uptime Check /health\n\n"
     "<b>การปฏิบัติงาน</b>\n"
     "/logs — ดู Logs ล่าสุด\n"
@@ -96,7 +95,7 @@ HELP = (
     "/alerts TUNNEL — ค้นตามรหัส/ประเภท/คีย์เวิร์ด\n"
     "/recovery — incident ที่ยังไม่ปิด (รอ RECOVERY)\n\n"
     "/help — แสดงเมนูนี้\n\n"
-    "กดคำสั่งตามลำดับแนะนำ: /health → /cloudrun หรือ /logs"
+    "กดคำสั่งตามลำดับแนะนำ: /health → /logs"
 )
 
 
@@ -220,7 +219,7 @@ def health_reply():
                 "สถานะรวม: <b>DOWN</b>\n\n"
                 "รายการตรวจสอบ:\n❌ Backend API: ไม่สามารถเรียก /health ได้\n\n"
                 f"สาเหตุที่ตรวจพบ: {html_escape(str(exc))}\n\n"
-                "เมนูถัดไป: /logs หรือ /cloudrun")
+                "เมนูถัดไป: /logs")
 
     checks = h.get("checks") or {}
     lines = [
@@ -233,7 +232,7 @@ def health_reply():
     if checks:
         labels = {
             "backend": "Backend API", "database": "Database", "pbx_listener": "PBX Listener",
-            "websocket": "WebSocket", "cloud_run": "Cloud Run"
+            "websocket": "WebSocket"
         }
         for key, value in checks.items():
             item = value if isinstance(value, dict) else {"status": value}
@@ -245,29 +244,16 @@ def health_reply():
         ])
 
     lines.extend(["", "สาเหตุที่ตรวจพบ: " + (h.get("reason") or "ไม่พบความผิดปกติ"), "",
-                  "เมนูถัดไป: /cloudrun | /logs | /uptime"])
+                  "เมนูถัดไป: /logs | /uptime"])
     return "\n".join(lines)
-
-
-def cloudrun_reply():
-    try:
-        h = http_json("/health")
-        return ("☁️ <b>Cloud Run</b>\n"
-                f"• Service: {h.get('service', 'snc-backend')}\n"
-                f"• /health: {_icon(h.get('status'))} {h.get('status', 'unknown')}\n"
-                f"• Database: {h.get('db', 'unknown')}\n"
-                f"• เวลา: {h.get('timestamp', '-')}\n\n"
-                "เมนูถัดไป: /logs หรือ /uptime")
-    except Exception as exc:
-        return f"🚨 <b>Cloud Run ตรวจสอบไม่ได้</b>\nสาเหตุ: {html_escape(str(exc))}\n\nเมนูถัดไป: /logs"
 
 
 def uptime_reply():
     return ("⏱️ <b>Uptime Check</b>\n"
             "• Endpoint ที่ตรวจ: /health\n"
             "• สถานะ: ตรวจผ่าน Backend health endpoint\n"
-            "• หากพบ Alert: ตรวจ /cloudrun และ /logs ต่อ\n\n"
-            "เมนูถัดไป: /health | /cloudrun | /logs")
+            "• หากพบ Alert: ตรวจ /logs ต่อ\n\n"
+            "เมนูถัดไป: /health | /logs")
 
 
 def logs_reply():
@@ -319,8 +305,6 @@ def answer(text):
         return alerts_reply(text)
     if any(k in t for k in ("recovery", "กู้คืน", "incident ค้าง", "ปิดหรือยัง")):
         return recovery_reply()
-    if any(k in t for k in ("cloudrun", "cloud run", "คลาวด์รัน")):
-        return cloudrun_reply()
     if any(k in t for k in ("uptime", "อัปไทม์", "ตรวจ uptime")):
         return uptime_reply()
     if any(k in t for k in ("logs", "log", "ล็อก", "บันทึก")):

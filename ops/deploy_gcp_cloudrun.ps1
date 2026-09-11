@@ -1,12 +1,12 @@
 ﻿# ============================================================================
+# ⚠️ DEPRECATED — Cloud Run ถูกลบแล้ว (11 ก.ย. 2569)
+# ============================================================================
 # deploy_gcp_cloudrun.ps1 — SNC Cloud Run One-Shot Deploy (build + deploy + env)
 # ----------------------------------------------------------------------------
-# ใช้รันใน PowerShell ที่มี gcloud CLI (หรือ Cloud Shell: https://shell.cloud.google.com)
+# ไฟล์นี้ถูกทำเครื่องหมาย deprecated เนื่องจาก Cloud Run (snc-cloud-backend)
+# ถูกลบออกจาก GCP แล้ว ระบบทำงานบน Pi4 เท่านั้น
 #
-#   .\ops\deploy_gcp_cloudrun.ps1                              # deploy (key จาก env ถ้ามี)
-#   $env:SNC_API_KEY="<key>"; .\ops\deploy_gcp_cloudrun.ps1   # deploy + ตั้ง key อัตโนมัติ
-#
-# โครงสร้าง 5-Core (doc/BLUEPRINT_5CORE.md): Dockerfile + server.py อยู่ที่ api/
+# ดู SESSION_HANDOVER_2026-09-11.md สำหรับรายละเอียด
 # ============================================================================
 $ErrorActionPreference = "Stop"
 

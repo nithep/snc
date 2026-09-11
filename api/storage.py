@@ -1,12 +1,8 @@
 # api/storage.py
 # ============================================================================
-# SNC Event Store — abstraction เหนือ SQLite (Pi4) และ Firestore (Cloud Run)
+# SNC Event Store — SQLite backend (Pi4 / local)
 # ----------------------------------------------------------------------------
-# เลือก backend ผ่าน env SNC_DB_BACKEND:
-#   sqlite    (default) — ใช้บน Pi4 (ไฟล์ nurse_call_events.db ในเครื่อง)
-#   firestore (Cloud Run) — persistent: event ไม่หายตอน instance scale-to-zero
-#
-# ทั้งสอง class มี interface เดียวกัน:
+# interface ของ SqliteStore:
 #   save_event(event_data)                    เก็บ event ใหม่
 #   get_recent_events(limit)                  ดึง event ล่าสุด (dashboard)
 #   acknowledge_room(room_id, now_iso)        รับเรื่อง → (created_at, sla_metrics|None)
@@ -14,23 +10,16 @@
 #   get_kpi_summary()                         สถิติ KPI
 #   get_room_events(room_id, limit)           ประวัติห้อง (AI anomaly analysis)
 #   reset()                                   ล้างข้อมูลทั้งหมด (admin)
-#
-# หมายเหตุ Firestore: ใช้ single-field index อัตโนมัติเท่านั้น (หลีกเลี่ยง
-# composite index ที่ต้องสร้างเอง) — การ query ห้องใช้ room_state collection
-# แทนการ filter ซ้อน order เพื่อไม่ต้องจัดการ index ด้วยมือ
 # ============================================================================
 import json
 import logging
 import os
 import sqlite3
-from collections import Counter
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 # override ได้ผ่าน env (ใช้ในการ test บนเครื่องอื่นโดยไม่แตะ production DB)
 DB_PATH = os.getenv("SNC_SQLITE_PATH", "nurse_call_events.db")
-FIRESTORE_EVENTS = "nurse_call_events"
-FIRESTORE_ROOM_STATE = "room_state"
 
 
 def calculate_sla_metrics(created_at: str, acknowledged_at: str = None, resolved_at: str = None):
@@ -311,227 +300,7 @@ class SqliteStore:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Firestore backend (Cloud Run) — persistent, ไม่หายตอน scale-to-zero
-# ═══════════════════════════════════════════════════════════════════════════
-class FirestoreStore:
-    backend_name = "firestore"
-
-    def __init__(self):
-        # lazy import — Pi4 (ไม่มีแพ็กเกจ) จะไม่แตะโค้ดนี้ถ้าไม่ตั้ง SNC_DB_BACKEND=firestore
-        from google.cloud import firestore
-        self._fs = firestore
-        self._db = firestore.Client()
-        self._events = self._db.collection(FIRESTORE_EVENTS)
-        self._room_state = self._db.collection(FIRESTORE_ROOM_STATE)
-        logging.info("FirestoreStore ready (collection=%s, room_state=%s)", FIRESTORE_EVENTS, FIRESTORE_ROOM_STATE)
-
-    # ── helpers ────────────────────────────────────────────────────────────
-    def _event_doc(self, event_data: dict) -> dict:
-        ext = event_data.get("extension", {})
-        room_id = ext["roomId"]
-        event_type = ext.get("sourceEventType") or event_data["payload"][0]["contentString"]
-        return {
-            "id": event_data["id"],
-            "room_id": room_id,
-            "event_type": event_type,
-            "status": event_data["status"],
-            "timestamp": ext["timestamp"],
-            "fhir_payload": json.dumps(event_data, ensure_ascii=False),
-            "acknowledged_at": None,
-            "resolved_at": None,
-            "ack_time_seconds": None,
-            "resolution_time_seconds": None,
-            "sla_breached": False,
-            "source": ext.get("source", "real"),
-        }
-
-    @staticmethod
-    def _snap_to_event(snap) -> dict:
-        d = snap.to_dict()
-        return {
-            "id": d.get("id"),
-            "room_id": d.get("room_id"),
-            "event_type": d.get("event_type"),
-            "status": d.get("status"),
-            "timestamp": d.get("timestamp"),
-            "acknowledged_at": d.get("acknowledged_at"),
-            "resolved_at": d.get("resolved_at"),
-            "ack_time_seconds": d.get("ack_time_seconds"),
-            "resolution_time_seconds": d.get("resolution_time_seconds"),
-            "sla_breached": d.get("sla_breached", False),
-            "source": d.get("source", "real"),
-        }
-
-    # ── interface ──────────────────────────────────────────────────────────
-    def save_event(self, event_data: dict):
-        doc = self._event_doc(event_data)
-        self._events.document(event_data["id"]).set(doc)
-        # room_state: ชี้ event ล่าสุดของห้อง — ใช้สำหรับ ack/clear (ไม่ต้อง composite index)
-        self._room_state.document(doc["room_id"]).set({
-            "room_id": doc["room_id"],
-            "status": doc["status"],
-            "event_id": doc["id"],
-            "timestamp": doc["timestamp"],
-            "source": doc.get("source", "real")
-        })
-
-    def get_recent_events(self, limit: int = 200, source: str = None) -> List[dict]:
-        # ดึงมากกว่า limit แล้วกรอง source ใน Python — เลี่ยง composite index (source + timestamp)
-        out = []
-        if source:
-            fetch = max(limit * 5, 200)
-            query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(fetch)
-            for snap in query.stream():
-                ev = self._snap_to_event(snap)
-                if ev.get("source") == source:
-                    out.append(ev)
-                    if len(out) >= limit:
-                        break
-            return out
-        query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(limit)
-        return [self._snap_to_event(snap) for snap in query.stream()]
-
-    def event_exists(self, event_id: str) -> bool:
-        snap = self._events.document(event_id).get()
-        return snap.exists
-
-    def acknowledge_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
-        ref = self._room_state.document(room_id)
-        snap = ref.get()
-        if not snap.exists or snap.get("status") != "active":
-            return None, None, None
-        created_at = snap.get("timestamp")
-        event_id = snap.get("event_id")
-        source = snap.get("source") if "source" in snap.to_dict() else "real"
-        sla_metrics = calculate_sla_metrics(created_at, acknowledged_at=now_iso)
-        self._events.document(event_id).update({
-            "status": "acknowledged",
-            "acknowledged_at": now_iso,
-            "ack_time_seconds": sla_metrics["ack_time_seconds"],
-            "sla_breached": sla_metrics["sla_breached"],
-        })
-        ref.update({"status": "acknowledged"})
-        return created_at, sla_metrics, source
-
-    def clear_room(self, room_id: str, now_iso: str) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
-        ref = self._room_state.document(room_id)
-        snap = ref.get()
-        if not snap.exists or snap.get("status") not in ("active", "acknowledged"):
-            return None, None, None
-        created_at = snap.get("timestamp")
-        event_id = snap.get("event_id")
-        source = snap.get("source") if "source" in snap.to_dict() else "real"
-        sla_metrics = calculate_sla_metrics(created_at, resolved_at=now_iso)
-        self._events.document(event_id).update({
-            "status": "resolved",
-            "resolved_at": now_iso,
-            "resolution_time_seconds": sla_metrics["resolution_time_seconds"],
-            "sla_breached": sla_metrics["sla_breached"],
-        })
-        ref.update({"status": "resolved"})
-        return created_at, sla_metrics, source
-
-    def get_kpi_summary(self, source: str = None) -> dict:
-        total_events = 0
-        sum_ack = 0.0
-        cnt_ack = 0
-        sum_res = 0.0
-        cnt_res = 0
-        compliant = 0
-        by_type = Counter()
-        for snap in self._events.stream():
-            d = snap.to_dict()
-            if source and d.get("source", "real") != source:
-                continue
-            total_events += 1
-            by_type[d.get("event_type", "UNKNOWN")] += 1
-            a = d.get("ack_time_seconds")
-            if a is not None:
-                sum_ack += a
-                cnt_ack += 1
-            r = d.get("resolution_time_seconds")
-            if r is not None:
-                sum_res += r
-                cnt_res += 1
-            if not d.get("sla_breached"):
-                compliant += 1
-        avg_ack = round(sum_ack / cnt_ack, 2) if cnt_ack else 0
-        avg_res = round(sum_res / cnt_res, 2) if cnt_res else 0
-        rate = 100.0 if total_events == 0 else round((compliant / total_events) * 100, 2)
-        return {
-            "avg_ack_time_seconds": avg_ack,
-            "avg_resolution_time_seconds": avg_res,
-            "total_events": total_events,
-            "events_by_type": dict(by_type),
-            "sla_compliance_rate": rate,
-        }
-
-    def get_trend(self, source: str = "real", bucket: str = "day") -> List[dict]:
-        """ค่าเฉลี่ย SLA แบ่งช่วงเวลา — จัดกลุ่มใน Python จาก prefix ของ timestamp (ไม่ต้องมี index เพิ่ม)"""
-        if bucket == "day":
-            cutoff = (datetime.now() - timedelta(hours=24)).isoformat()
-            prefix_len = 13
-        elif bucket == "month":
-            cutoff = (datetime.now() - timedelta(days=30)).isoformat()
-            prefix_len = 10
-        else:
-            cutoff = (datetime.now() - timedelta(days=365)).isoformat()
-            prefix_len = 7
-        groups: Dict[str, Dict] = {}
-        for snap in self._events.stream():
-            d = snap.to_dict()
-            if source and d.get("source", "real") != source:
-                continue
-            ts = d.get("timestamp") or ""
-            if ts < cutoff:
-                continue
-            key = ts[:prefix_len]
-            g = groups.setdefault(key, {"total": 0, "ack": [], "res": [], "breached": 0})
-            g["total"] += 1
-            if d.get("ack_time_seconds") is not None:
-                g["ack"].append(d["ack_time_seconds"])
-            if d.get("resolution_time_seconds") is not None:
-                g["res"].append(d["resolution_time_seconds"])
-            if d.get("sla_breached"):
-                g["breached"] += 1
-        return [
-            {
-                "bucket": key,
-                "total": g["total"],
-                "avg_ack": round(sum(g["ack"]) / len(g["ack"]), 1) if g["ack"] else None,
-                "avg_res": round(sum(g["res"]) / len(g["res"]), 1) if g["res"] else None,
-                "breached": g["breached"],
-            }
-            for key, g in sorted(groups.items())
-        ]
-
-    def get_room_events(self, room_id: str, limit: int = 20) -> List[dict]:
-        # ดึง 200 ล่าสุดแล้วกรองห้องใน Python — หลีกเลี่ยง composite index (room_id + timestamp)
-        out = []
-        query = self._events.order_by("timestamp", direction=self._fs.Query.DESCENDING).limit(200)
-        for snap in query.stream():
-            ev = self._snap_to_event(snap)
-            if ev["room_id"] == room_id:
-                out.append(ev)
-                if len(out) >= limit:
-                    break
-        return out
-
-    def reset(self):
-        # Firestore ไม่มี delete-all — ลบทีละ batch (500 ต่อรอบ)
-        for coll in (self._events, self._room_state):
-            while True:
-                snaps = list(coll.limit(500).stream())
-                if not snaps:
-                    break
-                batch = self._db.batch()
-                for snap in snaps:
-                    batch.delete(snap.reference)
-                batch.commit()
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Factory — เลือก backend จาก env SNC_DB_BACKEND (sqlite | firestore)
+# Factory — returns SqliteStore
 # ═══════════════════════════════════════════════════════════════════════════
 _store = None
 
@@ -539,19 +308,6 @@ _store = None
 def get_store():
     global _store
     if _store is None:
-        backend = os.getenv("SNC_DB_BACKEND", "sqlite").strip().lower()
-        k_service = os.getenv("K_SERVICE", "")
-        if k_service and backend != "firestore":
-            logging.critical(
-                "SNC_DB_BACKEND=%s on Cloud Run service '%s' — forcing 'firestore' "
-                "(container filesystem is ephemeral; SQLite would lose events on scale-to-zero)",
-                backend or "(unset)", k_service,
-            )
-            backend = "firestore"
-        if backend == "firestore":
-            _store = FirestoreStore()
-            logging.info("Event store: Firestore (persistent — Cloud Run)")
-        else:
-            _store = SqliteStore()
-            logging.info(f"Event store: SQLite ({_store.db_path})")
+        _store = SqliteStore()
+        logging.info(f"Event store: SQLite ({_store.db_path})")
     return _store

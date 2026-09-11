@@ -68,10 +68,6 @@ BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
 BACKEND_API_KEY = os.getenv("SNC_API_KEY", "")
 # SNC_API_KEY ต้องตรงกับค่าใน backend/.env (server.py ตรวจ X-API-Key ที่ /api/events/trigger)
 
-# Cloud Run (optional) — ส่ง event ไป cloud backend ด้วย เพื่อให้ cloud dashboard มีข้อมูลสด
-# (ว่าง = ปิด) ตั้งใน pbx/.env:  CLOUD_RUN_API_URL=https://snc-cloud-backend-...run.app
-CLOUD_RUN_API_URL = os.getenv("CLOUD_RUN_API_URL", "")
-
 # รองรับทั้ง ==SMDX และ --SMDX (PC Operator บางเวอร์ชันแสดง -- แต่ wire format มักเป็น ==)
 # Example with prefix: ==SMDX2005=03/08/26 18:59 401 e.400 EC 0:00'09 0 #1
 # Example without prefix: 10/08/26 14:54 401 e.400 EC 0:00'05 0 #1
@@ -373,10 +369,8 @@ class PhonikSNCListener:
                 "event_type": payload.get("payload", [{}])[0].get("contentString", ""),
                 "event_id": event_id,   # idempotency key — backend dedup
             }
-            # critical path = local backend; cloud เป็น best-effort (ไม่ gate sent)
+            # critical path = local backend
             local_ok = await self._post_event("local", self.backend_url, body)
-            if CLOUD_RUN_API_URL:
-                await self._post_event("cloud", CLOUD_RUN_API_URL, body)
 
             if local_ok:
                 self.outbox.mark_sent(event_id)
@@ -387,7 +381,7 @@ class PhonikSNCListener:
                 logging.error(f"⏳ Outbox: event {event_id} ยังส่งไม่ได้ (pending)")
 
     async def _post_event(self, label: str, url: str, payload: dict) -> bool:
-        """POST 1 event ไปยังปลายทาง (local/cloud) — คืน True ถ้าสำเร็จ/duplicate"""
+        """POST 1 event ไปยัง backend — คืน True ถ้าสำเร็จ/duplicate"""
         logging.info(f"Attempting to send event to {label} backend: {payload}")
         try:
             async with self.http_session.post(
@@ -410,7 +404,7 @@ class PhonikSNCListener:
                     )
                     return False
         except Exception as e:
-            # cloud (cold start/network) ล้มไม่ควรทำให้ local event สูญหาย — log อย่างเดียว
+            # backend ล้มไม่ควรทำให้ event สูญหาย — log อย่างเดียว
             logging.error(f"❌ Error sending event to {label} backend ({url}): {e}")
             return False
 
@@ -737,8 +731,7 @@ class PhonikSNCListener:
         self.is_running = True
         await self.init_http_session()
         logging.info(
-            f"Backend targets: local={self.backend_url}"
-            + (f", cloud={CLOUD_RUN_API_URL}" if CLOUD_RUN_API_URL else " (cloud ปิด — ไม่ส่งขึ้น Cloud Run)")
+            f"Backend target: local={self.backend_url}"
         )
 
         # เริ่มต้นรัน Built-in TCP Proxy Server เพื่อแชร์ข้อมูลให้ Room Manager บนพอร์ต 2323

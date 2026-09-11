@@ -28,7 +28,6 @@
 | 📡 **SMDR ผ่าน Telnet** | อ่านสัญญาณจากตู้ Phonik PBX (`192.168.1.91:23`) ถอดรหัสเป็น FHIR JSON |
 | 🗺️ **Dashboard ไทย/อังกฤษ** | Grid ห้องพัก (เขียว=ปกติ / แดงกะพริบ=ฉุกเฉิน / เหลือง=รับเรื่อง) + เสียงเตือน |
 | ⏱️ **SLA / Response Time** | จับเวลาตั้งแต่ Alert จนกว่าพยาบาลจะ Acknowledge/Clear |
-| ☁️ **Cloud + Edge** | Pi4 รัน local, Cloud Run เป็นสำรอง + แจ้งเตือน Telegram |
 | 🛡️ **FHIR Ready** | Payload มาตรฐาน HL7 FHIR JSON ตั้งแต่วันแรก พร้อมขึ้น GCP Healthcare API |
 
 ---
@@ -46,14 +45,6 @@ flowchart TB
         BACKEND --> DB[(SQLite WAL)]
     end
 
-    subgraph CLOUD["☁️ Cloud — GCP (hotel-ecs-nithep)"]
-        CR_BE["snc-cloud-backend<br/>(Cloud Run)"] --> FS[(Firestore)]
-        BRIDGE["snc-alert-bridge<br/>(Cloud Run)"]
-        SM["Secret Manager<br/>(4 secrets)"]
-        MON["Cloud Monitoring<br/>(uptime + alert)"]
-        MON --> BRIDGE
-    end
-
     subgraph NET["🌐 Cloudflare"]
         TUNNEL["cloudflared tunnel<br/>(outbound only)"]
         DOMAIN["snc.nithep.com"]
@@ -67,8 +58,6 @@ flowchart TB
     BACKEND --> TUNNEL
     DOMAIN --> UI
     UI --> BACKEND
-    BACKEND --> CR_BE
-    BRIDGE -->|"Telegram"| TG["@snc2569_bot"]
     LISTENER -->|"rsync / git"| GIT["GitHub nithep/snc"]
 ```
 
@@ -78,7 +67,7 @@ flowchart TB
 
 | โฟลเดอร์ | บทบาท |
 |---|---|
-| **`api/`** | 🔧 API Server (FastAPI + SQLite/Firestore + WebSocket) — Business Logic, SLA/KPI, FHIR |
+| **`api/`** | 🔧 API Server (FastAPI + SQLite + WebSocket) — Business Logic, SLA/KPI, FHIR |
 | **`app/`** | 🖥️ Nurse Dashboard (`index.html` self-contained, Dark Mode, i18n ไทย/อังกฤษ) |
 | **`pbx/`** | 📞 SMDR/Telnet Edge Listener (`snc_pbx_listener.py`) + Outbox + TCP proxy |
 | **`ops/`** | ⚙️ DevOps — Deploy, systemd units, Terraform IaC, Backup, Monitoring |
@@ -119,7 +108,7 @@ curl -s http://localhost:8000/health
 
 ## 🛡️ ความปลอดภัย & ความทนทาน (Security & Durability)
 
-- 🔑 **API Key** (`SNC_API_KEY`) กันการโจมตีจาก LAN — ตรงกันทั้ง Pi + Cloud Run
+- 🔑 **API Key** (`SNC_API_KEY`) กันการโจมตีจาก LAN — ตรงกันทั้ง Pi4
 - 📤 **Outbox + Idempotency** (ADR 0004) — กัน event หาย/ซ้ำ, SLA นับถูก
 - 🔁 **Self-Healing** — systemd `Restart=always` + PBX Watchdog
 - 💾 **SQLite WAL** + auto-backup (cron) + offsite backup
@@ -135,7 +124,7 @@ curl -s http://localhost:8000/health
 |---|---|
 | [0001](doc/adr/0001-record-architecture-decisions.md) | มาตรฐานการบันทึก ADR |
 | [0002](doc/adr/0002-separate-alert-bridge.md) | แยก Alert Bridge เป็น service อิสระ |
-| [0003](doc/adr/0003-firestore-over-sqlite-cloud.md) | Firestore แทน SQLite บน Cloud Run |
+| [0003](doc/adr/0003-firestore-over-sqlite-cloud.md) | Firestore แทน SQLite บน Cloud Run (deprecated — ลบแล้ว) |
 | [0004](doc/adr/0004-outbox-idempotency.md) | Outbox + Idempotency (กัน data loss) |
 | [0005](doc/adr/0005-iac-terraform.md) | IaC ด้วย Terraform |
 | [0006](doc/adr/0006-broker-dual-pi.md) | (อนาคต) Broker + Dual Pi |

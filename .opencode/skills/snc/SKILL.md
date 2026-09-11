@@ -90,7 +90,7 @@ snc/
 | Parser tests (26+ tests) | `pbx/test_smdr_parser.py` |
 | Outbox tests | `pbx/test_event_outbox.py` |
 | Backend | `api/server.py` |
-| Storage layer (SQLite/Firestore) | `api/storage.py` |
+| Storage layer (SQLite) | `api/storage.py` |
 | Bridge server (ADR 0002) | `api/bridge_server.py` |
 | Main dashboard | `app/index.html` (v2.0: settings modal + API key, SLA count-up, KPI bars, i18n) |
 | Landing page | `app/landing.html` |
@@ -226,7 +226,7 @@ sending `..VERS=\r\n` every **30s** to hold the connection 24/7.
 
 | Secret | Where | Sync? |
 |--------|-------|-------|
-| `SNC_API_KEY` | Pi `api/.env` + Pi `pbx/.env` + Cloud Run `snc-cloud-backend` | **ต้องตรงกันทั้ง 3 จุด** |
+| `SNC_API_KEY` | Pi `api/.env` + Pi `pbx/.env` | **ต้องตรงกันทั้ง 2 จุด** |
 | `TELEGRAM_BOT_TOKEN` | Pi `api/.env` + Cloud `snc-telegram-bot-token` | หมุนพร้อมกัน 2 ฝั่ง |
 | `MONITOR_WEBHOOK_TOKEN` | Cloud Monitoring channel URL + bridge | กัน spoofing |
 | Cloudflare Tunnel token | `/etc/snc/cloudflared.env` (Pi, chmod 600) | หมุนผ่าน `setup-cloudflared.sh` |
@@ -255,8 +255,8 @@ sending `..VERS=\r\n` every **30s** to hold the connection 24/7.
 | ADR | เรื่อง | สถานะ | เชื่อมกับ |
 |-----|--------|--------|-----------|
 | **0001** | บันทึกสถาปัตยกรรม (ADR pattern) | Accepted | → 0002-0009 ทั้งหมด |
-| **0002** | แยก SNC Alert Bridge เป็น service ต่างหาก | Accepted | → 0003 (Firestore), 0005 (IaC) |
-| **0003** | ใช้ Firestore (แทน SQLite) บน Cloud Run | Accepted | → `api/storage.py` (factory interface) |
+| **0002** | แยก SNC Alert Bridge เป็น service ต่างหาก | Deprecated | Cloud Run ถูกลบแล้ว |
+| **0003** | ใช้ Firestore (แทน SQLite) บน Cloud Run | Deprecated | Cloud Run ถูกลบแล้ว — ใช้ SQLite บน Pi4 เท่านั้น |
 | **0004** | Outbox + Idempotency (กัน data loss / duplicate) | Accepted | → `pbx/event_outbox.py` |
 | **0005** | Infrastructure-as-Code ด้วย Terraform | Proposed | → `ops/terraform/` |
 | **0006** | Message Broker + Dual-Pi (อนาคต/life-safety) | Pending | → เกณฑ์: consumer > 2 หรือ life-safety |
@@ -267,8 +267,7 @@ sending `..VERS=\r\n` every **30s** to hold the connection 24/7.
 ### Key Architecture Facts
 
 - **Edge DB:** SQLite WAL (`nurse_call_events.db`) — schema self-migrating via `ensure_column()`
-- **Cloud DB:** Firestore (native mode) — collections `nurse_call_events`, `room_state`
-- **Storage interface:** `api/storage.py` → `get_store()` factory, switched by env `SNC_DB_BACKEND`
+- **Storage interface:** `api/storage.py` → `get_store()` → `SqliteStore` (SQLite only)
 - **Outbox:** `pbx/event_outbox.py` → SQLite `snc_event_outbox` table → pending → retry → sent
 - **Idempotency:** listener sends `event_id` → backend dedup via `store.event_exists()` + `INSERT OR IGNORE`
 
@@ -286,16 +285,6 @@ sending `..VERS=\r\n` every **30s** to hold the connection 24/7.
 | `snc-tg-agent.service` | `/home/ecs-agent/snc` | Telegram Q&A agent |
 
 All run as `ecs-agent` user, `Restart=always`, `RestartSec=5s`.
-
-### Cloud Services (GCP — `hotel-ecs-nithep`)
-
-| Service | Purpose |
-|---------|---------|
-| `snc-cloud-backend` (Cloud Run) | Backend on Firestore (`SNC_DB_BACKEND=firestore`) |
-| `snc-alert-bridge` (Cloud Run) | Webhook → Telegram (ADR 0002, แยก service) |
-| Firestore | Persistent DB (scale-to-zero safe) |
-| Secret Manager | `snc-api-key`, `snc-telegram-bot-token`, `snc-monitor-webhook-token` |
-| Cloud Monitoring | Uptime check `/health` → alert → bridge → Telegram |
 
 ### Cloudflare Tunnel
 
@@ -439,7 +428,7 @@ Implement or document a change: keep FHIR-like shape, UTF-8 for Thai, update doc
 | 13 ส.ค. | Dashboard v2.0, Security Hardening, **Burn-in 48h เริ่ม**, 5-Core split |
 | 14 ส.ค. | Extension Inventory, Executive Report Upskill, Telegram bot live |
 | 15 ส.ค. | **Burn-in 48h Complete (0 FAIL)**, Post-Burnin Field Test Plan |
-| 16 ส.ค. | Cloud Run + Firestore + Monitoring Hardening |
+| 16 ส.ค. | Monitoring Hardening |
 | 17 ส.ค. | ADR 0001-0006 written, Outbox + Idempotency implemented |
 | 18 ส.ค. | ADR 0007-0008, Nomenclature cleanup, Domain migration nursecall→snc |
 | 19 ส.ค. | `snc.nithep.com` live, rotation guides, tunnel self-heal script |
@@ -516,8 +505,8 @@ Implement or document a change: keep FHIR-like shape, UTF-8 for Thai, update doc
 | ADR | Topic | Key files affected |
 |-----|-------|-------------------|
 | 0001 | ADR pattern | `doc/adr/` |
-| 0002 | Alert Bridge separation | `api/bridge_server.py`, `ops/deploy_bridge_cloudshell.sh` |
-| 0003 | Firestore on Cloud Run | `api/storage.py` |
+| 0002 | Alert Bridge separation (deprecated) | `api/bridge_server.py` |
+| 0003 | Firestore on Cloud Run (deprecated) | `api/storage.py` |
 | 0004 | Outbox + Idempotency | `pbx/event_outbox.py`, `api/server.py` |
 | 0005 | Terraform IaC | `ops/terraform/` |
 | 0006 | Broker + Dual-Pi (future) | — (pending) |

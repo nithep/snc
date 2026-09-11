@@ -501,7 +501,7 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <div class="feature reveal"><div class="ico">📡</div><h3>SMDR ผ่าน Telnet</h3><p>อ่านสัญญาณสดจากตู้ Phonik PBX (192.168.1.91:23) ถอดรหัสเป็น FHIR JSON โดย Listener บน Pi 4</p></div>
       <div class="feature reveal"><div class="ico">🗺️</div><h3>Dashboard ไทย/อังกฤษ</h3><p>Grid ห้องพัก เขียว=ปกติ แดง=ฉุกเฉิน เหลือง=รับเรื่อง พร้อมเสียงเตือน Alarm และโหมดมืดระดับพรีเมียม</p></div>
       <div class="feature reveal"><div class="ico">⏱️</div><h3>SLA / Response Time</h3><p>จับเวลาตั้งแต่ Alert จนกว่าพยาบาลจะ Acknowledge / Clear วัดประสิทธิภาพได้เชิงตัวเลข</p></div>
-      <div class="feature reveal"><div class="ico">☁️</div><h3>Cloud + Edge</h3><p>Pi 4 รัน local ใกล้ชิดฮาร์ดแวร์ Cloud Run เป็นสำรอง + แจ้งเตือน Telegram ผ่าน Cloudflare Tunnel</p></div>
+      <div class="feature reveal"><div class="ico">🖥️</div><h3>Pi4 Edge System</h3><p>Pi 4 รัน local ใกล้ชิดฮาร์ดแวร์ ประมวลผล event จริงจาก PBX ผ่าน Cloudflare Tunnel</p></div>
       <div class="feature reveal"><div class="ico">🛡️</div><h3>FHIR Ready</h3><p>Payload มาตรฐาน HL7 FHIR JSON ตั้งแต่วันแรก พร้อมต่อยอดขึ้น GCP Healthcare API / Vertex AI</p></div>
     </div>
   </div>
@@ -532,9 +532,9 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <p>แยกชัดเจนระหว่าง Edge (Pi 4), Cloud (GCP) และ Delivery — ทนทานต่อการหลุดของเครือข่าย · <a href="../doc/ARCHITECTURE_FLOW.md" style="color:var(--blue)">อ่าน architecture note ฉบับเต็ม</a></p>
     </div>
     <div class="knowledge-header reveal" aria-label="SNC architecture knowledge summary">
-      <div class="knowledge-card"><span class="knowledge-label">สถานะระบบ</span><strong>Hybrid · Edge-first + Cloud-assisted</strong><p>Pi4 ประมวลผล event จริงจาก PBX; Cloud Run ช่วย persistence, public API และ monitoring</p></div>
+      <div class="knowledge-card"><span class="knowledge-label">สถานะระบบ</span><strong>Edge-first</strong><p>Pi4 ประมวลผล event จริงจาก PBX ทั้งหมด — ไม่พึ่ง Cloud</p></div>
       <div class="knowledge-card"><span class="knowledge-label">Source of truth</span><strong>Pi4 + SQLite WAL</strong><p>ทำงานใกล้ฮาร์ดแวร์และยังรับ event ได้เมื่อ cloud หรือ tunnel ขัดข้อง</p></div>
-      <div class="knowledge-card"><span class="knowledge-label">Deploy path</span><strong>D:\\snc → GitHub → Pi4 / Cloud Run</strong><p>GitHub `nithep/snc` เป็นศูนย์กลาง version control และ deploy source</p></div>
+      <div class="knowledge-card"><span class="knowledge-label">Deploy path</span><strong>D:\\snc → GitHub → Pi4</strong><p>GitHub `nithep/snc` เป็นศูนย์กลาง version control และ deploy source</p></div>
       <div class="knowledge-card"><span class="knowledge-label">Alerting</span><strong>Monitoring → Bridge → Telegram</strong><p>Alert bridge แยกจาก backend หลัก เพื่อหลีกเลี่ยง shared failure</p></div>
     </div>
     <div class="arch">
@@ -545,8 +545,8 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
         <li>snc-backend FastAPI :8000</li>
         <li>SQLite WAL (local store)</li>
       </ul></div>
-      <div class="node reveal"><h4>☁️ Cloud · GCP <span class="tag">Cloud Run</span></h4><ul>
-        <li>snc-cloud-backend (Firestore)</li>
+      <div class="node reveal"><h4>☁️ Cloud · GCP <span class="tag">Deprecated</span></h4><ul>
+        <li>Cloud Run ถูกลบแล้ว — ระบบทำงานบน Pi4 เท่านั้น</li>
         <li>snc-alert-bridge (Telegram)</li>
         <li>Secret Manager (4 secrets)</li>
         <li>Cloud Monitoring + Uptime</li>
@@ -560,8 +560,8 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       </ul></div>
     </div>
     <div class="arch-notes reveal">
-      <div><h3>Key Learnings</h3><ul><li>แยก data plane ออกจาก alert plane</li><li>ใช้ outbox + event_id เป็น idempotency key</li><li>เก็บ secret ใน `.env` ที่จำกัดสิทธิ์ และ Secret Manager บน Cloud Run</li><li>Cloudflare Tunnel เป็น outbound; ไม่ใช้ LAN IP ใน ingress</li></ul></div>
-      <div><h3>Risks / Next Actions</h3><ul><li>ตรวจ tunnel/domain drift และ deploy parity</li><li>ตรวจ `SNC_API_KEY` ให้ตรงกันทุกชั้น</li><li>ทดสอบ synthetic event, retry และ idempotency</li><li>ยืนยัน uptime alert ของ Pi4 และ Cloud Run ผ่าน Telegram</li></ul></div>
+      <div><h3>Key Learnings</h3><ul><li>แยก data plane ออกจาก alert plane</li><li>ใช้ outbox + event_id เป็น idempotency key</li><li>เก็บ secret ใน `.env` ที่จำกัดสิทธิ์</li><li>Cloudflare Tunnel เป็น outbound; ไม่ใช้ LAN IP ใน ingress</li></ul></div>
+      <div><h3>Risks / Next Actions</h3><ul><li>ตรวจ tunnel/domain drift</li><li>ตรวจ `SNC_API_KEY` ให้ตรงกันทุกชั้น</li><li>ทดสอบ synthetic event, retry และ idempotency</li><li>ยืนยัน uptime alert ของ Pi4 ผ่าน Telegram</li></ul></div>
     </div>
     <div class="tech reveal" style="margin-top:36px">
       <span class="chip"><b>Raspberry Pi 4</b></span>
@@ -570,8 +570,7 @@ footer { border-top: 1px solid var(--stroke); padding: 40px 0; margin-top: 40px;
       <span class="chip"><b>SQLite WAL</b></span>
       <span class="chip"><b>WebSocket</b></span>
       <span class="chip"><b>HL7 FHIR</b></span>
-      <span class="chip"><b>Google Cloud Run</b></span>
-      <span class="chip"><b>Firestore</b></span>
+      <span class="chip"><b>SQLite WAL</b></span>
       <span class="chip"><b>Cloudflare Tunnel</b></span>
       <span class="chip"><b>Telegram Bot</b></span>
       <span class="chip"><b>Docker</b></span>

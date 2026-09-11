@@ -37,8 +37,8 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-# Event Store — abstraction เหนือ SQLite (Pi4) / Firestore (Cloud Run)
-# เลือก backend ผ่าน env SNC_DB_BACKEND (ดู api/storage.py)
+# Event Store — SQLite backend (Pi4)
+# ดู api/storage.py สำหรับรายละเอียด
 from storage import get_store
 from core.download_service import DownloadService
 from core.approval import ApprovalInbox
@@ -164,7 +164,7 @@ app.add_middleware(
 # Serve static files (dashboard, frontend) — ชี้ไปที่ app/ (UI Dashboard) ตามโครงสร้าง 5-Core ใหม่
 # รองรับ 2 layout:
 #   1) Repo/5-Core (Pi4):      api/server.py  +  app/  →  ../app
-#   2) Container (Cloud Run):  /app/server.py + /app/app/ → app  (dirname(__file__) = /app)
+#   2) Container:  /app/server.py + /app/app/ → app  (dirname(__file__) = /app)
 _server_dir = os.path.dirname(os.path.abspath(__file__))
 _static_candidates = [
     os.path.join(_server_dir, "..", "app"),
@@ -729,7 +729,7 @@ def _systemd_service_status(service_name: str):
             check=False,
         )
     except FileNotFoundError:
-        # ไม่ใช่ failure — Cloud Run/Windows ไม่มี systemd (PBX Listener รันที่ Pi เท่านั้น)
+        # ไม่ใช่ failure — Windows ไม่มี systemd (PBX Listener รันที่ Pi เท่านั้น)
         return "skipped", "ไม่มี systemd — PBX Listener รันที่ Edge Pi เท่านั้น"
     except (OSError, subprocess.TimeoutExpired) as exc:
         return "unknown", f"ตรวจสอบ systemd ไม่ได้ ({type(exc).__name__})"
@@ -754,7 +754,7 @@ def health_check():
         "database": {"status": "healthy", "message": f"เชื่อมต่อได้ ({store.backend_name})"},
         "pbx_listener": {"status": listener_status, "message": listener_message},
         "websocket": {"status": "healthy", "message": "พร้อมรับการเชื่อมต่อ"},
-        "cloud_run": {"status": "ready", "message": "พร้อมให้บริการ"},
+        "cloud_run": {"status": "removed", "message": "Cloud Run ถูกลบแล้ว — ระบบทำงานบน Pi4 เท่านั้น"},
     }
     # skipped (ไม่มี systemd) ไม่นับเป็นปัญหา — สถานะ down/degraded/unknown เท่านั้นที่กระทบสถานะรวม
     failed = [name for name, check in checks.items() if check["status"] in {"down", "failed"}]
