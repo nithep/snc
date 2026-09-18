@@ -987,3 +987,16 @@ urse_call_events.db) เนเธฅเธฐเธชเธฃเนเธฒเธ Compact Payloads (event_*.json เธ
 
 - **เธชเธ–เธฒเธเธฐ:** โ… เธฃเธฐเธเธ SNC เธฅเธตเธเธชเธธเธ”เน โ€” Pi4 เน€เธ—เนเธฒเธเธฑเนเธ เนเธกเนเธเธถเนเธ Cloud เนเธ”เน
 
+
+## [2026-09-18] Steady-State Verification (No Code Change Since 09-12)
+
+**ผู้ดำเนินการ:** Senior Software Engineer (opencode)
+
+**รายละเอียด:**
+- **Git:** HEAD 67edf98 = origin/main, working tree สะอาด — ไม่มี commit ใหม่ตั้งแต่ 12/9
+- **Tests:** pytest tests/ pbx/test_smdr_parser.py  **76 passed + 4 subtests**
+- **Arch:** ยืนยัน Pi4-only (SQLite WAL, ไม่มี Cloud Run/GCP) — ไม่เปลี่ยนจาก 09-12
+- **เอกสาร:** [[SESSION_HANDOVER_2026-09-18]]
+- **ค้าง:** live verify บน Pi4 (health + synthetic trigger), E2E field test, อัปเดต SKILL.md STEP 12 latest-handover, ตรวจ cron backup DB
+
+- **สถานะ:** ? Steady state — repo สะอาด + test ผ่านครบ
