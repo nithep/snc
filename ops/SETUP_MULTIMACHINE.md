@@ -4,9 +4,8 @@
 > `landing` → Cloudflare Pages, `portal` → Cloud Run, `snc/cctv` → Pi4
 > ห้ามยุบ landing/portal เข้า snc (คนละ deploy target + security boundary)
 
-> **Tailscale ยกเลิกแล้ว (2026-09-28)** — Pi กับ MateBook logged out + service disabled แล้ว
+> **Tailscale ถอนออกแล้ว (2026-09-28)** — logged out ก่อน แล้ว purge package บน Pi; MateBook service ถูกปิด. หากต้องกลับมาใช้ต้องติดตั้งใหม่บน Pi แล้ว login ใหม่
 > `ssh pi4` ใช้ได้เฉพาะใน LAN (หรือผ่าน WireGuard tunnel → `10.0.0.1`); นอก LAN ใช้ web terminal ที่ `https://snc-opencode.nithep.com` (Basic auth, รันในฐานะ ecs-agent) — ไม่ใช่ SSH เต็มรูปแบบ; งานยาวรันใน `tmux` (ติดตั้งบน Pi แล้ว 2026-09-28) กัน browser หลุดแล้ว process ตาย
-> rollback Pi: `sudo systemctl enable --now tailscaled && sudo tailscale up`; MateBook: `sc config Tailscale start= auto` + `tailscale up`
 
 ## 1. สถานะปัจจุบัน (ตรวจ 2026-09-21 บน MateBook)
 
