@@ -71,6 +71,8 @@ tags: [knowledge]
 ---
 
 ## 📦 Handover ล่าสุด (Session ต่อเนื่อง — อ่านตัวนี้ก่อน)
+- **[[SESSION_HANDOVER_2026-09-28|Handover 28 ก.ย.]]** — Tailscale decommission/purge, ยืนยัน Cloudflare web terminal, ติดตั้ง tmux; Termius + Android nodes รอ admin/account
+- **[[SESSION_HANDOVER_2026-09-18|Handover 18 ก.ย.]]** — Steady-state verification
 - **[[SESSION_HANDOVER_2026-09-07|Handover 7 ก.ย.]]** — ล่าสุด: Deploy ADR 0014 (Remove Kiosk Scaling) + Pi Git Sync + CRLF Fix
 - **[[SESSION_HANDOVER_2026-09-05|Handover 5 ก.ย.]]** — Knowledge Loop Live-Run Hardening + Pi Repo Sync
 - **[[SESSION_HANDOVER_2026-09-03|Handover 3 ก.ย.]]** — Kiosk Fit-to-Screen v2 + Deploy Script Hardening
