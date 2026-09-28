@@ -27,7 +27,7 @@
 
 ## 4. Network / SSH
 
-1. `ssh ecs-agent@192.168.1.94` ใช้ได้เฉพาะใน LAN — นอกบ้านต้องผ่าน Tailscale/Cloudflare Tunnel ก่อน ห้าม forward port 22 ออกเน็ตตรงๆ
+1. `ssh ecs-agent@192.168.1.94` ใช้ได้เฉพาะใน LAN เท่านั้น — **Tailscale ยกเลิกแล้ว (2026-09-28)** ไม่มีทาง SSH นอก LAN (Cloudflare Tunnel เป็น HTTP สำหรับ app `snc-opencode`, ไม่ใช่ SSH) ห้าม forward port 22 ออกเน็ตตรงๆ เสมอ
 2. deploy script ต้องใช้ key แบบไม่ใส่รหัส (`BatchMode=yes`) + `sudo -n` แบบไม่ใส่รหัส — ถ้าเครื่องใหม่ยังใส่รหัสอยู่ให้แก้ `~/.ssh/config` + `ssh-copy-id` ก่อน อย่าแก้ script ไปใช้รหัส
 3. หลัง deploy ทุกครั้งต้อง `curl -s http://localhost:8000/health` + `systemctl status snc-backend snc-pbx-listener` — health ไม่ OK ห้ามปิดเครื่องหนี
 

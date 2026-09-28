@@ -37,7 +37,7 @@ when-to-use: >
 3. ห้ามใส่ `cctv` (yolov8n.pt prototype) เป็น autostart — กันแย่ง CPU/RAM กับ `snc-backend` (critical path)
 4. ห้ามแตะ `nurse_call_events.db` ตรงๆ — backup ด้วย `ops/backup-snc-db.sh` ก่อน
 5. ห้าม commit `.env / *.pem / *service-account*.json / *credentials*.json` — key แจกเป็น env ต่อเครื่อง (`chmod 600`) หมุนตาม `doc/wiki/SNC_API_KEY_ROTATION_GUIDE.md`
-6. ห้ามเปิด port 22 ออกเน็ต — นอก LAN ต้องผ่าน Tailscale / Cloudflare Tunnel
+6. ห้ามเปิด port 22 ออกเน็ต — Tailscale ยกเลิกแล้ว (2026-09-28) `ssh` ใช้ได้เฉพาะใน LAN; Cloudflare Tunnel ครอบแค่ HTTP (`snc-opencode`) ไม่ใช่ SSH
 7. ห้ามใช้ LAN IP ใน Cloudflare ingress — ใช้ `localhost` (กัน 502 จาก DHCP drift)
 
 ## 3. Preflight ก่อน ssh/deploy (รันจากเครื่อง dev)

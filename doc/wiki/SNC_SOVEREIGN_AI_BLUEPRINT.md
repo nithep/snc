@@ -59,7 +59,7 @@ tags: [knowledge]
 * **มาตรฐานข้อมูล**: บันทึกในรูปแบบ **HL7 FHIR JSON** ตั้งแต่ต้นทางเพื่อความเป็นสากลและความปลอดภัยของข้อมูลผู้ป่วย (PDPA / HIPAA Compliant)
 
 ### 4. การเข้าถึงระยะไกลแบบไร้พอร์ต (Outbound-only Zero Trust Tunnel)
-* **ความปลอดภัย**: สื่อสารทางไกลผ่าน **Cloudflare Tunnel (Outbound TCP Stream)** หรือ **Tailscale Mesh VPN**
+* **ความปลอดภัย**: สื่อสารทางไกลผ่าน **Cloudflare Tunnel (Outbound TCP Stream)** — Tailscale Mesh VPN ยกเลิกแล้ว (2026-09-28)
 * **ผลลัพธ์**: ปิดพอร์ตขาเข้า (Inbound Ports = 0) ป้องกัน Port Scan และ Hacker Attack 100%
 
 ---
