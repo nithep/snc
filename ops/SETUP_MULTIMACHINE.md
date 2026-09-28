@@ -5,7 +5,7 @@
 > ห้ามยุบ landing/portal เข้า snc (คนละ deploy target + security boundary)
 
 > **Tailscale ยกเลิกแล้ว (2026-09-28)** — Pi กับ MateBook logged out + service disabled แล้ว
-> `ssh pi4` ใช้ได้เฉพาะใน LAN; Cloudflare Tunnel ครอบแค่ HTTP (`snc-opencode`), ไม่มี SSH นอก LAN
+> `ssh pi4` ใช้ได้เฉพาะใน LAN (หรือผ่าน WireGuard tunnel → `10.0.0.1`); นอก LAN ใช้ web terminal ที่ `https://snc-opencode.nithep.com` (Basic auth, รันในฐานะ ecs-agent) — ไม่ใช่ SSH เต็มรูปแบบ
 > rollback Pi: `sudo systemctl enable --now tailscaled && sudo tailscale up`; MateBook: `sc config Tailscale start= auto` + `tailscale up`
 
 ## 1. สถานะปัจจุบัน (ตรวจ 2026-09-21 บน MateBook)
@@ -77,4 +77,4 @@ sudo systemctl status snc-backend snc-pbx-listener --no-pager
 2. `node_modules/`, `.venv/`, `*.db`, `.env` ไม่ต้อง commit — `npm install` / สร้าง `.env` ใหม่บนแต่ละเครื่อง
 3. `Pass-Key.txt` ใน nithep-platform ห้ามเข้า git, ห้ามวางบน Pi แบบ plaintext
 4. `cctv` เป็น prototype — รัน manual เท่านั้น ห้ามใส่ autostart ทับ SNC (critical path)
-5. นอกบ้าน (ไม่อยู่ LAN 192.168.1.x) — `ssh` ใช้ไม่ได้แล้ว (Tailscale ยกเลิก 2026-09-28) ให้เข้า LAN ก่อน (VPN/Wi-Fi) เสมอ ห้ามเปิด port 22 ออกเน็ตตรงๆ; Cloudflare Tunnel ใช้เฉพาะ HTTP สำหรับ app (`snc-opencode`), ไม่มี SSH
+5. นอกบ้าน (ไม่อยู่ LAN 192.168.1.x) — `ssh` ใช้ไม่ได้ (Tailscale ยกเลิก 2026-09-28) ให้ (ก) เข้า LAN/WireGuard แล้ว ssh เต็มรูปแบบ หรือ (ข) ใช้ web terminal `https://snc-opencode.nithep.com` (Basic auth) สำหรับแก้โค้ด/รัน agent ห้ามเปิด port 22 ออกเน็ตตรงๆ
